@@ -1077,11 +1077,11 @@ to wreck a normal PC.
   1-3B models) on its own Minecraft knowledge: the Knowledge Book, its memories and the
   history of its conversations.
 - **Stages:**
-  1. Chat: it can talk in game chat, behind layered safety (an output filter, a block list,
+  1. **O1 Chat** (optional milestone): it can talk in game chat, behind layered safety (an output filter, a block list,
      topic limits, rate limits and an off switch).
-  2. Client commands: the person running the client gives tasks in plain words with a
+  2. **O2 Client commands** (optional milestone): the person running the client gives tasks in plain words with a
      command (e.g. `/mgb ask go build an iron farm near base`), instead of menus.
-  3. Voice: a voice chat mod integration with local speech-to-text (e.g. Whisper),
+  3. **O3 Voice** (optional milestone): a voice chat mod integration with local speech-to-text (e.g. Whisper),
      recognising who is speaking, replying with local text-to-speech.
 - **Who can command it:** only the person running the client, unless a future version can
   make other people's commands provably safe. Others can talk to it; it doesn't take orders
