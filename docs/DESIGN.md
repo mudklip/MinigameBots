@@ -259,6 +259,31 @@ Each tick the brain receives:
    "figure it out" objective, and turned into numbers and keyword flags for the brain.
 7. **Goal input:** the current goal and its parameters (section 4.6).
 
+### 3.3.1 Allegiance: insignia and factions
+
+Players start **neutral**. The Observer gives every player an **insignia**: a stable signature
+built from what anyone could see on them: shield base colour and banner pattern layers,
+offhand item, banner or dyed item worn on the head, leather armour dye colours and team
+colour. Then, per player:
+
+- **Looks like my side:** their insignia matches the AI's own (a fixed comparison, so it works
+  for designs it has never seen).
+- **Looks like the enemy:** the insignia was marked hostile because someone wearing it hit the
+  AI or the person it protects (from exact who-hit-whom data). Everyone else wearing it is then
+  treated as hostile before they swing.
+- **Neutral:** no match either way.
+
+The marks live in the per-world friend/enemy memory (M9), and you can edit them there. Which
+signal wins when they disagree (team colour vs shield, for example) is a setting. Training
+decides what to *do* about each group (don't hit allies, help them, go after the enemy
+insignia, leave neutrals alone unless they attack) through recordings and team scenarios in
+the Training Grounds. With training it can also learn that behaviour beats insignia: a
+matching shield that attacks is an enemy. Limits: it relies on visible insignia; copied shields
+fool it until the wearer acts hostile, and swapping shields mid-fight resets the match.
+
+The Lite network gets these as per-entity flags; the VPT base only sees pixels, where a
+shield pattern far away is a few pixels, so it gets the flags through the mod's extra inputs.
+
 ### 3.4 Event Detector (client-side rewards)
 
 This turns raw game changes into named events for the reward system:
@@ -881,7 +906,7 @@ Each milestone ends with tests, a working jar, and a short demo you can try.
 | M6b | **Foundation** | VPT port, Foundations screen (download, verify, convert), "vpt" brain, VPT base in the Training screen training the AI's own top layers (done; full Foundation Adaptation to 26.3 visuals comes with more recordings) |
 | M7 | **Training Grounds core** | Arenas, reset, scenarios, dummies, aim trainer, ground-truth events, lockstep |
 | M8 | **Objectives and RL** | Objective editor, escrow/priority/budget rewards, PPO, KL-to-prior, exams |
-| M9 | **Memory** | Meta-actions, waypoints, coarse map, memory screen |
+| M9 | **Memory** | Meta-actions, waypoints, coarse map, memory screen, friend/enemy memory with insignia factions (3.3.1) |
 | M10 | **Skills and Manager** | Skill modules, interrupts, goals, merge, distillation |
 | M11 | **Combat league** | Self-play matchmaking, scripted opponents, fast-sim aim |
 | M12 | **Realism** | Realism critic, humanizer tuning from your data |
@@ -913,6 +938,28 @@ Each milestone ends with tests, a working jar, and a short demo you can try.
 | Reward design can teach weird behavior | Editor warnings, exams, KL-to-prior, realism critic |
 | No chat intelligence (no language model) | Canned replies; documented limitation |
 | First-time setup download about 3 GB | One-time; progress shown in the Setup screen |
+
+### 10.1 What it can and can't learn
+
+Rule of thumb: if you can show it many times, or the game can score it automatically, it can
+learn it. If it needs language, long-term invention or common sense, it struggles.
+
+**Learns well:** combat (timing, aim, strafing, shields, rods, bows and any demonstrated or
+drilled weapon); chasing, escaping, protecting and team fights; repetitive tasks (mining,
+farming, bridging, demonstrated builds and traps, minigame routines); copying the recorded
+player's style; fast tick-by-tick reactions with human-like delay.
+
+**Learns, but weakly or slowly:** long plans (beating the game, base organisation, multi-hour
+goals; memory and the Manager help, but it stays rough); large original builds (it copies
+styles rather than designing); brand-new minigames (general skills transfer, then it needs a
+few examples or practice); redstone beyond what it was shown; heavy crafting and inventory
+menu work.
+
+**Can't:** understand chat beyond simple patterns or hold a conversation (no language model);
+read signs, books or rules and act on them; learn from videos without the Video Lab and your
+answers (and videos stay weaker than recordings); know server rules or mechanics it never saw
+or explored; beat top players out of the box (its ceiling is training time on your GPU;
+self-play can pass you in narrow skills); anything needing real-world knowledge.
 
 ---
 
