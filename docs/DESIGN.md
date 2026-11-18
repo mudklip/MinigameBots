@@ -732,6 +732,36 @@ or a lightweight client-only version without it. Each produces a score per check
 
 The Exams screen shows trends, which tell you what to train next.
 
+### 4.10 Training shortcuts
+
+Ways to save training time that keep the final AI legit: anything cheat-like is used only
+while training, as a teacher; the AI that plays always uses virtual keyboard and mouse.
+
+- **Teacher opponents (M11):** Training Grounds can field "godly" scripted PvPers that are
+  allowed to cheat (perfect aim and reach, frame-perfect crits, w-taps, shield timing, every
+  advanced technique from 4.6.1). They're the hardest sparring partners and set the ceiling
+  for drills.
+- **Teacher demos (M11):** a client-side teacher mode, only active with a Training Grounds
+  link, drives the AI's own player through the same virtual input with the humanizer on:
+  pathfinding and bridging (using **Baritone**, see below), perfect aim, schematic building,
+  technique drills. Everything it does is recorded as demonstrations to imitate, so movement,
+  navigation and building get unlimited free demos; practice then pushes past the teacher.
+- **Baritone:** permission given to use it. It's LGPL-3.0: we use it as a separate library
+  (optional dependency, loaded only in teacher mode), not copied into our code, so the
+  licence is respected and the main mod doesn't need it. Baritone is a client-side mod; it
+  needs a build for the running Minecraft version (26.3 support to be checked at M11). Server
+  dummies use our own simple pathfinding.
+- **Mirrored recordings (M10):** every recording also trains flipped left-to-right (image,
+  strafing, turning, block cube and crowd radar), doubling the data for almost no code.
+- **Hindsight relabelling (M10):** when a goal attempt fails but reaches something else, it's
+  also stored as a success for that something else, so every attempt teaches a goal.
+- **Weakness-weighted practice (M11):** exams find weak spots; practice picks those drills
+  and scenarios more often.
+- **"Which was better?" (M12):** you pick the better or more human of two short clips; a small
+  reward model learns your taste and adds to the Objective, faster than writing style rules.
+- **Already planned elsewhere:** fast simulation for combat (M11), learning from any video
+  through the input-guessing model (M13), Flashback replays of friends' games (M14).
+
 ### 4.8 Unseen gamemodes: "Figure It Out"
 
 This is a universal Objective built from signals most minigames share: my scoreboard value
@@ -983,9 +1013,9 @@ Each milestone ends with tests, a working jar, and a short demo you can try.
 | M7b | **Matches** | Matches (scenarios): arena + coloured scoreboard teams with spawns, kits and dummies; win rules (last team standing, first to N kills, most kills in time, survive); countdown, knock-outs as spectator, results, automatic rounds; "match AI speed" slows the game to the slowest AI (done). Insignia (shield) teams come with M9 |
 | M8 | **Objectives and RL** | Objective editor, escrow/priority/budget rewards with warnings, PPO practice in the background with KL-to-prior ("stay human"), exams over Training Grounds rounds (done for the Lite base; VPT-base practice, realism critic and curiosity bonus come later) |
 | M9 | **Memory** | Waypoints per AI per world, coarse map, Memory screen with mini-map, friend/enemy memory with insignia factions (3.3.1), "mark" meta-action learned from recordings and practice (done) |
-| M10 | **Skills and Manager** | Skill modules, interrupts, goals, merge, distillation, built-in Minecraft knowledge (game data reader + facts file, section 4.6.1) |
-| M11 | **Combat league** | Self-play matchmaking, scripted opponents, fast-sim aim, drills for the advanced techniques (section 4.6.1) |
-| M12 | **Realism** | Realism critic, humanizer tuning from your data |
+| M10 | **Skills and Manager** | Skill modules, interrupts, goals, merge, distillation, built-in Minecraft knowledge (game data reader + facts file, section 4.6.1), hindsight relabelling of goals, mirrored recordings (section 4.10) |
+| M11 | **Combat league** | Self-play matchmaking, scripted opponents, fast-sim aim, drills for the advanced techniques (section 4.6.1), godly teacher opponents and client teacher mode with Baritone, teacher demos, practice weighted toward exam weaknesses (section 4.10) |
+| M12 | **Realism** | Realism critic, humanizer tuning from your data, "which was better?" clip comparisons training a style reward model (section 4.10) |
 | M13 | **Video Lab** | Pipeline, IDM labeling, reference atlas, Question Queue, Knowledge Book |
 | M14 | **Flashback** | Replay import, POV capture, re-render variety |
 | M15 | **Autonomy and polish** | Watchdog, idle behavior, protected zones, chat, Figure It Out, minigame templates and generator |
