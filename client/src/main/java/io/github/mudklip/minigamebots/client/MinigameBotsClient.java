@@ -11,6 +11,10 @@ import io.github.mudklip.minigamebots.client.observe.Observation;
 import io.github.mudklip.minigamebots.client.observe.Observer;
 import io.github.mudklip.minigamebots.client.observe.SoundTracker;
 import io.github.mudklip.minigamebots.client.observe.TextTracker;
+import io.github.mudklip.minigamebots.client.record.HumanInput;
+import io.github.mudklip.minigamebots.client.record.Recorder;
+import io.github.mudklip.minigamebots.client.record.RecordingIndicator;
+import io.github.mudklip.minigamebots.client.record.RecordingStore;
 import io.github.mudklip.minigamebots.common.MinigameBotsCommon;
 import io.github.mudklip.minigamebots.common.Protocol;
 import io.github.mudklip.minigamebots.common.net.Compatibility;
@@ -24,10 +28,12 @@ import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.client.player.ClientPlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +46,10 @@ public final class MinigameBotsClient implements ClientModInitializer {
 	private final TextTracker text = new TextTracker();
 	private final Observer observer = new Observer(sounds, text);
 	private final EventDetector events = new EventDetector();
+	private final HumanInput humanInput = new HumanInput();
+	private final Recorder recorder = new Recorder(
+			new RecordingStore(FabricLoader.getInstance().getGameDir().resolve("minigamebots/recordings")), humanInput);
+	private volatile @Nullable Observation lastObservation;
 	private long tick;
 	private volatile boolean watching;
 	public static final String MOD_ID = "minigamebots";
@@ -90,6 +100,19 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		return instance.events;
 	}
 
+	public HumanInput humanInput() {
+		return humanInput;
+	}
+
+	public Recorder recorder() {
+		return recorder;
+	}
+
+	/** Client ticks since the game started. */
+	public long tick() {
+		return tick;
+	}
+
 	public void setWatching(boolean on) {
 		watching = on;
 	}
@@ -101,7 +124,12 @@ public final class MinigameBotsClient implements ClientModInitializer {
 
 	/** Wires the AI's body into the game: input every tick, perception and events. */
 	private void registerBody() {
-		ClientTickEvents.START_CLIENT_TICK.register(client -> AgentControl.get().onStartTick(client));
+		ClientTickEvents.START_CLIENT_TICK.register(client -> {
+			AgentControl.get().onStartTick(client);
+			recorder.onStartTick(client, lastObservation);
+		});
+		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "recording"), new RecordingIndicator(recorder));
+		ClientLifecycleEvents.CLIENT_STOPPING.register(recorder::stop);
 		ClientTickEvents.END_CLIENT_TICK.register(this::endTick);
 		ClientLifecycleEvents.CLIENT_STARTED.register(client -> client.getSoundManager().addListener(sounds));
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, context) -> DebugCommands.register(dispatcher));
@@ -124,6 +152,7 @@ public final class MinigameBotsClient implements ClientModInitializer {
 			text.clear();
 		});
 
+		events.addListener(recorder::onEvent);
 		events.addListener(event -> {
 			if (watching) {
 				Minecraft client = Minecraft.getInstance();
@@ -141,15 +170,19 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		tick++;
 		sounds.setTick(tick);
 		if (client.level == null || client.player == null) {
+			lastObservation = null;
 			return;
 		}
 		// Perception costs CPU, so it only runs while something needs it.
-		if (AgentControl.aiActive() || watching) {
+		if (AgentControl.aiActive() || watching || recorder.recording()) {
 			Observation obs = observer.observe(client, tick);
+			lastObservation = obs;
 			if (obs != null) {
 				events.onTick(tick, obs, client.level);
 			}
 			FrameCapture.get().request(tick);
+		} else {
+			lastObservation = null;
 		}
 	}
 

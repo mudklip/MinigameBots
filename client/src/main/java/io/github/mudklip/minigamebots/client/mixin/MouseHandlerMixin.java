@@ -1,5 +1,6 @@
 package io.github.mudklip.minigamebots.client.mixin;
 
+import io.github.mudklip.minigamebots.client.MinigameBotsClient;
 import io.github.mudklip.minigamebots.client.control.AgentControl;
 import java.util.List;
 import net.minecraft.client.Minecraft;
@@ -33,6 +34,8 @@ public abstract class MouseHandlerMixin {
 	private void minigamebots$onButton(long handle, MouseButtonInfo info, int action, CallbackInfo ci) {
 		if (AgentControl.aiActive()) {
 			ci.cancel();
+		} else if (handle == minecraft.getWindow().handle()) {
+			MinigameBotsClient.instance().humanInput().onMouseButton(minecraft, info, action);
 		}
 	}
 

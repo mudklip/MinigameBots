@@ -21,7 +21,8 @@ The full plan is in [docs/DESIGN.md](docs/DESIGN.md).
 |---|---|
 | M1 Skeleton: two jars, versioned handshake | Done |
 | M2 Body: virtual input, Humanizer, background mode, hotkeys, Observer, Event Detector | Done |
-| M3 Recorder | Next |
+| M3 Recorder: record demos, marks, Recorder screen, playback viewer, export/import | Done |
+| M4 Brain link and runtime | Next |
 
 There is no brain yet: the AI's body can be driven with test scripts (below).
 
@@ -31,13 +32,26 @@ Rebindable in **Options > Controls > Key Binds > MinigameBots**.
 
 | Key | Action |
 |---|---|
-| F7 | Start/stop recording (arrives in M3) |
+| F7 | Start/stop recording |
 | F8 | Toggle AI control |
 | F9 | Emergency stop: the AI releases every key and you're back in control |
 | F10 | MinigameBots menu |
 
+Unbound by default (set them in Controls): mark good moment, mark mistake, mark base here.
+
 While the AI is in control your keyboard and mouse are ignored by that game window (apart from
 the hotkeys), so you can use the PC for other things. The game keeps running when unfocused.
+
+## Recording demos
+
+Press **F7** to record your own gameplay as training examples; press it again to stop. A REC
+badge shows while recording. Each tick saves what the AI would see (a 128x128 frame plus game
+state) and exactly what you did, in the AI's own input format. About 100-300 MB per hour.
+
+Manage recordings in **F10 > Recordings**: view them frame by frame, rename, tag, trim the part
+to train on, add marks, delete, and export to a single `.mgbrec` file to share. To import a
+friend's file, put it in `minigamebots/recordings/import/` and press Import. Format details:
+[docs/formats/recording.md](docs/formats/recording.md).
 
 ## Settings
 
@@ -55,6 +69,8 @@ Client-side only; they never reach the server.
 | `/mgb observe` | Save what the AI perceives to `minigamebots/debug/` (observation.json, frame.png) |
 | `/mgb watch on` / `off` | Show detected events (kills, damage, items, blocks...) in chat |
 | `/mgb events [n]` | List the last n detected events |
+| `/mgb rec start` / `stop` / `list` / `open` | Recorder controls |
+| `/mgb rec mark <type>` | Mark the current moment (good, mistake, base, or your own) |
 | `/mgb config` | Open settings |
 
 Script steps (separated by `;`): `hold <keys> <ticks>`, `tap <key>`, `look <yaw> <pitch>`,

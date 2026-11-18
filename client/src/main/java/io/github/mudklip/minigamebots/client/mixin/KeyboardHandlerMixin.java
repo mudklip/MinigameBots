@@ -1,5 +1,6 @@
 package io.github.mudklip.minigamebots.client.mixin;
 
+import io.github.mudklip.minigamebots.client.MinigameBotsClient;
 import io.github.mudklip.minigamebots.client.control.AgentControl;
 import io.github.mudklip.minigamebots.client.control.Hotkeys;
 import net.minecraft.client.KeyboardHandler;
@@ -24,6 +25,9 @@ public abstract class KeyboardHandlerMixin {
 	private void minigamebots$keyPress(long handle, int action, KeyEvent event, CallbackInfo ci) {
 		if (handle != minecraft.getWindow().handle()) {
 			return;
+		}
+		if (!AgentControl.aiActive()) {
+			MinigameBotsClient.instance().humanInput().onKey(minecraft, action, event);
 		}
 		if (Hotkeys.onKey(minecraft, action, event) || AgentControl.aiActive()) {
 			ci.cancel();

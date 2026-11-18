@@ -86,6 +86,22 @@ public final class MgbConfig {
 	@SerialEntry
 	public int frameSize = 128;
 
+	// Recording
+	@AutoGen(category = "recording")
+	@IntSlider(min = 50, max = 100, step = 5, format = "%d%%")
+	@SerialEntry
+	public int recordingJpegQuality = 90;
+
+	@AutoGen(category = "recording")
+	@IntSlider(min = 5, max = 480, step = 5, format = "%d min")
+	@SerialEntry
+	public int maxRecordingMinutes = 120;
+
+	@AutoGen(category = "recording")
+	@Boolean(colored = true)
+	@SerialEntry
+	public boolean showRecordingIndicator = true;
+
 	public static MgbConfig get() {
 		return HANDLER.instance();
 	}

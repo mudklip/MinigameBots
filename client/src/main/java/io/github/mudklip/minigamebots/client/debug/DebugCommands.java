@@ -53,6 +53,37 @@ public final class DebugCommands {
 				.then(literal("watch")
 						.then(literal("on").executes(ctx -> watch(ctx, true)))
 						.then(literal("off").executes(ctx -> watch(ctx, false))))
+				.then(literal("rec")
+						.then(literal("start").executes(ctx -> {
+							Minecraft c = Minecraft.getInstance();
+							c.schedule(() -> MinigameBotsClient.instance().recorder().start(c));
+							return 1;
+						}))
+						.then(literal("stop").executes(ctx -> {
+							Minecraft c = Minecraft.getInstance();
+							c.schedule(() -> MinigameBotsClient.instance().recorder().stop(c));
+							return 1;
+						}))
+						.then(literal("mark").then(argument("type", StringArgumentType.word()).executes(ctx -> {
+							MinigameBotsClient.instance().recorder().mark(Minecraft.getInstance(),
+									StringArgumentType.getString(ctx, "type"));
+							return 1;
+						})))
+						.then(literal("list").executes(ctx -> {
+							var rec = MinigameBotsClient.instance().recorder();
+							var all = rec.store().list(rec.currentId());
+							for (var m : all) {
+								ctx.getSource().sendFeedback(Component.literal(m.id + "  " + m.ticks + " ticks, "
+										+ m.chunks + " chunk(s), " + m.sizeBytes / 1000 + " KB, " + m.marks.size()
+										+ " marks, complete=" + m.complete));
+							}
+							return all.size();
+						}))
+						.then(literal("open").executes(ctx -> {
+							Minecraft c = Minecraft.getInstance();
+							c.schedule(() -> c.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.RecorderScreen(null)));
+							return 1;
+						})))
 				.then(literal("config").executes(ctx -> {
 					Minecraft client = Minecraft.getInstance();
 					// Open after the chat screen has closed.

@@ -2,10 +2,11 @@ package io.github.mudklip.minigamebots.client.control;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import io.github.mudklip.minigamebots.client.MainScreen;
+import io.github.mudklip.minigamebots.client.MinigameBotsClient;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.toasts.SystemToast;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -21,12 +22,14 @@ public final class Hotkeys {
 	private static final int ACTION_PRESS = 1;
 	private static final KeyMapping.Category CATEGORY =
 			KeyMapping.Category.register(Identifier.fromNamespaceAndPath("minigamebots", "main"));
-	private static final SystemToast.SystemToastId NOTICE = new SystemToast.SystemToastId();
 
 	public static final KeyMapping RECORD = register("record", InputConstants.KEY_F7);
 	public static final KeyMapping TOGGLE_CONTROL = register("toggle_control", InputConstants.KEY_F8);
 	public static final KeyMapping EMERGENCY_STOP = register("emergency_stop", InputConstants.KEY_F9);
 	public static final KeyMapping OPEN_MENU = register("open_menu", InputConstants.KEY_F10);
+	public static final KeyMapping MARK_GOOD = register("mark_good", InputConstants.UNKNOWN.getValue());
+	public static final KeyMapping MARK_MISTAKE = register("mark_mistake", InputConstants.UNKNOWN.getValue());
+	public static final KeyMapping MARK_BASE = register("mark_base", InputConstants.UNKNOWN.getValue());
 
 	private static KeyMapping register(String name, int key) {
 		return KeyMappingHelper.registerKeyMapping(
@@ -47,8 +50,9 @@ public final class Hotkeys {
 			control.emergencyStop(client);
 			return true;
 		}
-		// With a screen open and the human in control, leave keys alone (text fields etc.).
-		if (client.gui.screen() != null && !control.active()) {
+		// While you're typing in a text box (chat, signs, search), keys belong to the text box.
+		var screen = client.gui.screen();
+		if (screen != null && !control.active() && screen.getFocused() instanceof EditBox) {
 			return false;
 		}
 		if (TOGGLE_CONTROL.matches(event)) {
@@ -62,9 +66,21 @@ public final class Hotkeys {
 			client.gui.setScreen(new MainScreen(client.gui.screen()));
 			return true;
 		}
+		var recorder = MinigameBotsClient.instance().recorder();
 		if (RECORD.matches(event)) {
-			SystemToast.addOrUpdate(client.gui.toastManager(), NOTICE, Component.translatable("minigamebots.name"),
-					Component.translatable("minigamebots.recorder.coming_soon"));
+			recorder.toggle(client);
+			return true;
+		}
+		if (!MARK_GOOD.isUnbound() && MARK_GOOD.matches(event)) {
+			recorder.mark(client, "good");
+			return true;
+		}
+		if (!MARK_MISTAKE.isUnbound() && MARK_MISTAKE.matches(event)) {
+			recorder.mark(client, "mistake");
+			return true;
+		}
+		if (!MARK_BASE.isUnbound() && MARK_BASE.matches(event)) {
+			recorder.mark(client, "base");
 			return true;
 		}
 		return false;

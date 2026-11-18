@@ -29,6 +29,8 @@ public final class MainScreen extends Screen {
 			AgentControl.get().start(minecraft, io.github.mudklip.minigamebots.client.control.ActionSource.IDLE);
 		}).width(200).build());
 		control.active = inWorld;
+		body.addChild(Button.builder(Component.translatable("minigamebots.menu.recordings"),
+				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.RecorderScreen(this))).width(200).build());
 		body.addChild(Button.builder(Component.translatable("minigamebots.menu.settings"),
 				b -> minecraft.gui.setScreen(MgbConfig.screen(this))).width(200).build());
 		layout.addToFooter(Button.builder(Component.translatable("gui.done"), b -> onClose()).width(200).build());
