@@ -74,7 +74,16 @@ A chunk cut short by a crash is valid up to its last complete record.
     this is cursor movement converted at the configured pixels per degree.
 - **obs**: the observation from the end of the previous tick (what was known before acting):
   player state, inventory, nearby entities, block cube (`blocks.categories` is base64, 11x11x11
-  bytes indexed `((dy+5)*11 + (dz+5))*11 + (dx+5)`), sounds, text, open screen.
+  bytes indexed `((dy+5)*11 + (dz+5))*11 + (dx+5)`), sounds, text, open screen, crowd radar.
+  - **entities** (up to 32) are ordered by importance, not just distance: the person being
+    protected, whoever hit the player or that person recently, whoever the player is fighting,
+    players, hostile mobs and projectiles, then the nearest. Each has `hitMe`, `hitByMe`,
+    `hitProtected` (ticks since, -1 = not in the last 30 s; exact, from the server's damage
+    events), `sameTeam`, `protectedTarget` and `hostile`.
+  - **crowd.counts** (72 numbers): everyone within 64 blocks without a detailed slot, counted by
+    kind (players, hostile mobs, others) x band (within 8, 24, 64 blocks) x compass sector
+    (45° each; 0 = south, 2 = west, 4 = north, 6 = east). Index `(kind*3 + band)*8 + sector`.
+    Recordings made before this field existed simply have no crowd data.
 - **events**: events detected since the previous record.
 - **frameAge**: how many ticks old the frame is (the game may render slower than 20 FPS).
 - **cameraJump**: present when a teleport or respawn turn was removed from `yaw`/`pitch`.

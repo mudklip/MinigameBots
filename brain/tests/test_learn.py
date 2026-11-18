@@ -105,6 +105,48 @@ class FeatureTest(unittest.TestCase):
         self.assertNotEqual(0, a)
         self.assertEqual(0, features.bucket("", features.ITEM_BUCKETS))
 
+    def test_hit_memory_fades(self):
+        self.assertEqual(1.0, features.recency(0))
+        self.assertAlmostEqual(0.5, features.recency(features.HIT_MEMORY // 2))
+        self.assertEqual(0.0, features.recency(-1))
+        self.assertEqual(0.0, features.recency(features.HIT_MEMORY * 2))
+        obs = pig_obs()
+        obs["entities"][0]["hitMe"] = 0
+        f = features.featurize(obs)
+        self.assertEqual(1.0, f["ent_vals"][0, 14], "attacker flag set")
+
+    def test_crowd_radar_turns_with_facing(self):
+        counts = [0] * features.CROWD_DIM
+        # Five players in sector 2 (Minecraft yaw 90 = west), nearest band.
+        counts[0 * 24 + 0 * 8 + 2] = 5
+        facing_west = features.crowd_features({"counts": counts}, 90)
+        facing_south = features.crowd_features({"counts": counts}, 0)
+        self.assertGreater(facing_west[0], 0, "straight ahead when facing west")
+        self.assertEqual(0, facing_south[0])
+        self.assertGreater(facing_south[2], 0, "to the right-hand side order when facing south")
+        self.assertEqual(features.CROWD_DIM, len(features.crowd_features(None, 0)))
+
+    def test_compass_sectors_match_the_mod(self):
+        self.assertEqual(0, features.compass_sector(0, 5))   # south
+        self.assertEqual(2, features.compass_sector(-5, 0))  # west
+        self.assertEqual(4, features.compass_sector(0, -5))  # north
+        self.assertEqual(6, features.compass_sector(5, 0))   # east
+
+    def test_entities_beyond_the_slots_go_on_the_radar(self):
+        obs = pig_obs()
+        obs["entities"] = [dict(obs["entities"][0], dx=0.0, dz=3.0 + i) for i in range(features.MAX_ENTITIES + 4)]
+        f = features.featurize(obs)
+        self.assertTrue(f["ent_mask"].all())
+        self.assertGreater(f["crowd"].sum(), 0, "the 4 extra pigs are counted")
+
+    def test_creatures_get_slots_before_loot(self):
+        obs = pig_obs(dx=0, dz=12)
+        loot = [{"type": "minecraft:item", "dx": 0.0, "dy": -1.0, "dz": 1.0 + i * 0.1} for i in range(20)]
+        obs["entities"] = loot + obs["entities"]
+        f = features.featurize(obs)
+        pig = features.bucket("minecraft:pig", features.ENTITY_BUCKETS)
+        self.assertEqual(pig, f["ent_type"][0], "the pig 12 blocks away outranks items at 1 block")
+
     def test_empty_observation_is_safe(self):
         f = features.featurize({})
         self.assertEqual((features.SELF_DIM,), f["self"].shape)
@@ -182,7 +224,7 @@ class RecordingAndTrainingTest(unittest.TestCase):
         self.assertLess(progress[-1]["loss"], progress[0]["loss"], "loss goes down")
         self.assertEqual(40, result["steps"])
         info = checkpoint.read_info(profile)
-        self.assertEqual("lite-v1", info["arch"])
+        self.assertEqual("lite-v2", info["arch"])
 
         policy = LearnedPolicy(profile, temperature=0.0, device="cpu")
         frame = np.zeros((128, 128, 3), dtype=np.uint8)
@@ -190,11 +232,26 @@ class RecordingAndTrainingTest(unittest.TestCase):
             msg = policy.act(pig_obs(yaw=0, dx=-3, dz=3), frame).to_message(0)
             self.assertIn("keys", msg)
 
+        # An AI trained with an older network layout is retrained from scratch, not broken.
+        info_path = os.path.join(profile, "core", "model.json")
+        with open(info_path) as f:
+            old = json.load(f)
+        old["arch"] = "lite-v1"
+        with open(info_path, "w") as f:
+            json.dump(old, f)
+        with self.assertRaises(ValueError):
+            LearnedPolicy(profile, device="cpu")
+        with contextlib.redirect_stdout(io.StringIO()) as out2:
+            redo = train.train(profile, [self.rec], steps=10, resources="max", eval_every=10, device="cpu",
+                               batch_size=2)
+        self.assertIn("older version", out2.getvalue())
+        self.assertEqual(10, redo["global_step"])
+
         # Continuing training picks up where it left off.
         with contextlib.redirect_stdout(io.StringIO()):
             again = train.train(profile, [self.rec], steps=10, resources="max", eval_every=10, device="cpu",
                                 batch_size=2)
-        self.assertEqual(50, again["global_step"])
+        self.assertEqual(20, again["global_step"])
 
 
 if __name__ == "__main__":

@@ -3,6 +3,8 @@ package io.github.mudklip.minigamebots.client.events;
 /** Names of every event the client can detect on its own. */
 public final class EventTypes {
 	public static final String DAMAGE_TAKEN = "damage_taken";
+	/** Something hit the player; data says what (and which player). Exact, from the server's damage event. */
+	public static final String HIT_BY = "hit_by";
 	public static final String HEALED = "healed";
 	public static final String HUNGER_CHANGED = "hunger_changed";
 	public static final String ITEM_GAINED = "item_gained";

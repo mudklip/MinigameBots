@@ -14,7 +14,7 @@ import zlib
 
 import numpy as np
 
-FEATURES_VERSION = 1
+FEATURES_VERSION = 2
 
 ITEM_BUCKETS = 4096
 ENTITY_BUCKETS = 1024
@@ -26,7 +26,14 @@ BLOCK_CATEGORIES = 10
 ITEM_SLOTS = list(range(9)) + [36, 37, 38, 39, 40]
 SELF_DIM = 31
 ITEM_DIM = 2
-ENTITY_DIM = 14
+ENTITY_DIM = 19
+# Crowd radar: entities that didn't fit in the slots, counted by kind x distance band x direction.
+CROWD_KINDS = 3  # players, hostile mobs, others
+CROWD_BANDS = 3  # 0-8, 8-24, 24-64 blocks
+CROWD_SECTORS = 8  # 45 degrees each; stored by compass direction, turned here to be facing-relative
+CROWD_DIM = CROWD_KINDS * CROWD_BANDS * CROWD_SECTORS
+# Ticks a remembered hit stays relevant (the mod forgets after 30 s).
+HIT_MEMORY = 600
 FRAME_SIZE = 128
 
 
@@ -52,6 +59,31 @@ def to_local(dx: float, dz: float, yaw_degrees: float):
     """World offset -> (ahead, right) relative to the facing direction."""
     (fx, fz), (rx, rz) = facing_axes(yaw_degrees)
     return dx * fx + dz * fz, dx * rx + dz * rz
+
+
+LOOT_TYPES = ("minecraft:item", "minecraft:experience_orb")
+
+
+def importance(e: dict) -> float:
+    """Same ordering as the mod's RelationTracker.importance (lower comes first), so recordings
+    made before the mod ordered entities this way still put the right ones in the slots."""
+    distance = math.sqrt(e.get("dx", 0.0) ** 2 + e.get("dy", 0.0) ** 2 + e.get("dz", 0.0) ** 2)
+    score = distance
+    if e.get("protectedTarget"):
+        score -= 1000
+    if 0 <= e.get("hitMe", -1) <= 200:
+        score -= 500
+    if 0 <= e.get("hitProtected", -1) <= 200:
+        score -= 400
+    if 0 <= e.get("hitByMe", -1) <= 200:
+        score -= 150
+    if e.get("player"):
+        score -= 60
+    elif e.get("hostile"):
+        score -= 40
+    elif e.get("type") in LOOT_TYPES:
+        score += 30
+    return score
 
 
 def featurize(obs: dict) -> dict:
@@ -92,7 +124,8 @@ def featurize(obs: dict) -> dict:
     ent_held = np.zeros(MAX_ENTITIES, dtype=np.int64)
     ent_vals = np.zeros((MAX_ENTITIES, ENTITY_DIM), dtype=np.float32)
     ent_mask = np.zeros(MAX_ENTITIES, dtype=np.bool_)
-    for i, e in enumerate((obs.get("entities") or [])[:MAX_ENTITIES]):
+    entities = sorted(obs.get("entities") or [], key=importance)
+    for i, e in enumerate(entities[:MAX_ENTITIES]):
         dx, dy, dz = e.get("dx", 0.0), e.get("dy", 0.0), e.get("dz", 0.0)
         ahead, right = to_local(dx, dz, yaw)
         horizontal = math.hypot(dx, dz)
@@ -109,8 +142,19 @@ def featurize(obs: dict) -> dict:
             (aim_pitch - pitch) / 90, vahead * 2, e.get("vy", 0.0) * 2, vright * 2,
             e.get("health", 0) / max_health if max_health else 0.0, min(max_health, 100) / 100,
             float(e.get("player", False)), float(e.get("visible", True)), min(e.get("ticksSinceSeen", 0), 60) / 60,
+            recency(e.get("hitMe", -1)), recency(e.get("hitByMe", -1)), recency(e.get("hitProtected", -1)),
+            float(e.get("sameTeam", False)), float(e.get("protectedTarget", False)),
         ]
         ent_mask[i] = True
+
+    crowd = crowd_counts(obs.get("crowd"))
+    # Detailed entities beyond our slots still count, on the crowd radar.
+    for e in entities[MAX_ENTITIES:]:
+        dx, dz = e.get("dx", 0.0), e.get("dz", 0.0)
+        distance = math.sqrt(dx * dx + e.get("dy", 0.0) ** 2 + dz * dz)
+        kind = 0 if e.get("player") else 1 if e.get("hostile") else 2
+        band = 0 if distance < 8 else 1 if distance < 24 else 2
+        crowd[kind, band, compass_sector(dx, dz)] += 1
 
     blocks = decode_blocks(obs.get("blocks"))
     blocks = rotate_blocks(blocks, yaw)
@@ -118,9 +162,41 @@ def featurize(obs: dict) -> dict:
     gui = obs.get("gui")
     screen = bucket(gui.get("screen", ""), SCREEN_BUCKETS) if gui else 0
     return {
+        "crowd": crowd_features(crowd, yaw),
         "self": self_vec, "items": items, "item_vals": item_vals, "ent_type": ent_type, "ent_held": ent_held,
         "ent_vals": ent_vals, "ent_mask": ent_mask, "blocks": blocks, "screen": np.int64(screen),
     }
+
+
+def recency(ticks_since) -> float:
+    """1 = just now, fading to 0 after HIT_MEMORY ticks; 0 = never (or -1 from the mod)."""
+    if ticks_since is None or ticks_since < 0:
+        return 0.0
+    return max(0.0, 1.0 - ticks_since / HIT_MEMORY)
+
+
+def compass_sector(dx: float, dz: float) -> int:
+    """Same as RelationTracker.sector in the mod: 0 = south (+Z), 2 = west, 4 = north, 6 = east."""
+    yaw = math.degrees(math.atan2(-dx, dz))
+    return int(math.floor((yaw + 360 + 22.5) / 45.0)) % CROWD_SECTORS
+
+
+def crowd_counts(crowd) -> np.ndarray:
+    """The mod's crowd radar as a [kind, band, sector] array (zeros if missing)."""
+    counts = crowd.get("counts") if isinstance(crowd, dict) else crowd
+    if counts is None or len(counts) != CROWD_DIM:
+        return np.zeros((CROWD_KINDS, CROWD_BANDS, CROWD_SECTORS), dtype=np.float32)
+    return np.asarray(counts, dtype=np.float32).reshape(CROWD_KINDS, CROWD_BANDS, CROWD_SECTORS).copy()
+
+
+def crowd_features(crowd, yaw_degrees: float) -> np.ndarray:
+    """The crowd radar, turned so sector 0 is straight ahead, as log-scaled counts."""
+    arr = crowd if isinstance(crowd, np.ndarray) and crowd.ndim == 3 else crowd_counts(crowd)
+    # The mod's sector s covers Minecraft yaw s*45 (0 = south, 90 = west). Facing yaw, the
+    # sector straight ahead is round(yaw / 45).
+    shift = int(round(yaw_degrees / 45.0)) % CROWD_SECTORS
+    arr = np.roll(arr, -shift, axis=2)
+    return (np.log1p(arr) / 3.0).reshape(-1).astype(np.float32)
 
 
 def decode_blocks(blocks) -> np.ndarray:

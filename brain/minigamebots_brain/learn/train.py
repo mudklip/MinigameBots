@@ -96,9 +96,14 @@ def train(profile: str, recordings: list, steps: int, resources: str = "balanced
 
     info = checkpoint.read_info(profile) if not fresh else None
     if info is not None:
-        model, info = checkpoint.load(profile, "latest", device)
+        try:
+            model, info = checkpoint.load(profile, "latest", device)
+        except ValueError as e:
+            emit("log", message=f"{e}. Starting fresh instead.")
+            info = None
+    if info is not None:
         step0 = int(info.get("step", 0))
-        best = float(info.get("val_loss", math.inf))
+        best = float(info.get("val_loss") or math.inf)
         emit("log", message=f"Continuing from step {step0}")
     else:
         model = LitePolicy().to(device)

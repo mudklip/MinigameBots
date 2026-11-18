@@ -17,7 +17,8 @@ public record Observation(
 		BlockSense blocks,
 		List<SoundInfo> sounds,
 		Text text,
-		@Nullable Gui gui) {
+		@Nullable Gui gui,
+		Crowd crowd) {
 
 	/** The player's own state, as the HUD and F3 basics show it. */
 	public record Self(float health, float maxHealth, int food, float saturation, int armor, int xpLevel,
@@ -34,10 +35,28 @@ public record Observation(
 	/**
 	 * A nearby entity, relative to the player's eyes. {@code visible} is false when it was seen
 	 * recently but is now hidden; its position is then where it was last seen.
+	 *
+	 * <p>Relations: ticks since it hit the player ({@code hitMe}), since the player hit it
+	 * ({@code hitByMe}) and since it hit the entity being protected ({@code hitProtected}); -1 = not
+	 * in the last 30 seconds.
 	 */
 	public record EntityInfo(int id, String type, boolean player, @Nullable String name, @Nullable String team,
 			double dx, double dy, double dz, double vx, double vy, double vz, float health, float maxHealth,
-			String heldItem, int armor, boolean visible, int ticksSinceSeen) {
+			String heldItem, int armor, boolean visible, int ticksSinceSeen, int hitMe, int hitByMe, int hitProtected,
+			boolean sameTeam, boolean protectedTarget, boolean hostile) {
+	}
+
+	/**
+	 * The crowd radar: everyone that didn't fit in the detailed entity list, counted by kind
+	 * (players, hostile mobs, others) x distance band (within 8, 24, 64 blocks) x compass sector
+	 * (8 x 45 degrees, 0 = south, 2 = west, 4 = north, 6 = east). Index = (kind * 3 + band) * 8 + sector.
+	 */
+	public record Crowd(int[] counts) {
+		public static final int SIZE = 3 * 3 * 8;
+
+		public static int index(int kind, int band, int sector) {
+			return (kind * 3 + band) * 8 + sector;
+		}
 	}
 
 	/** A heard sound, relative to the player. */

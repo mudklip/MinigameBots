@@ -7,15 +7,19 @@ Imitation training writes into the AI profile's `core/` folder:
 | `model.safetensors` | Best weights so far (lowest error on held-out moments) |
 | `latest.safetensors` | Most recent weights, used to continue training |
 | `optimizer.pt` | Optimizer state for continuing training |
-| `model.json` | `arch` (`lite-v1`), `features` (input layout version), `config`, `step`, `val_loss`, recordings used |
+| `model.json` | `arch` (`lite-v2`), `features` (input layout version, 2), `config`, `step`, `val_loss`, recordings used |
 
-## Network (`lite-v1`, about 2.9M parameters)
+An AI trained with an older `arch` or `features` version can't be loaded by a newer brain; the
+Training screen then simply trains it again from its recordings.
+
+## Network (`lite-v2`, about 2.9M parameters)
 
 | Input | Encoder |
 |---|---|
 | 128x128 frame | IMPALA-style CNN (4 stages, 16/32/32/32 channels) → 256 |
 | Player state + hotbar/armor/offhand items (hashed ids) | MLP → 128 |
-| Up to 16 nearby entities, relative to facing | Shared MLP, max and mean pooled → 2 x 96 |
+| The 16 most important nearby entities, relative to facing, with who-hit-whom memory | Shared MLP, max and mean pooled → 2 x 96 |
+| Crowd radar (everyone else: kind x distance x direction, turned to face forward) | MLP → 32 |
 | 11³ block categories, turned to face forward | 3D CNN → 96 |
 | Open screen (hashed) | Embedding → 16 |
 

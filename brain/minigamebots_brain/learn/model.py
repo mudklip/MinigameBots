@@ -4,6 +4,7 @@ predicts what to press next.
     frame (128x128) -> IMPALA-style CNN ----------\\
     self, hotbar/armor items -> MLP ----------------\\
     nearby entities -> shared MLP, pooled -----------+-> fuse -> GRU memory -> heads
+    crowd radar (everyone else) -> MLP -------------/
     block cube (11^3, facing-relative) -> 3D CNN ---/                           keys (22 on/off)
     open screen -> embedding ----------------------/                            extra attack/use clicks
                                                                                 camera yaw / pitch bins
@@ -16,7 +17,7 @@ import torch.nn.functional as F
 
 from . import actions, features
 
-ARCH = "lite-v1"
+ARCH = "lite-v2"
 
 
 class ResBlock(nn.Module):
@@ -64,8 +65,9 @@ class LitePolicy(nn.Module):
         self.blocks_out = nn.Linear(16 * 3 * 3 * 3, 96)
 
         self.screen_emb = nn.Embedding(features.SCREEN_BUCKETS, 16)
+        self.crowd = nn.Sequential(nn.Linear(features.CROWD_DIM, 64), nn.ReLU(), nn.Linear(64, 32))
 
-        fused = 256 + 128 + 96 * 2 + 96 + 16
+        fused = 256 + 128 + 96 * 2 + 96 + 16 + 32
         self.fuse = nn.Sequential(nn.Linear(fused, hidden), nn.ReLU())
         self.memory = nn.GRU(hidden, hidden, batch_first=True)
         self.head_keys = nn.Linear(hidden, actions.NUM_KEYS)
@@ -97,7 +99,8 @@ class LitePolicy(nn.Module):
         blk = F.relu(self.blocks_out(self.blocks(blk).flatten(1))).reshape(b, t, -1)
 
         screen = self.screen_emb(x["screen"])
-        h = self.fuse(torch.cat([vis, state_vec, ent_max, ent_mean, blk, screen], dim=-1))
+        crowd = F.relu(self.crowd(x["crowd"]))
+        h = self.fuse(torch.cat([vis, state_vec, ent_max, ent_mean, blk, screen, crowd], dim=-1))
         if state is None:
             state = self.initial_state(b, h.device)
         out, state = self.memory(h, state)
@@ -111,7 +114,8 @@ class LitePolicy(nn.Module):
         return logits, state
 
 
-INPUT_KEYS = ("self", "items", "item_vals", "ent_type", "ent_held", "ent_vals", "ent_mask", "blocks", "screen", "frames")
+INPUT_KEYS = ("self", "items", "item_vals", "ent_type", "ent_held", "ent_vals", "ent_mask", "blocks", "screen", "crowd",
+              "frames")
 
 
 def to_tensors(batch: dict, device) -> dict:

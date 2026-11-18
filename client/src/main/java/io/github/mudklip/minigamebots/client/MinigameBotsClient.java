@@ -12,6 +12,7 @@ import io.github.mudklip.minigamebots.client.events.EventTypes;
 import io.github.mudklip.minigamebots.client.observe.FrameCapture;
 import io.github.mudklip.minigamebots.client.observe.Observation;
 import io.github.mudklip.minigamebots.client.observe.Observer;
+import io.github.mudklip.minigamebots.client.observe.RelationTracker;
 import io.github.mudklip.minigamebots.client.observe.SoundTracker;
 import io.github.mudklip.minigamebots.client.observe.TextTracker;
 import io.github.mudklip.minigamebots.client.profile.ProfileManager;
@@ -49,7 +50,8 @@ public final class MinigameBotsClient implements ClientModInitializer {
 
 	private final SoundTracker sounds = new SoundTracker();
 	private final TextTracker text = new TextTracker();
-	private final Observer observer = new Observer(sounds, text);
+	private final RelationTracker relations = new RelationTracker();
+	private final Observer observer = new Observer(sounds, text, relations);
 	private final EventDetector events = new EventDetector();
 	private final HumanInput humanInput = new HumanInput();
 	private final Recorder recorder = new Recorder(
@@ -113,6 +115,10 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		return humanInput;
 	}
 
+	public RelationTracker relations() {
+		return relations;
+	}
+
 	public TrainingManager training() {
 		return training;
 	}
@@ -172,9 +178,25 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		ClientReceiveMessageEvents.TITLE.register(title -> events.onTitle(title.getString(), false));
 		ClientReceiveMessageEvents.SUBTITLE.register(subtitle -> events.onTitle(subtitle.getString(), true));
 		ClientPlayerBlockBreakEvents.AFTER.register((level, player, pos, state) -> events.onBlockBroken(pos, state));
+		relations.onHitMe(attackerId -> {
+			Minecraft client = Minecraft.getInstance();
+			if (client.level == null) {
+				return;
+			}
+			var attacker = client.level.getEntity(attackerId);
+			if (attacker != null) {
+				var data = new java.util.HashMap<String, Object>();
+				data.put("attacker", net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(attacker.getType()).toString());
+				if (attacker instanceof net.minecraft.world.entity.player.Player p) {
+					data.put("player", p.getName().getString());
+				}
+				events.emit(EventTypes.HIT_BY, data);
+			}
+		});
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
 			events.reset();
 			text.clear();
+			relations.clear();
 		});
 
 		events.addListener(recorder::onEvent);
@@ -194,6 +216,7 @@ public final class MinigameBotsClient implements ClientModInitializer {
 	private void endTick(Minecraft client) {
 		tick++;
 		sounds.setTick(tick);
+		relations.setTick(tick);
 		if (client.level == null || client.player == null) {
 			lastObservation = null;
 			return;

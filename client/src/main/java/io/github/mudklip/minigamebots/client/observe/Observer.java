@@ -27,7 +27,11 @@ import net.minecraft.tags.FluidTags;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ExperienceOrb;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
@@ -42,6 +46,9 @@ import org.jspecify.annotations.Nullable;
 /** Builds the AI's {@link Observation} each tick from what the client knows. */
 public final class Observer {
 	private static final double ENTITY_RANGE = 48;
+	/** The crowd radar counts everyone up to this far who didn't get a detailed slot. */
+	private static final double CROWD_RANGE = 64;
+	/** Detailed slots; everyone else goes on the crowd radar. */
 	private static final int MAX_ENTITIES = 32;
 	/** How long a hidden entity is remembered at its last seen position (fair perception). */
 	private static final int REMEMBER_TICKS = 60;
@@ -51,11 +58,13 @@ public final class Observer {
 
 	private final SoundTracker sounds;
 	private final TextTracker text;
+	private final RelationTracker relations;
 	private final Map<Integer, Seen> lastSeen = new HashMap<>();
 
-	public Observer(SoundTracker sounds, TextTracker text) {
+	public Observer(SoundTracker sounds, TextTracker text, RelationTracker relations) {
 		this.sounds = sounds;
 		this.text = text;
+		this.relations = relations;
 	}
 
 	public @Nullable Observation observe(Minecraft client, long tick) {
@@ -65,9 +74,11 @@ public final class Observer {
 			return null;
 		}
 		boolean fair = MgbConfig.get().fairPerception;
+		int[] crowd = new int[Observation.Crowd.SIZE];
+		List<Observation.EntityInfo> entities = entities(player, level, tick, fair, crowd);
 		return new Observation(tick, self(player, level), inventory(player), player.getInventory().getSelectedSlot(),
-				entities(player, level, tick, fair), blocks(player, level, fair), sounds.recent(client), text(client, level),
-				gui(client));
+				entities, blocks(player, level, fair), sounds.recent(client), text(client, level), gui(client),
+				new Observation.Crowd(crowd));
 	}
 
 	private static Observation.Self self(LocalPlayer p, ClientLevel level) {
@@ -102,23 +113,53 @@ public final class Observer {
 				custom == null ? null : custom.getString());
 	}
 
-	private List<Observation.EntityInfo> entities(LocalPlayer player, ClientLevel level, long tick, boolean fair) {
+	/**
+	 * The most important nearby entities in detail (the person being protected, attackers,
+	 * players, hostile mobs... then the nearest), and everyone else counted into {@code crowd}.
+	 */
+	private List<Observation.EntityInfo> entities(LocalPlayer player, ClientLevel level, long tick, boolean fair,
+			int[] crowd) {
 		Vec3 eye = player.getEyePosition();
-		List<Entity> nearby = new ArrayList<>();
-		for (Entity e : level.entitiesForRendering()) {
-			if (e != player && e.isAlive() && e.position().distanceTo(eye) <= ENTITY_RANGE) {
-				nearby.add(e);
-			}
+		PlayerTeam myTeam = player.getTeam();
+		record Candidate(Entity entity, double distance, double importance) {
 		}
-		nearby.sort(Comparator.comparingDouble(e -> e.position().distanceToSqr(eye)));
+		List<Candidate> nearby = new ArrayList<>();
+		for (Entity e : level.entitiesForRendering()) {
+			if (e == player || !e.isAlive()) {
+				continue;
+			}
+			double d = e.position().distanceTo(eye);
+			if (d > CROWD_RANGE) {
+				continue;
+			}
+			int id = e.getId();
+			boolean hostileOrProjectile = e instanceof Enemy || e instanceof Projectile;
+			nearby.add(new Candidate(e, d, RelationTracker.importance(d, id == relations.protectedId(),
+					relations.ticksSinceHitMe(id), relations.ticksSinceHitProtected(id), relations.ticksSinceHitByMe(id),
+					e instanceof Player, hostileOrProjectile, e instanceof ItemEntity || e instanceof ExperienceOrb)));
+		}
+		nearby.sort(Comparator.comparingDouble(Candidate::importance));
 
 		List<Observation.EntityInfo> out = new ArrayList<>();
 		Map<Integer, Seen> stillSeen = new HashMap<>();
-		for (Entity e : nearby) {
-			if (out.size() >= MAX_ENTITIES) {
-				break;
+		for (Candidate c : nearby) {
+			Entity e = c.entity();
+			boolean losCached = false;
+			boolean visible = !fair;
+			if (fair) {
+				visible = player.hasLineOfSight(e);
+				losCached = true;
 			}
-			boolean visible = !fair || player.hasLineOfSight(e);
+			if (out.size() >= MAX_ENTITIES || c.distance() > ENTITY_RANGE) {
+				// No detailed slot: count it on the crowd radar (if a human could see it).
+				if (e instanceof LivingEntity && (!fair || (losCached ? visible : player.hasLineOfSight(e)))) {
+					int kind = e instanceof Player ? 0 : e instanceof Enemy ? 1 : 2;
+					Vec3 p = e.position();
+					crowd[Observation.Crowd.index(kind, RelationTracker.band(c.distance()),
+							RelationTracker.sector(p.x - eye.x, p.z - eye.z))]++;
+				}
+				continue;
+			}
 			Vec3 pos = e.position();
 			Vec3 vel = e.getDeltaMovement();
 			int since = 0;
@@ -146,10 +187,13 @@ public final class Observer {
 			}
 			PlayerTeam team = e.getTeam();
 			boolean isPlayer = e instanceof Player;
-			out.add(new Observation.EntityInfo(e.getId(), BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).toString(),
+			int id = e.getId();
+			out.add(new Observation.EntityInfo(id, BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).toString(),
 					isPlayer, isPlayer || e.hasCustomName() ? e.getName().getString() : null,
 					team == null ? null : team.getName(), pos.x - eye.x, pos.y - eye.y, pos.z - eye.z, vel.x, vel.y,
-					vel.z, health, maxHealth, held, armor, visible, since));
+					vel.z, health, maxHealth, held, armor, visible, since, relations.ticksSinceHitMe(id),
+					relations.ticksSinceHitByMe(id), relations.ticksSinceHitProtected(id),
+					myTeam != null && myTeam == team, id == relations.protectedId(), e instanceof Enemy));
 		}
 		lastSeen.clear();
 		lastSeen.putAll(stillSeen);

@@ -48,10 +48,9 @@ def load(profile: str, which: str = "model", device="cpu") -> tuple:
     info = read_info(profile)
     if info is None:
         raise FileNotFoundError("This AI hasn't been trained yet")
-    if info.get("arch") != ARCH:
-        raise ValueError(f"Trained with a different network ({info.get('arch')}); this brain uses {ARCH}")
-    if info.get("features") != features.FEATURES_VERSION:
-        raise ValueError("Trained with an older input layout; train it again (Train > Start fresh)")
+    if info.get("arch") != ARCH or info.get("features") != features.FEATURES_VERSION:
+        raise ValueError("This AI was trained with an older version of the network; train it again "
+                         "(its recordings still work)")
     model = LitePolicy(**info.get("config", {}))
     path = os.path.join(core_dir(profile), f"{which}.safetensors")
     if not os.path.isfile(path):

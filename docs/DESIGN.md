@@ -240,10 +240,15 @@ Each tick the brain receives:
      (section 4.9).
    - velocity, on-ground, in water or lava, look angles; position *relative* to memory waypoints
    - open screen type and slot contents when a GUI is open
-3. **Nearby entities** (up to 32, within 48 blocks): type, relative position and velocity,
-   held item, armor tier, whether it's a player and on which team, whether it's visible.
+3. **Nearby entities** (up to 32, within 48 blocks), chosen by **importance**, not just
+   distance: the person being protected, anyone who recently hit the player or that person,
+   whoever it is fighting, players, hostile mobs and projectiles, then the nearest. Each has
+   type, relative position and velocity, held item, armor, player/team/hostile flags, whether
+   it's visible, and **who-hit-whom memory** (exact, from the server's damage events, kept 30 s).
    With fair perception on, an entity behind blocks is only kept for a short time after
    last sight, just as a human remembers where someone went.
+   **Crowd radar:** everyone else within 64 blocks is counted by kind (players, hostile mobs,
+   others) x distance band x 8 directions, so big crowds are never invisible.
 4. **Local block sense:** a coarse 11×11×11 grid of block *categories* around the player
    (solid, air, liquid, dangerous, ore, interactive). Fair perception masks blocks that
    aren't visible.
