@@ -28,6 +28,11 @@ public final class GroundTruth {
 				.isPresent() && ServerPlayNetworking.canSend(player, TgEventPayload.TYPE);
 	}
 
+	/** Whether the player's linked client advertised a protocol feature (e.g. "puppet"). */
+	public boolean supports(ServerPlayer player, String feature) {
+		return clients.get(player.getUUID()).filter(l -> l.usable() && l.hello().features().contains(feature)).isPresent();
+	}
+
 	public void send(ServerPlayer player, String kind, JsonObject data) {
 		if (!wants(player)) {
 			return;

@@ -72,7 +72,8 @@ public final class MinigameBotsClient implements ClientModInitializer {
 	public static final String MOD_ID = "minigamebots";
 	public static final Logger LOGGER = LoggerFactory.getLogger("MinigameBots");
 
-	private static final List<String> FEATURES = List.of(Protocol.Features.HANDSHAKE, Protocol.Features.EVENTS, Protocol.Features.STATUS);
+	private static final List<String> FEATURES = List.of(Protocol.Features.HANDSHAKE, Protocol.Features.EVENTS, Protocol.Features.STATUS,
+			Protocol.Features.PUPPET);
 	private static final SystemToast.SystemToastId LINK_TOAST = new SystemToast.SystemToastId();
 
 	@Override
@@ -268,6 +269,7 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		events.addListener(recorder::onEvent);
 		events.addListener(brain::onEvent);
 		events.addListener(exams::onEvent);
+		events.addListener(io.github.mudklip.minigamebots.client.brain.SelfPlayLink::onEvent);
 		events.addListener(event -> {
 			if (watching) {
 				Minecraft client = Minecraft.getInstance();

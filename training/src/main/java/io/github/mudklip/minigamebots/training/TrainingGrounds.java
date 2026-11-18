@@ -37,7 +37,7 @@ public final class TrainingGrounds implements ModInitializer {
 	public static final Logger LOGGER = LoggerFactory.getLogger("MinigameBots/TrainingGrounds");
 
 	private static final List<String> FEATURES = List.of(Protocol.Features.HANDSHAKE, Protocol.Features.EVENTS,
-			Protocol.Features.STATUS);
+			Protocol.Features.STATUS, Protocol.Features.PUPPET);
 	private static TrainingGrounds instance;
 
 	private final LinkedClients linkedClients = new LinkedClients();
@@ -141,6 +141,9 @@ public final class TrainingGrounds implements ModInitializer {
 
 		ServerPlayNetworking.registerGlobalReceiver(io.github.mudklip.minigamebots.common.net.TgStatusPayload.TYPE,
 				(payload, context) -> scenarios.onStatus(context.player(), payload.aiActive(), payload.sustainableTps()));
+
+		ServerPlayNetworking.registerGlobalReceiver(io.github.mudklip.minigamebots.common.net.TgPuppetPayload.TYPE,
+				(payload, context) -> dummies.control(context.player(), payload));
 
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
 			linkedClients.remove(handler.getPlayer().getUUID());

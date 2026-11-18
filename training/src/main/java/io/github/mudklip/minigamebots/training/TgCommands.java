@@ -114,6 +114,38 @@ final class TgCommands {
 							tg.scenarios().delete(sc.name);
 							ok(ctx, "Deleted " + sc.name);
 						}))
+						.then(Commands.literal("opponent").then(Commands.argument("name", StringArgumentType.word()).suggests(matchNames(tg))
+								.then(Commands.argument("team", StringArgumentType.word())
+										.then(Commands.argument("style", StringArgumentType.word())
+												.suggests((c, sb) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
+														java.util.stream.Stream.concat(DummySettings.STYLES.stream(),
+																java.util.stream.Stream.of("league")), sb))
+												.executes(ctx -> {
+													var sc = tg.scenarios().get(StringArgumentType.getString(ctx, "name"));
+													String color = StringArgumentType.getString(ctx, "team");
+													String style = StringArgumentType.getString(ctx, "style");
+													if (sc == null) {
+														fail(ctx, "No such match");
+														return 0;
+													}
+													if (!style.equals("league") && !DummySettings.STYLES.contains(style)) {
+														fail(ctx, "Styles: " + String.join(", ", DummySettings.STYLES) + ", league");
+														return 0;
+													}
+													for (var team : sc.teams) {
+														if (team.color.equals(color)) {
+															team.dummyStyle = style;
+															if (team.dummies == 0) {
+																team.dummies = 1;
+															}
+															tg.scenarios().save(sc);
+															ok(ctx, team.label() + " dummies: " + style);
+															return 1;
+														}
+													}
+													fail(ctx, "No team " + color);
+													return 0;
+												})))))
 						.then(Commands.literal("join").then(Commands.argument("name", StringArgumentType.word()).suggests(matchNames(tg))
 								.then(Commands.argument("team", StringArgumentType.word()).executes(ctx -> {
 									var sc = tg.scenarios().get(StringArgumentType.getString(ctx, "name"));

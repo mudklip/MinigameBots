@@ -71,6 +71,8 @@ public final class ScenarioManager {
 		final Map<UUID, Integer> dummies = new LinkedHashMap<>();
 		/** Style of each dummy that was picked by the league, to record the result against. */
 		final Map<UUID, String> leagueStyles = new LinkedHashMap<>();
+		/** Self-play: entity id of the dummy each player's client steers. */
+		final Map<UUID, Integer> puppets = new LinkedHashMap<>();
 		final Set<UUID> out = new HashSet<>();
 		final Map<UUID, Stats> stats = new HashMap<>();
 		final int[] started;
@@ -328,13 +330,18 @@ public final class ScenarioManager {
 				String style = team.style();
 				boolean picked = League.LEAGUE.equals(style);
 				if (picked) {
-					style = league.pick(e.players.keySet().iterator().next(), level.getRandom());
+					style = league.pick(e.players.keySet().iterator().next(), level.getRandom(), selfPlayer(e) != null);
 				}
 				DummySettings ds = DummySettings.style(style);
 				ds.infiniteHealth = false;
 				ds.fightsBack = true;
 				Mannequin m = dummyManager.spawnAt(level, at, sp != null ? (float) sp[3] : 0, ds, false);
 				if (m != null) {
+					ServerPlayer owner = ds.puppet ? selfPlayer(e) : null;
+					if (owner != null) {
+						dummyManager.setPuppetOwner(m.getUUID(), owner.getUUID());
+						e.puppets.put(owner.getUUID(), m.getId());
+					}
 					if (picked) {
 						e.leagueStyles.put(m.getUUID(), ds.style);
 					}
@@ -358,8 +365,23 @@ public final class ScenarioManager {
 			j.addProperty("time_limit", s.timeLimit);
 			j.addProperty("teammates", e.started[e.players.get(id)] - 1);
 			j.addProperty("opponents", opponents(e, e.players.get(id)));
+			if (e.puppets.containsKey(id)) {
+				j.addProperty("puppet_id", e.puppets.get(id));
+			}
 			truth.send(p, "episode_start", j);
 		}
+	}
+
+	/** The first player in the round whose client can steer a self-play dummy, or null. */
+	private @Nullable ServerPlayer selfPlayer(Episode e) {
+		for (UUID id : e.players.keySet()) {
+			ServerPlayer p = server().getPlayerList().getPlayer(id);
+			if (p != null && truth.supports(p, io.github.mudklip.minigamebots.common.Protocol.Features.PUPPET)
+					&& !e.puppets.containsKey(id)) {
+				return p;
+			}
+		}
+		return null;
 	}
 
 	/** Styles of the dummies not on {@code team}, e.g. "godly, L3". */

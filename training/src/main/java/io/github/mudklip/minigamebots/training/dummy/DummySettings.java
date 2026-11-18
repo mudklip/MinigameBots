@@ -51,12 +51,14 @@ public final class DummySettings {
 	public boolean smartShield;
 	/** Teacher opponent: allowed to cheat (disables raised shields instantly, never misses). */
 	public boolean cheats;
+	/** Self-play: steered by its owner's client (a past version of their AI); plays like L3 without it. */
+	public boolean puppet;
 	/** Name of the style it was made from ("L3", "godly", ...), shown on its label. */
 	public String style = "";
 
 	/** Opponent styles for matches and the league: levels plus named fighting styles. */
 	public static final java.util.List<String> STYLES = java.util.List.of("L1", "L2", "L3", "L4", "L5", "rusher",
-			"blocker", "critter", "w_tapper", "kiter", "godly");
+			"blocker", "critter", "w_tapper", "kiter", "godly", "self");
 
 	/** Settings for a style from {@link #STYLES} ("L1".."L5" or a name); unknown names give L3. */
 	public static DummySettings style(String name) {
@@ -99,6 +101,11 @@ public final class DummySettings {
 					s.cps = 3;
 					s.accuracy = 0.75;
 					s.reach = 3.0;
+				}
+				case "self" -> {
+					s = preset(3);
+					s.infiniteHealth = false;
+					s.puppet = true;
 				}
 				case "godly" -> {
 					// A teacher: perfect timing and every technique, and it may cheat.
@@ -193,6 +200,7 @@ public final class DummySettings {
 		s.smartShield = smartShield;
 		s.cheats = cheats;
 		s.style = style;
+		s.puppet = puppet;
 		return s;
 	}
 }

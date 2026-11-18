@@ -18,6 +18,9 @@ from .model import ARCH, LitePolicy
 
 
 def core_dir(profile: str) -> str:
+    """The folder holding the network: <profile>/core, or the folder itself if it is one (a saved version)."""
+    if not os.path.isdir(os.path.join(profile, "core")) and os.path.isfile(os.path.join(profile, "model.json")):
+        return profile
     return os.path.join(profile, "core")
 
 

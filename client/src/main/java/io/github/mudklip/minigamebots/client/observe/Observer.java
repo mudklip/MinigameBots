@@ -234,7 +234,8 @@ public final class Observer {
 					relations.ticksSinceHitByMe(id), relations.ticksSinceHitProtected(id),
 					myTeam != null && myTeam == team, id == relations.protectedId(), e instanceof Enemy, ins.id(), relation,
 					allyIns, enemyIns, fight.myHitsToKill(), fight.theirHitsToKill(), fight.odds(),
-					e instanceof net.minecraft.world.entity.LivingEntity le && le.isBlocking()));
+					e instanceof net.minecraft.world.entity.LivingEntity le && le.isBlocking(), e.getYHeadRot(), e.getXRot(),
+					e.onGround()));
 		}
 		lastSeen.clear();
 		lastSeen.putAll(stillSeen);

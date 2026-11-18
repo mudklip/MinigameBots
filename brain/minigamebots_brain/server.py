@@ -75,11 +75,29 @@ class Brain:
             if self.errors <= 5:
                 log("Policy error:\n" + traceback.format_exc())
             action = NOOP
-        self.channel.send(action.to_message(tick))
+        msg = action.to_message(tick)
+        puppet = obs.get("puppet")
+        if puppet:
+            try:
+                msg["puppet"] = self._selfplay(puppet.get("profile", "")).act(obs, int(puppet["id"]), puppet.get("round"))
+            except Exception:
+                self.errors += 1
+                if self.errors <= 5:
+                    log("Self-play error:\n" + traceback.format_exc())
+        self.channel.send(msg)
         self.ticks += 1
         self.think_ms.append((time.perf_counter() - start) * 1000)
         self.think_ms = self.think_ms[-200:]
         self.send_status()
+
+    def _selfplay(self, profile: str):
+        """The self-play opponent for this AI (made on first use)."""
+        sp = getattr(self, "selfplay", None)
+        if sp is None or sp.profile != profile:
+            from .selfplay import SelfPlay
+
+            sp = self.selfplay = SelfPlay(profile)
+        return sp
 
     def send_status(self, force: bool = False) -> None:
         now = time.monotonic()

@@ -70,6 +70,12 @@ public final class DummyManager {
 		transient int deadFor = -1;
 		/** 0 = not trying to crit; 1 = jumped and waiting to fall onto the target. */
 		transient int critPhase;
+		/** Self-play: the player whose client steers it, and its latest input. */
+		transient @Nullable UUID puppetOwner;
+		transient io.github.mudklip.minigamebots.common.net.@Nullable TgPuppetPayload control;
+		transient long controlTick = Long.MIN_VALUE;
+		transient boolean wasAttacking;
+		transient int sinceAttack = 100;
 
 		Dummy(UUID id, String dimension, double[] anchor, DummySettings settings) {
 			this.id = id;
@@ -160,6 +166,29 @@ public final class DummyManager {
 
 	public @Nullable Dummy byId(UUID id) {
 		return dummies.get(id);
+	}
+
+	public void setPuppetOwner(UUID dummy, UUID owner) {
+		Dummy d = dummies.get(dummy);
+		if (d != null) {
+			d.ensureTransient();
+			d.puppetOwner = owner;
+		}
+	}
+
+	/** Self-play input from a client; ignored unless that player owns the dummy. */
+	public void control(ServerPlayer p, io.github.mudklip.minigamebots.common.net.TgPuppetPayload c) {
+		Entity e = p.level().getEntity(c.entityId());
+		Dummy d = e == null ? null : dummies.get(e.getUUID());
+		if (d == null || !p.getUUID().equals(d.puppetOwner)) {
+			return;
+		}
+		if (d.control == null) {
+			io.github.mudklip.minigamebots.training.TrainingGrounds.LOGGER.info("Self-play: {}'s AI is steering dummy {}",
+					p.getPlainTextName(), c.entityId());
+		}
+		d.control = c;
+		d.controlTick = tick;
 	}
 
 	public void setPaused(UUID id, boolean paused) {
@@ -300,6 +329,14 @@ public final class DummyManager {
 				continue; // Unloaded chunk, or removed by something else.
 			}
 			ServerLevel level = (ServerLevel) m.level();
+			d.sinceAttack++;
+			if (d.settings.puppet && d.control != null && tick - d.controlTick <= 10 && !d.paused) {
+				puppet(m, d, level);
+				if (tick % 5 == 0) {
+					updateName(m, d);
+				}
+				continue;
+			}
 			LivingEntity target = d.paused ? null : target(m, level);
 			move(m, d, target, level);
 			defend(m, d, target);
@@ -393,6 +430,88 @@ public final class DummyManager {
 			}
 			m.setDeltaMovement(desired.x, y, desired.z);
 			m.setSprinting(desired.length() > 0.22);
+		}
+	}
+
+	/** Plays a self-play dummy from its owner's input, with a player's movement and attack rules. */
+	private void puppet(Mannequin m, Dummy d, ServerLevel level) {
+		var c = d.control;
+		float yaw = m.getYRot() + Mth.clamp(c.yaw(), -40, 40);
+		float pitch = Mth.clamp(m.getXRot() + Mth.clamp(c.pitch(), -40, 40), -90, 90);
+		m.setYRot(yaw);
+		m.setYHeadRot(yaw);
+		m.setYBodyRot(yaw);
+		m.setXRot(pitch);
+		double fwd = (c.has("forward") ? 1 : 0) - (c.has("back") ? 1 : 0);
+		double side = (c.has("left") ? 1 : 0) - (c.has("right") ? 1 : 0);
+		boolean sprint = c.has("sprint") && fwd > 0 && !c.has("sneak") && !c.has("use");
+		double speed = c.has("sneak") || c.has("use") ? 0.07 : sprint ? 0.28 : 0.21;
+		double len = Math.sqrt(fwd * fwd + side * side);
+		double rad = Math.toRadians(yaw);
+		Vec3 desired = Vec3.ZERO;
+		if (len > 0) {
+			fwd /= len;
+			side /= len;
+			desired = new Vec3(-Math.sin(rad) * fwd + Math.cos(rad) * side, 0, Math.cos(rad) * fwd + Math.sin(rad) * side).scale(speed);
+		}
+		if (m.hurtTime == 0) {
+			double y = m.getDeltaMovement().y;
+			if (c.has("jump") && m.onGround()) {
+				y = 0.42;
+			}
+			m.setDeltaMovement(desired.x, y, desired.z);
+		}
+		m.setSprinting(sprint);
+		// Shield in the off hand while "use" is held.
+		boolean holding = m.isUsingItem() && m.getUsedItemHand() == InteractionHand.OFF_HAND;
+		if (c.has("use") && !holding && m.getOffhandItem().is(Items.SHIELD)) {
+			m.startUsingItem(InteractionHand.OFF_HAND);
+		} else if (!c.has("use") && holding) {
+			m.stopUsingItem();
+		}
+		boolean attack = c.has("attack");
+		if (attack && !d.wasAttacking) {
+			swingAs(m, d, level, sprint);
+		}
+		d.wasAttacking = attack;
+	}
+
+	/** A player-style swing: hits what the dummy looks at within reach, scaled by how charged it was. */
+	private void swingAs(Mannequin m, Dummy d, ServerLevel level, boolean sprint) {
+		m.swing(InteractionHand.MAIN_HAND, m.getMainHandItem().getAttackAnimation(), false);
+		float charge = Mth.clamp(d.sinceAttack / 12.5f, 0, 1);
+		d.sinceAttack = 0;
+		if (m.isUsingItem()) {
+			m.stopUsingItem();
+		}
+		Vec3 eye = m.getEyePosition();
+		Vec3 end = eye.add(m.getLookAngle().scale(3.0));
+		LivingEntity hit = null;
+		double best = Double.MAX_VALUE;
+		for (LivingEntity t : level.getEntitiesOfClass(LivingEntity.class, m.getBoundingBox().inflate(4),
+				t -> t != m && t.isAlive() && !m.isAlliedTo(t) && !(t instanceof ServerPlayer sp && sp.isSpectator()))) {
+			var clip = t.getBoundingBox().inflate(0.1).clip(eye, end);
+			if (clip.isPresent() && clip.get().distanceToSqr(eye) < best) {
+				best = clip.get().distanceToSqr(eye);
+				hit = t;
+			}
+		}
+		if (hit == null) {
+			return;
+		}
+		boolean crit = charge > 0.9f && !m.onGround() && m.getDeltaMovement().y < 0 && !sprint;
+		float dmg = d.settings.damage * (0.2f + charge * charge * 0.8f) * (crit ? 1.5f : 1f);
+		hit.hurtServer(level, attack(m, level), dmg);
+		if (crit) {
+			level.getChunkSource().sendToTrackingPlayersAndSelf(m, new net.minecraft.network.protocol.game.ClientboundAnimatePacket(hit, 4));
+		}
+		if (sprint && charge > 0.9f) {
+			Vec3 dir = flat(hit.position().subtract(m.position()));
+			if (dir.lengthSqr() > 1e-4) {
+				dir = dir.normalize();
+				hit.push(dir.x * 0.5, 0.1, dir.z * 0.5);
+				hit.needsSync = true;
+			}
 		}
 	}
 

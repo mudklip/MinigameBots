@@ -135,6 +135,9 @@ public final class BrainSource implements ActionSource {
 
 	/** Meta-actions ride along with an action: e.g. "mark": "base" remembers this place. */
 	static void metaActions(JsonObject m) {
+		if (m.has("puppet") && m.get("puppet").isJsonObject()) {
+			SelfPlayLink.send(m.getAsJsonObject("puppet"));
+		}
 		if (m.has("protect") && m.get("protect").isJsonPrimitive()) {
 			String name = m.get("protect").getAsString();
 			net.minecraft.client.Minecraft c = net.minecraft.client.Minecraft.getInstance();

@@ -78,11 +78,12 @@ public final class League {
 	 * Picks an opponent style for the player. Weight = (1 - win rate)^2, so styles it loses to
 	 * come up most, and ones it beats every time still come up now and then.
 	 */
-	public String pick(UUID player, RandomSource random) {
+	public String pick(UUID player, RandomSource random, boolean selfPlay) {
 		Map<String, Record> mine = of(player);
+		List<String> pool = POOL.stream().filter(s -> selfPlay || !s.equals("self")).toList();
 		List<Double> weights = new ArrayList<>();
 		double total = 0;
-		for (String style : POOL) {
+		for (String style : pool) {
 			Record r = mine.get(style);
 			double loss = 1 - (r == null ? 0.5 : r.winRate());
 			double w = 0.02 + loss * loss;
@@ -90,13 +91,13 @@ public final class League {
 			total += w;
 		}
 		double x = random.nextDouble() * total;
-		for (int i = 0; i < POOL.size(); i++) {
+		for (int i = 0; i < pool.size(); i++) {
 			x -= weights.get(i);
 			if (x <= 0) {
-				return POOL.get(i);
+				return pool.get(i);
 			}
 		}
-		return POOL.get(POOL.size() - 1);
+		return pool.get(pool.size() - 1);
 	}
 
 	public void result(UUID player, String style, boolean won) {

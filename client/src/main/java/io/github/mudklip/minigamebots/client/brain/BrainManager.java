@@ -354,6 +354,10 @@ public final class BrainManager {
 		m.addProperty("slot", slot);
 		m.addProperty("frameTick", frame == null ? -1 : frame.tick());
 		m.add("obs", RecordingCodec.GSON.toJsonTree(obs));
+		JsonObject puppet = SelfPlayLink.describe();
+		if (puppet != null) {
+			m.getAsJsonObject("obs").add("puppet", puppet);
+		}
 		com.google.gson.JsonArray events = new com.google.gson.JsonArray();
 		io.github.mudklip.minigamebots.client.events.GameEvent e;
 		while ((e = pendingEvents.poll()) != null) {

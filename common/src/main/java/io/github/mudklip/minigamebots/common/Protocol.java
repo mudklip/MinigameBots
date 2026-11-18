@@ -17,6 +17,8 @@ public final class Protocol {
 		public static final String EVENTS = "events";
 		/** Client reports its AI's speed (TgStatusPayload), so the server can match it. */
 		public static final String STATUS = "status";
+		/** Self-play: the client steers a dummy with TgPuppetPayload. */
+		public static final String PUPPET = "puppet";
 
 		private Features() {
 		}
