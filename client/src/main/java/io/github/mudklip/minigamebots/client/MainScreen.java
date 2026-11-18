@@ -22,25 +22,31 @@ public final class MainScreen extends Screen {
 	@Override
 	protected void init() {
 		layout.addTitleHeader(title, font);
-		LinearLayout body = layout.addToContents(LinearLayout.vertical().spacing(8));
+		LinearLayout body = layout.addToContents(LinearLayout.vertical().spacing(6));
 		boolean inWorld = minecraft.player != null;
 		Button control = body.addChild(Button.builder(Component.translatable("minigamebots.menu.start_idle"), b -> {
 			onClose();
 			AgentControl.get().start(minecraft, io.github.mudklip.minigamebots.client.control.ActionSource.IDLE);
-		}).width(200).build());
+		}).width(204).build());
 		control.active = inWorld;
-		body.addChild(Button.builder(Component.translatable("minigamebots.menu.profiles"),
-				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.ProfilesScreen(this))).width(200).build());
-		body.addChild(Button.builder(Component.translatable("minigamebots.menu.brain"),
-				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.BrainScreen(this))).width(200).build());
-		Button memory = body.addChild(Button.builder(Component.translatable("minigamebots.menu.memory"),
-				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.MemoryScreen(this))).width(200).build());
+		LinearLayout row1 = body.addChild(LinearLayout.horizontal().spacing(4));
+		row1.addChild(Button.builder(Component.translatable("minigamebots.menu.profiles"),
+				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.ProfilesScreen(this))).width(100).build());
+		row1.addChild(Button.builder(Component.translatable("minigamebots.menu.brain"),
+				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.BrainScreen(this))).width(100).build());
+		LinearLayout row2 = body.addChild(LinearLayout.horizontal().spacing(4));
+		Button goals = row2.addChild(Button.builder(Component.translatable("minigamebots.menu.goals"),
+				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.GoalsScreen(this))).width(100).build());
+		goals.active = inWorld;
+		Button memory = row2.addChild(Button.builder(Component.translatable("minigamebots.menu.memory"),
+				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.MemoryScreen(this))).width(100).build());
 		memory.active = inWorld && MinigameBotsClient.instance().profiles().active() != null;
-		body.addChild(Button.builder(Component.translatable("minigamebots.menu.recordings"),
-				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.RecorderScreen(this))).width(200).build());
-		body.addChild(Button.builder(Component.translatable("minigamebots.menu.settings"),
-				b -> minecraft.gui.setScreen(MgbConfig.screen(this))).width(200).build());
-		layout.addToFooter(Button.builder(Component.translatable("gui.done"), b -> onClose()).width(200).build());
+		LinearLayout row3 = body.addChild(LinearLayout.horizontal().spacing(4));
+		row3.addChild(Button.builder(Component.translatable("minigamebots.menu.recordings"),
+				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.RecorderScreen(this))).width(100).build());
+		row3.addChild(Button.builder(Component.translatable("minigamebots.menu.settings"),
+				b -> minecraft.gui.setScreen(MgbConfig.screen(this))).width(100).build());
+		layout.addToFooter(Button.builder(Component.translatable("gui.done"), b -> onClose()).width(204).build());
 		layout.visitWidgets(this::addRenderableWidget);
 		repositionElements();
 	}

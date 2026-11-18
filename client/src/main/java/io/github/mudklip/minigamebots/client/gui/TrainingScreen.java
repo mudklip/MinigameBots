@@ -35,6 +35,7 @@ public final class TrainingScreen extends Screen {
 	private final List<RecordingMeta> recordings;
 	private final Set<String> chosen = new HashSet<>();
 	private TrainingManager.Plan plan = TrainingManager.Plan.STANDARD;
+	private String skill = "general";
 	private TrainingManager.Resources resources = TrainingManager.Resources.QUIET;
 	private boolean fresh;
 	/** null = Lite, else an installed foundation id. */
@@ -87,13 +88,18 @@ public final class TrainingScreen extends Screen {
 		addRenderableWidget(Button.builder(planLabel(), b -> {
 			plan = TrainingManager.Plan.values()[(plan.ordinal() + 1) % TrainingManager.Plan.values().length];
 			b.setMessage(planLabel());
-		}).pos(rx, 72).width(bw).tooltip(Tooltip.create(Component.translatable("minigamebots.training.plan_help"))).build());
+		}).pos(rx, 72).width(bw / 2 - 2).tooltip(Tooltip.create(Component.translatable("minigamebots.training.plan_help"))).build());
+		addRenderableWidget(Button.builder(Component.literal("Skill: " + skill), b -> {
+			var all = io.github.mudklip.minigamebots.client.profile.Skills.all(MinigameBotsClient.instance().profiles().store().dir(profile.id));
+			skill = all.get((all.indexOf(skill) + 1) % all.size());
+			rebuildWidgets();
+		}).pos(rx + bw / 2 + 2, 72).width(bw / 2 - 2).tooltip(Tooltip.create(Component.translatable("minigamebots.training.skill_help"))).build());
 		addRenderableWidget(Button.builder(resourcesLabel(), b -> {
 			resources = TrainingManager.Resources.values()[(resources.ordinal() + 1) % TrainingManager.Resources.values().length];
 			b.setMessage(resourcesLabel());
 		}).pos(rx + bw / 2 + 2, 48).width(bw / 2 - 2).tooltip(Tooltip.create(Component.translatable("minigamebots.training.resources_help"))).build());
-		boolean trainedBefore = Files.exists(MinigameBotsClient.instance().profiles().store().dir(profile.id)
-				.resolve("core/model.json"));
+		boolean trainedBefore = io.github.mudklip.minigamebots.client.profile.Skills.trained(
+				MinigameBotsClient.instance().profiles().store().dir(profile.id), skill);
 		addRenderableWidget(Checkbox.builder(Component.translatable("minigamebots.training.fresh"), font)
 				.pos(rx, 98).selected(!trainedBefore).onValueChange((c, on) -> fresh = on)
 				.tooltip(Tooltip.create(Component.translatable("minigamebots.training.fresh_help"))).build());
@@ -137,7 +143,7 @@ public final class TrainingScreen extends Screen {
 	}
 
 	private Component planLabel() {
-		return Component.translatable("minigamebots.training.plan", plan.label, plan.steps);
+		return Component.literal("Plan: " + plan.label);
 	}
 
 	private Component resourcesLabel() {
@@ -147,7 +153,7 @@ public final class TrainingScreen extends Screen {
 	private void startTraining() {
 		List<RecordingMeta> picked = recordings.stream().filter(r -> chosen.contains(r.id)).toList();
 		try {
-			training.start(profile, picked, plan, resources, fresh, base);
+			training.start(profile, picked, plan, resources, fresh, base, skill);
 			error = null;
 		} catch (IOException e) {
 			error = e.getMessage();

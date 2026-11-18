@@ -87,6 +87,8 @@ class LitePolicy(nn.Module):
         # Knowledge-base calculators (also zero-initialised): per-entity fight maths and own state.
         self.ent_calc = nn.Linear(features.ENTITY_CALC_DIM, 96)
         self.self_calc = nn.Linear(features.SELF_CALC_DIM, hidden)
+        # The Manager's current goal (zero-initialised too).
+        self.goal_in = nn.Linear(features.GOAL_DIM, hidden)
         self.reset_memory_modules()
 
     def reset_memory_modules(self):
@@ -97,7 +99,7 @@ class LitePolicy(nn.Module):
         nn.init.zeros_(self.memory_in[2].weight)
         nn.init.zeros_(self.memory_in[2].bias)
         nn.init.zeros_(self.head_mark.weight)
-        for m in (self.ent_calc, self.self_calc):
+        for m in (self.ent_calc, self.self_calc, self.goal_in):
             nn.init.zeros_(m.weight)
             nn.init.zeros_(m.bias)
         with torch.no_grad():
@@ -138,6 +140,8 @@ class LitePolicy(nn.Module):
             h = h + self.memory_in(wp.flatten(2))
         if "self_calc" in x:
             h = h + self.self_calc(x["self_calc"])
+        if "goal" in x:
+            h = h + self.goal_in(x["goal"])
         if state is None:
             state = self.initial_state(b, h.device)
         out, state = self.memory(h, state)
@@ -154,7 +158,7 @@ class LitePolicy(nn.Module):
 
 
 INPUT_KEYS = ("self", "items", "item_vals", "ent_type", "ent_held", "ent_vals", "ent_mask", "blocks", "screen", "crowd",
-              "frames", "ent_rel", "wp_vals", "wp_mask", "ent_calc", "self_calc")
+              "frames", "ent_rel", "wp_vals", "wp_mask", "ent_calc", "self_calc", "goal")
 
 
 def to_tensors(batch: dict, device) -> dict:
@@ -163,7 +167,7 @@ def to_tensors(batch: dict, device) -> dict:
 
 
 # Parameters that may be missing from older checkpoints (they start fresh when loaded).
-OPTIONAL_PREFIXES = ("head_value.", "ent_rel.", "memory_in.", "head_mark.", "ent_calc.", "self_calc.")
+OPTIONAL_PREFIXES = ("head_value.", "ent_rel.", "memory_in.", "head_mark.", "ent_calc.", "self_calc.", "goal_in.")
 
 
 def count_parameters(model: nn.Module) -> int:

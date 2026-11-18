@@ -17,6 +17,7 @@ class Action:
     yaw: float = 0.0  # Degrees, right is positive.
     pitch: float = 0.0  # Degrees, down is positive.
     mark: str | None = None  # Meta-action: remember this place as a waypoint of this type ("base", ...).
+    protect: str | None = None  # Meta-action: player name to protect ("" stops protecting).
 
     def to_message(self, tick: int) -> dict:
         unknown = set(self.keys) - set(KEYS)
@@ -33,6 +34,8 @@ class Action:
         }
         if self.mark:
             msg["mark"] = self.mark
+        if self.protect is not None:
+            msg["protect"] = self.protect
         return msg
 
 

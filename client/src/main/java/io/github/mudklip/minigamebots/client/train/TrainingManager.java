@@ -174,6 +174,12 @@ public final class TrainingManager {
 	 */
 	public void start(ProfileManifest profile, List<RecordingMeta> chosen, Plan plan, Resources resources, boolean fresh,
 			@Nullable String foundationId) throws IOException {
+		start(profile, chosen, plan, resources, fresh, foundationId, "general");
+	}
+
+	/** Trains one of the AI's skills ("general" is the AI's main network). */
+	public void start(ProfileManifest profile, List<RecordingMeta> chosen, Plan plan, Resources resources, boolean fresh,
+			@Nullable String foundationId, String skill) throws IOException {
 		if (busy()) {
 			throw new IOException("Already training " + profileId);
 		}
@@ -184,10 +190,12 @@ public final class TrainingManager {
 			throw new IOException("Pick at least one recording to learn from");
 		}
 		var code = runtime.prepareCode();
-		io.github.mudklip.minigamebots.client.profile.VersionHistory.before(profiles.dir(profile.id), profiles.dir(profile.id).resolve("core"),
-				String.format("Before training (%s, %d recordings%s)", plan.label, chosen.size(), foundationId == null ? "" : ", " + foundationId));
+		java.nio.file.Path skillDir = io.github.mudklip.minigamebots.client.profile.Skills.dir(profiles.dir(profile.id), skill);
+		io.github.mudklip.minigamebots.client.profile.VersionHistory.before(profiles.dir(profile.id), skillDir.resolve("core"),
+				String.format("Before training %s (%s, %d recordings%s)", skill, plan.label, chosen.size(),
+						foundationId == null ? "" : ", " + foundationId));
 		List<String> command = new ArrayList<>(List.of(runtime.venvPython().toString(), "-m", "minigamebots_brain", "train",
-				"--profile", profiles.dir(profile.id).toString(), "--steps", Integer.toString(plan.steps),
+				"--profile", skillDir.toString(), "--steps", Integer.toString(plan.steps),
 				"--resources", resources.name().toLowerCase(Locale.ROOT)));
 		for (RecordingMeta r : chosen) {
 			command.add("--recording");

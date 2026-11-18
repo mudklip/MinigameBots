@@ -110,7 +110,7 @@ public final class Observer {
 				p.getAirSupply(), p.getMaxAirSupply(), p.onGround(), p.isInWater(), p.isInLava(), p.isShiftKeyDown(),
 				p.isSprinting(), p.isUsingItem(), p.getYRot(), p.getXRot(), p.getX(), p.getY(), p.getZ(), v.x, v.y, v.z,
 				level.dimension().identifier().toString(), effects, p.isDeadOrDying(), p.getAttackStrengthScale(0.5f),
-				Calculator.critReady(p), Calculator.fallDamage(p));
+				Calculator.critReady(p), Calculator.fallDamage(p), level.getOverworldClockTime() % 24000L, level.isDarkOutside());
 	}
 
 	private static List<Observation.ItemInfo> inventory(LocalPlayer player) {

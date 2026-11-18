@@ -135,6 +135,21 @@ public final class BrainSource implements ActionSource {
 
 	/** Meta-actions ride along with an action: e.g. "mark": "base" remembers this place. */
 	static void metaActions(JsonObject m) {
+		if (m.has("protect") && m.get("protect").isJsonPrimitive()) {
+			String name = m.get("protect").getAsString();
+			net.minecraft.client.Minecraft c = net.minecraft.client.Minecraft.getInstance();
+			c.execute(() -> {
+				int id = -1;
+				if (c.level != null && !name.isEmpty()) {
+					for (var p : c.level.players()) {
+						if (p.getGameProfile().name().equals(name)) {
+							id = p.getId();
+						}
+					}
+				}
+				io.github.mudklip.minigamebots.client.MinigameBotsClient.instance().relations().setProtected(id);
+			});
+		}
 		if (m.has("mark") && m.get("mark").isJsonPrimitive()) {
 			String type = m.get("mark").getAsString();
 			net.minecraft.client.Minecraft c = net.minecraft.client.Minecraft.getInstance();

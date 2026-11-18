@@ -18,6 +18,12 @@ def _vpt(**kwargs) -> Policy:
     return VPTPolicy(**kwargs)
 
 
+def _manager(**kwargs) -> Policy:
+    from .manager import ManagerPolicy  # Loads skills (torch) only when they exist.
+
+    return ManagerPolicy(**kwargs)
+
+
 def _practice(**kwargs) -> Policy:
     from .practice import PracticePolicy  # Imported on use: it needs torch.
 
@@ -33,6 +39,7 @@ POLICIES = {
     "learned": create_learned,
     "vpt": _vpt,
     "practice": _practice,
+    "manager": _manager,
 }
 
 

@@ -19,7 +19,8 @@ public final class VersionsScreen extends Screen {
 
 	private final @Nullable Screen parent;
 	private final ProfileManifest profile;
-	private final Path core;
+	private Path core;
+	private String skill = "general";
 	private @Nullable String message;
 
 	public VersionsScreen(@Nullable Screen parent, ProfileManifest profile) {
@@ -31,8 +32,15 @@ public final class VersionsScreen extends Screen {
 
 	@Override
 	protected void init() {
+		Path profileDir = MinigameBotsClient.instance().profiles().store().dir(profile.id);
+		core = io.github.mudklip.minigamebots.client.profile.Skills.dir(profileDir, skill).resolve("core");
+		addRenderableWidget(Button.builder(Component.literal("Skill: " + skill), b -> {
+			var all = io.github.mudklip.minigamebots.client.profile.Skills.all(profileDir);
+			skill = all.get((all.indexOf(skill) + 1) % all.size());
+			rebuildWidgets();
+		}).pos(width - 120, 6).width(110).build());
 		addRenderableWidget(Button.builder(Component.translatable("minigamebots.versions.save_now"), b -> {
-			VersionHistory.before(core.getParent(), core, "Saved by hand");
+			VersionHistory.before(profileDir, core, "Saved by hand");
 			message = "Saved";
 			rebuildWidgets();
 		}).pos(10, height - 28).width(90).build());

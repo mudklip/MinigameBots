@@ -39,6 +39,7 @@ public final class PracticeScreen extends Screen {
 	private final Map<String, String> params = new HashMap<>();
 	private double stayHuman = 0.05;
 	private int resources = 1;
+	private String skill = "general";
 	private @Nullable String error;
 	private @Nullable EditBox param;
 
@@ -140,6 +141,11 @@ public final class PracticeScreen extends Screen {
 		human.setPosition(x, y);
 		human.setTooltip(Tooltip.create(Component.translatable("minigamebots.practice.human_help")));
 		addRenderableWidget(human);
+		addRenderableWidget(Button.builder(Component.literal("Skill: " + skill), b -> {
+			var all = io.github.mudklip.minigamebots.client.profile.Skills.all(dir);
+			skill = all.get((all.indexOf(skill) + 1) % all.size());
+			b.setMessage(Component.literal("Skill: " + skill));
+		}).pos(x + w + 88, y).width(90).tooltip(Tooltip.create(Component.translatable("minigamebots.training.skill_help"))).build());
 		addRenderableWidget(Button.builder(Component.literal("PC: " + RESOURCES[resources]), b -> {
 			resources = (resources + 1) % RESOURCES.length;
 			b.setMessage(Component.literal("PC: " + RESOURCES[resources]));
@@ -178,7 +184,7 @@ public final class PracticeScreen extends Screen {
 		}
 		error = null;
 		MinigameBotsClient.instance().profiles().setActive(profile.id);
-		MinigameBotsClient.instance().brain().practice(minecraft, profile, o, learn, stayHuman, RESOURCES[resources]);
+		MinigameBotsClient.instance().brain().practice(minecraft, profile, o, learn, stayHuman, RESOURCES[resources], skill);
 		minecraft.gui.setScreen(null);
 	}
 

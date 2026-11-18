@@ -116,11 +116,19 @@ public final class BrainManager {
 	 */
 	public void practice(Minecraft client, io.github.mudklip.minigamebots.client.profile.ProfileManifest profile,
 			io.github.mudklip.minigamebots.client.practice.Objective objective, boolean learn, double stayHuman, String resources) {
+		practice(client, profile, objective, learn, stayHuman, resources, "general");
+	}
+
+	/** Practice for one of the AI's skills. */
+	public void practice(Minecraft client, io.github.mudklip.minigamebots.client.profile.ProfileManifest profile,
+			io.github.mudklip.minigamebots.client.practice.Objective objective, boolean learn, double stayHuman, String resources,
+			String skill) {
 		JsonObject args = new JsonObject();
-		var dir = MinigameBotsClient.instance().profiles().store().dir(profile.id);
+		var profileDir = MinigameBotsClient.instance().profiles().store().dir(profile.id);
+		var dir = io.github.mudklip.minigamebots.client.profile.Skills.dir(profileDir, skill);
 		if (learn) {
-			io.github.mudklip.minigamebots.client.profile.VersionHistory.before(dir, dir.resolve("core"),
-					"Before practice (" + (objective.name == null || objective.name.isBlank() ? "custom" : objective.name) + ")");
+			io.github.mudklip.minigamebots.client.profile.VersionHistory.before(profileDir, dir.resolve("core"),
+					"Before practising " + skill + " (" + (objective.name == null || objective.name.isBlank() ? "custom" : objective.name) + ")");
 		}
 		args.addProperty("profile", dir.toString());
 		args.add("objective", io.github.mudklip.minigamebots.client.practice.ObjectiveStore.toJson(objective));
@@ -128,6 +136,22 @@ public final class BrainManager {
 		args.addProperty("stay_human", stayHuman);
 		args.addProperty("resources", resources);
 		play(client, "practice", args);
+	}
+
+	/**
+	 * The Manager: works through a queue of goals (or free play), choosing the AI's skills and
+	 * letting instincts interrupt. Goals are JSON objects like {"type": "mine", "item": "iron", "count": 4}.
+	 */
+	public void playManager(Minecraft client, io.github.mudklip.minigamebots.client.profile.ProfileManifest profile,
+			com.google.gson.JsonArray goals, boolean freePlay, JsonObject likes) {
+		JsonObject args = new JsonObject();
+		args.addProperty("profile", MinigameBotsClient.instance().profiles().store().dir(profile.id).toString());
+		args.addProperty("foundations", MinigameBotsClient.instance().profiles().foundations().root().toString());
+		args.add("goals", goals);
+		args.addProperty("free_play", freePlay);
+		args.add("likes", likes);
+		args.addProperty("temperature", MgbConfig.get().predictability >= 1 ? 0.0 : 1.0 - MgbConfig.get().predictability);
+		play(client, "manager", args);
 	}
 
 	/** Plays with a foundation model as-is (no AI profile on top): mostly to see what it already knows. */

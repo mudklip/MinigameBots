@@ -212,5 +212,12 @@
 	"minigamebots.versions.revert": "Go back",
 	"minigamebots.versions.revert_help": "Make this the AI's current version. The version it has now is saved first, so this can be undone.",
 	"minigamebots.versions.pin_help": "Pinned versions are never deleted automatically (only the last 10 are kept otherwise).",
-	"minigamebots.versions.empty": "No saved versions yet. One is saved automatically before every training or practice session."
+	"minigamebots.versions.empty": "No saved versions yet. One is saved automatically before every training or practice session.",
+	"minigamebots.menu.goals": "Goals...",
+	"minigamebots.goals.screen": "Goals",
+	"minigamebots.goals.add": "Add",
+	"minigamebots.goals.clear": "Clear",
+	"minigamebots.goals.start": "Start",
+	"minigamebots.goals.free_help": "When the goals run out (or there are none), the AI does what it feels like: goes home at night, finds food when hungry, otherwise picks what it likes (the sliders).",
+	"minigamebots.training.skill_help": "Which skill to train. Each skill is its own trained network; the Manager (Goals) picks the right one for each goal. \"general\" is the AI's main one, used when a skill isn't trained."
 }

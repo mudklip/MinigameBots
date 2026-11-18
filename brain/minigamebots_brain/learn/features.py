@@ -42,6 +42,9 @@ ENTITY_REL_DIM = 4
 # Knowledge-base calculators (the mod computes them from real item stats).
 ENTITY_CALC_DIM = 3  # 1/hits I need, 1/hits they need, fight odds (-1 lose .. 1 win)
 SELF_CALC_DIM = 3  # attack charge, crit ready, fall damage if landing now
+# The current goal (from the Manager): its type, and where its target is if it has one.
+GOAL_TYPES = ("free_play", "mine", "hunt", "protect", "follow", "go_to", "explore", "survive", "fight", "flee")
+GOAL_DIM = len(GOAL_TYPES) + 5
 FRAME_SIZE = 128
 
 
@@ -189,13 +192,25 @@ def featurize(obs: dict) -> dict:
     blocks = decode_blocks(obs.get("blocks"))
     blocks = rotate_blocks(blocks, yaw)
 
+    goal = obs.get("goal") or {}
+    goal_vec = np.zeros(GOAL_DIM, dtype=np.float32)
+    if goal.get("type") in GOAL_TYPES:
+        goal_vec[GOAL_TYPES.index(goal["type"])] = 1.0
+        n = len(GOAL_TYPES)
+        if "target_dy" in goal:
+            goal_vec[n] = max(-1.0, min(1.0, float(goal["target_dy"]) / 64.0))
+        if "target_dx" in goal and "target_dz" in goal:
+            ahead, right = to_local(float(goal["target_dx"]), float(goal["target_dz"]), yaw)
+            dist = max(1e-3, math.hypot(ahead, right))
+            goal_vec[n + 1:n + 5] = [ahead / dist, right / dist, math.log1p(dist) / 8, 1.0]
+
     gui = obs.get("gui")
     screen = bucket(gui.get("screen", ""), SCREEN_BUCKETS) if gui else 0
     return {
         "crowd": crowd_features(crowd, yaw),
         "self": self_vec, "items": items, "item_vals": item_vals, "ent_type": ent_type, "ent_held": ent_held,
         "ent_vals": ent_vals, "ent_mask": ent_mask, "blocks": blocks, "screen": np.int64(screen),
-        "ent_rel": ent_rel, "wp_vals": wp_vals, "wp_mask": wp_mask, "ent_calc": ent_calc,
+        "ent_rel": ent_rel, "wp_vals": wp_vals, "wp_mask": wp_mask, "ent_calc": ent_calc, "goal": goal_vec,
         "self_calc": np.array([float(me.get("attackReady", 1.0)), float(me.get("critReady", False)),
                                min(float(me.get("fallDamage", 0.0)), 40.0) / 20.0], dtype=np.float32),
     }
@@ -284,6 +299,10 @@ def mirror(f: dict) -> dict:
         w = f["wp_vals"].copy()
         w[..., len(WAYPOINT_TYPES) + 1] *= -1
         out["wp_vals"] = w
+    if "goal" in f:
+        g = f["goal"].copy()
+        g[..., len(GOAL_TYPES) + 1] *= -1
+        out["goal"] = g
     out["blocks"] = np.ascontiguousarray(np.flip(f["blocks"], axis=-1))
     crowd = f["crowd"].reshape(*f["crowd"].shape[:-1], CROWD_KINDS, CROWD_BANDS, CROWD_SECTORS)
     order = [(-k) % CROWD_SECTORS for k in range(CROWD_SECTORS)]
