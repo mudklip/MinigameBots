@@ -219,5 +219,9 @@
 	"minigamebots.goals.clear": "Clear",
 	"minigamebots.goals.start": "Start",
 	"minigamebots.goals.free_help": "When the goals run out (or there are none), the AI does what it feels like: goes home at night, finds food when hungry, otherwise picks what it likes (the sliders).",
-	"minigamebots.training.skill_help": "Which skill to train. Each skill is its own trained network; the Manager (Goals) picks the right one for each goal. \"general\" is the AI's main one, used when a skill isn't trained."
+	"minigamebots.training.skill_help": "Which skill to train. Each skill is its own trained network; the Manager (Goals) picks the right one for each goal. \"general\" is the AI's main one, used when a skill isn't trained.",
+	"minigamebots.profiles.merge_help": "Make a new AI from this one and another, choosing which AI each skill comes from.",
+	"minigamebots.merge.screen": "Merge %s with another AI",
+	"minigamebots.merge.create": "Create merged AI",
+	"minigamebots.merge.help": "Makes a new AI. The two you merge from stay as they are."
 }

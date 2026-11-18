@@ -390,14 +390,15 @@ warning suggesting a revert.
 
 Averaging two networks together doesn't work, so combining is **modular**:
 
-1. Every AI is a **shared core** plus **skill modules** plus a **Manager**.
-2. **Merge** = pick skill modules from several AIs (PvP from one, Building from another),
-   then run a short **Manager training** session so it learns when to use each.
-3. **Rule:** skills can merge directly only if they were trained on the **same foundation
-   ID**. Otherwise the merge falls back to **distillation**: the new AI learns to imitate
-   each source AI on its own data. That's slower, but always works.
-4. **Polish** (optional): distill the whole merged AI into one unified network for smoother,
-   more human transitions between skills.
+1. Every AI is a **main network** ("general", the profile's `core/`) plus **skills**
+   (`skills/<name>/core/`, each a complete network of its own) plus the **Manager**.
+2. **Merge** (AI Profiles → Merge): pick a second AI, then for each skill choose which AI it
+   comes from (or leave it out). The result is a new AI; the two originals don't change.
+3. Because every skill is self-contained (it records its own base, Lite or VPT and which
+   foundation), skills from different foundations combine as they are: no distillation is
+   needed. The Manager switches between them by goal (section 4.6).
+4. **Polish** (optional, later): distill the whole merged AI into one network for smoother
+   transitions between skills. Not built yet; merged AIs work without it.
 
 ### 3.10 Video Lab and Knowledge Book
 
@@ -640,12 +641,19 @@ A **Goal** = an Objective plus parameters. The built-in goal library:
 
 Goals can be **queued** ("get iron, then build a house, then guard Alex").
 
-**The Manager**, every 0.5 seconds:
-1. Checks **interrupts**: instincts (danger, hunger), threats (sound or sight of hostiles,
-   being attacked), inventory full, tool broken, lost.
-2. Picks a skill using its learned policy plus the skills' value estimates. For example, if
-   the combat value estimate is low, it flees instead of fighting.
-3. Resumes the goal when the interrupt is resolved.
+**The Manager** (`policies/manager.py`, Goals screen in game), every tick:
+1. Checks **interrupts**: a threat that hit it or is hostile and close (fight, or flee when
+   health is low and the calculator's fight odds are bad), hunger with food in the hotbar
+   (eat). Free play also heads home at night when a base is marked, and hunts when hungry
+   with no food.
+2. Picks the skill for the goal (`SKILLS_FOR`: hunt → hunting, then combat, then general;
+   mine → mining; and so on) and tells it the goal (type, where the target is, and for
+   mining how far up or down the best ore height is, from the knowledge base).
+3. With **no trained skill** for it, uses **built-in reflexes**: turn and walk to the target,
+   aim at its body (tracking turns already on the way, as the follow policy does), switch to
+   a weapon and attack, run away, explore. An untrained AI can already hunt a pig.
+4. Counts progress from events (kills, items gained, waypoints reached) and moves to the
+   next queued goal when one is done; free play picks goals by the "likes" sliders.
 
 Example: on a "Mine diamonds" goal it uses Navigation and Mining. It hears a creeper and
 switches to Combat. It's attacked by a strong player, the combat value estimate is low, so it
@@ -762,8 +770,11 @@ while training, as a teacher; the AI that plays always uses virtual keyboard and
   dummies use our own simple pathfinding.
 - **Mirrored recordings (M10):** every recording also trains flipped left-to-right (image,
   strafing, turning, block cube and crowd radar), doubling the data for almost no code.
-- **Hindsight relabelling (M10):** when a goal attempt fails but reaches something else, it's
-  also stored as a success for that something else, so every attempt teaches a goal.
+- **Hindsight relabelling (M10, `learn/hindsight.py`):** recordings don't say what the player
+  meant to do, but their events say what they did. Half of the training windows are labelled
+  with the next thing achieved within 10 s (killed a pig → hunt, with where the pig was;
+  picked up diamonds → mine, with the depth; reached a waypoint → go to it) as the goal, so
+  skills learn what each Manager goal means from plain recordings.
 - **Weakness-weighted practice (M11):** exams find weak spots; practice picks those drills
   and scenarios more often.
 - **"Which was better?" (M12):** you pick the better or more human of two short clips; a small
@@ -1041,7 +1052,7 @@ Each milestone ends with tests, a working jar, and a short demo you can try.
 | M7b | **Matches** | Matches (scenarios): arena + coloured scoreboard teams with spawns, kits and dummies; win rules (last team standing, first to N kills, most kills in time, survive); countdown, knock-outs as spectator, results, automatic rounds; "match AI speed" slows the game to the slowest AI (done). Insignia (shield) teams come with M9 |
 | M8 | **Objectives and RL** | Objective editor, escrow/priority/budget rewards with warnings, PPO practice in the background with KL-to-prior ("stay human"), exams over Training Grounds rounds (done for the Lite base; VPT-base practice, realism critic and curiosity bonus come later) |
 | M9 | **Memory** | Waypoints per AI per world, coarse map, Memory screen with mini-map, friend/enemy memory with insignia factions (3.3.1), "mark" meta-action learned from recordings and practice (done) |
-| M10 | **Skills and Manager** | Skill modules, interrupts, goals, merge, distillation, built-in Minecraft knowledge (game data reader + facts file, section 4.6.1), hindsight relabelling of goals, mirrored recordings (section 4.10), automatic version history with one-click revert (section 3.8) |
+| M10 | **Skills and Manager** | Skill modules, interrupts, goals with built-in reflexes, merge by skills (section 3.9), built-in Minecraft knowledge and calculators (section 4.6.1), hindsight relabelling of goals, mirrored recordings (section 4.10), automatic version history with one-click revert (section 3.8) (done; whole-AI distillation "polish" left for later) |
 | M11 | **Combat league** | Self-play matchmaking, scripted opponents, fast-sim aim, drills for the advanced techniques (section 4.6.1), godly teacher opponents and client teacher mode with Baritone, teacher demos, practice weighted toward exam weaknesses (section 4.10) |
 | M12 | **Realism** | Realism critic, humanizer tuning from your data, "which was better?" clip comparisons training a style reward model (section 4.10) |
 | M13 | **Video Lab** | Pipeline, IDM labeling, reference atlas, Question Queue, Knowledge Book |

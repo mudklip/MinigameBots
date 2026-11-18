@@ -124,8 +124,12 @@ class SequenceSampler:
     """
 
     def __init__(self, directories, length: int = 32, split: str = "train", holdout: float = 0.1,
-                 cache_chunks: int = 8, seed: int | None = None, vpt_targets: bool = False, mirror: float = 0.0):
+                 cache_chunks: int = 8, seed: int | None = None, vpt_targets: bool = False, mirror: float = 0.0,
+                 hindsight: float = 0.0):
         self.vpt_targets = vpt_targets
+        # Chance that a window is labelled with what the player achieved next as its goal
+        # (see hindsight.py); the rest train with no goal, as in free play.
+        self.hindsight = hindsight
         self.mirror = mirror  # Chance that a training window is used flipped left-right.
         self.recordings = [Recording(d) for d in directories]
         self.length = length
@@ -179,6 +183,11 @@ class SequenceSampler:
         chunk = self._chunk(ri, ci)
         rec = self.recordings[ri]
         feats, targets, frames = [], [], []
+        goals = None
+        if self.hindsight > 0 and self.rng.random() < self.hindsight:
+            from . import hindsight
+
+            goals = hindsight.label(chunk, start, self.length)
         weights = np.zeros(self.length, dtype=np.float32)
         camera_ok = np.ones(self.length, dtype=np.float32)
         has_frame = np.ones(self.length, dtype=np.float32)
@@ -188,7 +197,10 @@ class SequenceSampler:
             if entry is None:
                 return None
             record, jpeg = entry
-            feats.append(features.featurize(record.get("obs") or {}))
+            obs = record.get("obs") or {}
+            if goals is not None and goals[i] is not None:
+                obs = dict(obs, goal=goals[i])
+            feats.append(features.featurize(obs))
             targets.append(actions.encode_input(record.get("input") or {}))
             if jpeg is None or record.get("frameAge", 0) < 0:
                 frames.append(np.zeros((features.FRAME_SIZE, features.FRAME_SIZE, 3), dtype=np.uint8))

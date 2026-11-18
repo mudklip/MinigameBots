@@ -155,6 +155,60 @@ public final class ProfileStore {
 		return m;
 	}
 
+	/**
+	 * A new AI made from {@code base} (memories, settings, skin, its skills) with some skills
+	 * taken from other AIs instead. Every skill is its own network, so they combine as they are;
+	 * the Manager just switches between them. {@code picks} maps skill name to the source
+	 * profile's id ("general" swaps the main network too).
+	 */
+	public ProfileManifest merge(ProfileManifest base, java.util.Map<String, String> picks, String name) throws IOException {
+		ProfileManifest m = duplicate(base, name);
+		Path out = dir(m.id);
+		for (var e : picks.entrySet()) {
+			ProfileManifest from = get(e.getValue());
+			if (from == null || from.id.equals(base.id)) {
+				continue;
+			}
+			Path src = Skills.dir(dir(from.id), e.getKey()).resolve("core");
+			Path dst = Skills.dir(out, e.getKey()).resolve("core");
+			if (!Files.isDirectory(src)) {
+				continue;
+			}
+			deleteTree(dst);
+			copyTree(src, dst);
+			if ("general".equals(e.getKey())) {
+				m.foundation = from.foundation;
+			}
+			if (!m.parents.contains(from.id)) {
+				m.parents.add(from.id);
+			}
+		}
+		m.stats.skills = Skills.trainedOnes(out).size();
+		save(m);
+		return m;
+	}
+
+	/** Removes a skill from an AI (not "general", its main network). */
+	public void removeSkill(ProfileManifest m, String skill) throws IOException {
+		if ("general".equals(skill) || skill.contains("/") || skill.contains("\\") || skill.contains("..")) {
+			return;
+		}
+		deleteTree(Skills.dir(dir(m.id), skill));
+		m.stats.skills = Skills.trainedOnes(dir(m.id)).size();
+		save(m);
+	}
+
+	private static void deleteTree(Path dir) throws IOException {
+		if (!Files.isDirectory(dir)) {
+			return;
+		}
+		try (Stream<Path> files = Files.walk(dir)) {
+			for (Path p : files.sorted(Comparator.reverseOrder()).toList()) {
+				Files.delete(p);
+			}
+		}
+	}
+
 	public void delete(String id) throws IOException {
 		Path dir = dir(id).normalize();
 		if (!dir.startsWith(root.normalize()) || dir.equals(root.normalize()) || !Files.isDirectory(dir)) {

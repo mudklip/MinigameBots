@@ -42,6 +42,7 @@ public final class ProfilesScreen extends Screen {
 	private Button use;
 	private Button edit;
 	private Button duplicate;
+	private Button merge;
 	private Button delete;
 	private Button export;
 	private Button train;
@@ -98,9 +99,12 @@ public final class ProfilesScreen extends Screen {
 				minecraft.gui.setScreen(new TrainingScreen(this, p));
 			}
 		}).pos(col[0], y2).width(sw).build());
-		Button merge = addRenderableWidget(Button.builder(Component.translatable("minigamebots.profiles.merge"), b -> { })
-				.pos(col[1], y2).width(sw).tooltip(Tooltip.create(Component.translatable("minigamebots.profiles.later", 10))).build());
-		merge.active = false;
+		merge = addRenderableWidget(Button.builder(Component.translatable("minigamebots.profiles.merge"), b -> {
+			ProfileManifest p = selectedProfile();
+			if (p != null) {
+				minecraft.gui.setScreen(new MergeScreen(this, p));
+			}
+		}).pos(col[1], y2).width(sw).tooltip(Tooltip.create(Component.translatable("minigamebots.profiles.merge_help"))).build());
 		export = addRenderableWidget(Button.builder(Component.translatable("minigamebots.recorder.export"), b -> exportSelected())
 				.pos(col[2], y2).width(sw).build());
 		addRenderableWidget(Button.builder(Component.translatable("minigamebots.recorder.import"), b -> importAll())
@@ -123,6 +127,7 @@ public final class ProfilesScreen extends Screen {
 		delete.active = has;
 		export.active = has;
 		train.active = has;
+		merge.active = has;
 		prev.visible = page > 0;
 		next.visible = (page + 1) * perPage < all.size() + 1;
 		page = Math.min(page, all.size() / perPage);
