@@ -768,7 +768,15 @@ while training, as a teacher; the AI that plays always uses virtual keyboard and
   and scenarios more often.
 - **"Which was better?" (M12):** you pick the better or more human of two short clips; a small
   reward model learns your taste and adds to the Objective, faster than writing style rules.
-- **Learning from everyone on a server (M14):** on a consenting server with Training Grounds,
+- **Learning from other players on any server it may play on (M14):** most servers are
+  plugin-based and can't install mods, so this works from the AI's own client: the client
+  already receives every nearby player's position, look direction, velocity, swings, held
+  item and equipment changes, sneaking/sprinting, block changes and damage events. From those
+  the mod reconstructs what each visible player did, tick by tick (not their exact keys, but
+  close), and turns each one into a demo from their point of view, weighted by outcome (who
+  won the trade, who died). Recorded by the mod's own recorder or by Flashback (also
+  client-side), so it works on any server you're allowed to play on, with no server mod.
+- **Exact version with Training Grounds (M14):** on a server with Training Grounds,
   every player's movement, aim, hotbar, attacks, item use and the outcome of each fight are
   recorded exactly, tick by tick (players are told and can opt out). Each fight then becomes
   demos from *both* sides. Imitation is weighted by outcome: moments that led to winning
@@ -1037,7 +1045,7 @@ Each milestone ends with tests, a working jar, and a short demo you can try.
 | M11 | **Combat league** | Self-play matchmaking, scripted opponents, fast-sim aim, drills for the advanced techniques (section 4.6.1), godly teacher opponents and client teacher mode with Baritone, teacher demos, practice weighted toward exam weaknesses (section 4.10) |
 | M12 | **Realism** | Realism critic, humanizer tuning from your data, "which was better?" clip comparisons training a style reward model (section 4.10) |
 | M13 | **Video Lab** | Pipeline, IDM labeling, reference atlas, Question Queue, Knowledge Book |
-| M14 | **Flashback** | Replay import, POV capture, re-render variety, server-wide recording of every player through Training Grounds, learning from other players' (and enemies') good play (section 4.10) |
+| M14 | **Flashback** | Replay import, POV capture, re-render variety, learning from other players' and enemies' good play as seen from the AI's own client on any server (no server mod), exact server-wide recording where Training Grounds is installed (section 4.10) |
 | M15 | **Autonomy and polish** | Watchdog, idle behavior, protected zones, chat, Figure It Out, minigame templates and generator |
 
 ### Possible future additions (after M15, not scheduled)
