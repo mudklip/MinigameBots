@@ -643,6 +643,30 @@ switches to Combat. It's attacked by a strong player, the combat value estimate 
 flees to base. Its inventory fills, so the Inventory skill places a shulker or the Manager
 heads home.
 
+### 4.6.1 Built-in Minecraft knowledge (part of M10)
+
+Facts a person learns by being told once aren't worth training: they're looked up instead.
+VPT learned *behaviour* from 1.16 videos (dig down, chop trees first), not facts, and some of
+its habits are outdated (ore heights changed in 1.18). So every AI ships with a default
+knowledge set from two sources:
+
+1. **The game's own data, read at runtime:** recipes, loot tables, item/block/biome tags and,
+   in singleplayer, biome and structure data. Exact, always matches the running version, and
+   covers modded items automatically.
+2. **A curated facts file** (a few hundred KB, hand-written, checked against the Minecraft
+   Wiki; facts are stated in our own words): ore distribution by Y level, mob spawning rules
+   (light, spawnable spaces, biomes, structures), farm requirements (chunk, Y level, biome,
+   spawning spaces, e.g. gold farms on the nether roof in nether wastes), structure locations,
+   and combat mechanics (crit timing, shield and axe cooldowns, knockback).
+
+How it's used: the Manager turns goals into parameters with it ("get diamonds" -> Y about -58,
+branch mine; "gold farm" -> nether roof above nether wastes), and Objectives can use it for
+shaping (e.g. a bonus for reaching the right Y level). The network learns the *skill*; the facts
+say *where* and *what*. The file can be edited, the Video Lab's Question Queue adds answers to
+it (the Knowledge Book, M13), and servers with custom rules can override entries. The
+optional mind (section 9) looks facts up here, so it doesn't need a big model that happens
+to remember Minecraft trivia.
+
 ### 4.7 Exams
 
 Exams are fixed, repeatable benchmark scenarios. They need Training Grounds for exact setup,
@@ -908,7 +932,7 @@ Each milestone ends with tests, a working jar, and a short demo you can try.
 | M7b | **Matches** | Matches (scenarios): arena + coloured scoreboard teams with spawns, kits and dummies; win rules (last team standing, first to N kills, most kills in time, survive); countdown, knock-outs as spectator, results, automatic rounds; "match AI speed" slows the game to the slowest AI (done). Insignia (shield) teams come with M9 |
 | M8 | **Objectives and RL** | Objective editor, escrow/priority/budget rewards with warnings, PPO practice in the background with KL-to-prior ("stay human"), exams over Training Grounds rounds (done for the Lite base; VPT-base practice, realism critic and curiosity bonus come later) |
 | M9 | **Memory** | Waypoints per AI per world, coarse map, Memory screen with mini-map, friend/enemy memory with insignia factions (3.3.1), "mark" meta-action learned from recordings and practice (done) |
-| M10 | **Skills and Manager** | Skill modules, interrupts, goals, merge, distillation |
+| M10 | **Skills and Manager** | Skill modules, interrupts, goals, merge, distillation, built-in Minecraft knowledge (game data reader + facts file, section 4.6.1) |
 | M11 | **Combat league** | Self-play matchmaking, scripted opponents, fast-sim aim |
 | M12 | **Realism** | Realism critic, humanizer tuning from your data |
 | M13 | **Video Lab** | Pipeline, IDM labeling, reference atlas, Question Queue, Knowledge Book |
@@ -917,8 +941,9 @@ Each milestone ends with tests, a working jar, and a short demo you can try.
 
 ### Possible future additions (after M15, not scheduled)
 
-Ideas to consider once both mods are fully usable. Not part of the milestones; each will be
-discussed before any work starts.
+Everything here is optional and comes after the main mods are finished and usable, unless
+we decide otherwise. Each will be discussed in detail before any work starts. (Exception
+already scheduled: the built-in Minecraft knowledge, section 4.6.1, is part of M10.)
 
 **Long-term goal:** a fully autonomous player, in the spirit of AI streamers, that is very
 good at every part of Minecraft and does things because it wants to, but can also be told
@@ -954,6 +979,14 @@ to wreck a normal PC.
   from them.
 - **Relationship memory:** a short per-player history (how they treated it, what happened
   together) in the world memory, so it treats people according to its past with them.
+- **Honest expectations (as discussed):** top-level PvP (1v1s, 2v1s, escaping armies, gear
+  disadvantage, unusual kits) is reachable through self-play and lots of training time,
+  realistically weeks of overnight training per discipline on a mid PC. Correct farm placement
+  comes from the knowledge set plus the mind, not from training alone. Medium redstone is
+  realistic for designs it was shown; inventing new circuits is not. "Doing what it feels like"
+  is Free play plus the Manager choosing goals from learned preferences, with the mind adding
+  personality and reasons. No language model can be made 100% safe in chat: layered filters,
+  limits, an off switch, and chat off by default on public servers.
 
 ### How development is tested
 
