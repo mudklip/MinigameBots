@@ -915,6 +915,18 @@ Each milestone ends with tests, a working jar, and a short demo you can try.
 | M14 | **Flashback** | Replay import, POV capture, re-render variety |
 | M15 | **Autonomy and polish** | Watchdog, idle behavior, protected zones, chat, Figure It Out, minigame templates and generator |
 
+### Possible future additions (after M15, not scheduled)
+
+Ideas to consider once both mods are fully usable. Not part of the milestones; each will be
+discussed before any work starts.
+
+- **Local chat brain (optional):** a small open model (e.g. Llama 3.2 3B or Qwen 2.5 3B)
+  running locally through llama.cpp, about 2-3 GB, on the GPU or CPU. It would understand
+  chat ("follow me", "get iron then come back", "protect Alex") and turn it into goals, read
+  signs, books and server rules, and chat simply with friends. It would not play: the trained
+  network still does all movement and fighting. Off by default. How it works is still to be
+  decided together.
+
 ### How development is tested
 
 - **In this cloud container:** compile and unit tests; a **real 26.3 client** on a virtual
