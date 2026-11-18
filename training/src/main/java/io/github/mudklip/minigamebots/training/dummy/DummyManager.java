@@ -68,6 +68,8 @@ public final class DummyManager {
 		transient boolean shieldUp;
 		transient int backOff;
 		transient int deadFor = -1;
+		/** 0 = not trying to crit; 1 = jumped and waiting to fall onto the target. */
+		transient int critPhase;
 
 		Dummy(UUID id, String dimension, double[] anchor, DummySettings settings) {
 			this.id = id;
@@ -154,6 +156,10 @@ public final class DummyManager {
 
 	public @Nullable Dummy get(Entity e) {
 		return dummies.get(e.getUUID());
+	}
+
+	public @Nullable Dummy byId(UUID id) {
+		return dummies.get(id);
 	}
 
 	public void setPaused(UUID id, boolean paused) {
@@ -256,10 +262,11 @@ public final class DummyManager {
 		for (int i = 0; i < 4; i++) {
 			m.setItemSlot(slots[i], set == null ? ItemStack.EMPTY : new ItemStack(set[i]));
 		}
-		m.setItemSlot(EquipmentSlot.MAINHAND, s.fightsBack ? new ItemStack(s.level >= 4 ? Items.DIAMOND_SWORD : Items.IRON_SWORD)
-				: ItemStack.EMPTY);
-		m.setItemSlot(EquipmentSlot.OFFHAND, s.defense == DummySettings.Defense.NONE ? ItemStack.EMPTY : new ItemStack(Items.SHIELD));
-		if (m.isUsingItem() && s.defense == DummySettings.Defense.NONE) {
+		m.setItemSlot(EquipmentSlot.MAINHAND, s.fightsBack ? new ItemStack(s.cheats ? Items.NETHERITE_SWORD
+				: s.level >= 4 ? Items.DIAMOND_SWORD : Items.IRON_SWORD) : ItemStack.EMPTY);
+		boolean shield = s.defense != DummySettings.Defense.NONE || s.smartShield;
+		m.setItemSlot(EquipmentSlot.OFFHAND, shield ? new ItemStack(Items.SHIELD) : ItemStack.EMPTY);
+		if (m.isUsingItem() && !shield) {
 			m.stopUsingItem();
 		}
 	}
@@ -406,7 +413,10 @@ public final class DummyManager {
 	private void defend(Mannequin m, Dummy d, @Nullable LivingEntity target) {
 		DummySettings.Defense def = d.settings.defense;
 		boolean want = false;
-		if (def != DummySettings.Defense.NONE && target != null && target.distanceTo(m) < 6) {
+		if (d.settings.smartShield && target != null) {
+			// Shield up while waiting for its own attack to recharge; down just before swinging.
+			want = target.distanceTo(m) < 5 && d.cooldown > 2 && d.critPhase == 0;
+		} else if (def != DummySettings.Defense.NONE && target != null && target.distanceTo(m) < 6) {
 			if (--d.shieldTimer <= 0) {
 				d.shieldUp = !d.shieldUp;
 				var r = m.getRandom();
@@ -437,17 +447,60 @@ public final class DummyManager {
 		if (d.inReach < s.reactionTicks || d.cooldown > 0) {
 			return;
 		}
+		boolean crit = false;
+		if (s.crits) {
+			// Jump when ready, then strike on the way down (a critical hit, like a player's).
+			if (d.critPhase == 0 && m.onGround()) {
+				Vec3 dm = m.getDeltaMovement();
+				m.setDeltaMovement(dm.x, 0.42, dm.z);
+				d.critPhase = 1;
+				return;
+			}
+			if (d.critPhase == 1) {
+				if (m.onGround() && m.getDeltaMovement().y <= 0) {
+					d.critPhase = 0; // Landed without striking: try again.
+					return;
+				}
+				if (m.getDeltaMovement().y >= 0) {
+					return; // Still rising.
+				}
+				crit = true;
+				d.critPhase = 0;
+			}
+		}
 		if (m.isUsingItem()) {
 			m.stopUsingItem(); // Can't swing with the shield up.
 			d.shieldUp = false;
 			d.shieldTimer = 6;
 		}
+		if (s.cheats && target.isBlocking()) {
+			// Teacher cheat: knocks the shield down instantly (a player would switch to an axe).
+			target.stopUsingItem();
+			if (target instanceof net.minecraft.world.entity.player.Player p) {
+				p.getCooldowns().addCooldown(target.getOffhandItem().isEmpty() ? new ItemStack(Items.SHIELD)
+						: target.getOffhandItem(), 100);
+			}
+		}
 		m.swing(InteractionHand.MAIN_HAND, m.getMainHandItem().getAttackAnimation(), false);
 		d.cooldown = (int) Math.max(2, Math.round(20 / Math.max(0.5, s.cps)));
 		if (m.getRandom().nextDouble() < s.accuracy) {
-			target.hurtServer(level, attack(m, level), s.damage);
-			if (s.movement == DummySettings.Movement.SWEATY) {
+			float dmg = crit ? s.damage * 1.5f : s.damage;
+			target.hurtServer(level, attack(m, level), dmg);
+			if (crit) {
+				level.getChunkSource().sendToTrackingPlayersAndSelf(m,
+						new net.minecraft.network.protocol.game.ClientboundAnimatePacket(target, 4));
+			}
+			if (s.wtap || s.movement == DummySettings.Movement.SWEATY) {
 				d.backOff = 6; // W-tap style: step back after a hit.
+			}
+			if (s.wtap) {
+				// A sprint hit: extra knockback, as a player's sprint-reset gives.
+				Vec3 dir = flat(target.position().subtract(m.position()));
+				if (dir.lengthSqr() > 1e-4) {
+					dir = dir.normalize();
+					target.push(dir.x * 0.5, 0.1, dir.z * 0.5);
+					target.needsSync = true; // Sends the new velocity to a player.
+				}
 			}
 		}
 	}
@@ -468,7 +521,7 @@ public final class DummyManager {
 	private void updateName(Mannequin m, Dummy d) {
 		double dps = d.stats.dps(tick);
 		int combo = d.stats.combo(tick);
-		m.setCustomName(Component.literal("L" + d.settings.level + " Dummy ").withStyle(ChatFormatting.GOLD)
+		m.setCustomName(Component.literal((d.settings.style.isEmpty() ? "L" + d.settings.level : d.settings.style) + " Dummy ").withStyle(ChatFormatting.GOLD)
 				.append(Component.literal(String.format("\u2764 %.1f", m.getHealth())).withStyle(ChatFormatting.RED)));
 		// The label line under the name (vanilla "NPC") shows the stats.
 		String stats = dps > 0 || combo > 1 ? String.format("%.1f DPS", dps) + (combo > 1 ? "   combo x" + combo : "")

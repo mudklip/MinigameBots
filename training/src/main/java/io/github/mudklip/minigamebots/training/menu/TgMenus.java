@@ -184,9 +184,12 @@ public final class TgMenus {
 						s.infiniteHealth = !s.infiniteHealth;
 						refresh.run();
 					});
-			b.button(15, Items.EXPERIENCE_BOTTLE, "Preset: L" + s.level, List.of("Click: next preset (replaces all settings)"),
+			b.button(15, Items.EXPERIENCE_BOTTLE, "Style: " + (s.style.isEmpty() ? "L" + s.level : s.style),
+					List.of("Click: next style (replaces all settings)", "godly = a cheating teacher"),
 					(pl, r, sh) -> {
-						DummySettings next = DummySettings.preset(s.level % 5 + 1);
+						String cur = s.style.isEmpty() ? "L" + s.level : s.style;
+						var all = DummySettings.STYLES;
+						DummySettings next = DummySettings.style(all.get((all.indexOf(cur) + 1) % all.size()));
 						d.settings = next;
 						refresh.run();
 					});
@@ -301,7 +304,7 @@ public final class TgMenus {
 				int team = t;
 				var def = sc.teams.get(t);
 				b.button(9 + t * 2, Items.WOOL.pick(dye(def.color)), (mine == t ? "In " : "Join ") + def.label(),
-						List.of(sm.joinedCount(sc, t) + " player(s), " + def.dummies + " L" + def.dummyLevel + " dummies",
+						List.of(sm.joinedCount(sc, t) + " player(s), " + def.dummies + " " + def.style() + " dummies",
 								def.spawns.size() + " spawn(s), kit: " + (def.kit.isEmpty() ? "own items" : def.kit.size() + " items"),
 								"", "Left click: join", "Right click: leave"), (pl, r, s) -> {
 							if (r) {
@@ -311,10 +314,12 @@ public final class TgMenus {
 							}
 							match(pl, sc);
 						});
-				b.button(18 + t * 2, Items.ARMOR_STAND, def.label() + " dummies: " + def.dummies + " (L" + def.dummyLevel + ")",
-						List.of("Left click: one more (0-4)", "Right click: next level"), (pl, r, s) -> {
+				b.button(18 + t * 2, Items.ARMOR_STAND, def.label() + " dummies: " + def.dummies + " (" + def.style() + ")",
+						List.of("Left click: one more (0-4)", "Right click: next style",
+								"Styles: L1-L5, rusher, blocker, critter, w_tapper, kiter,",
+								"godly (a cheating teacher), league (picks what it loses to)"), (pl, r, s) -> {
 							if (r) {
-								def.dummyLevel = def.dummyLevel % 5 + 1;
+								def.nextStyle();
 							} else {
 								def.dummies = (def.dummies + 1) % 5;
 							}

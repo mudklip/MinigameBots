@@ -19,6 +19,20 @@ public final class Scenario {
 		/** Training dummies added to this team each episode. */
 		public int dummies;
 		public int dummyLevel = 3;
+		/** Opponent style of its dummies (see DummySettings.STYLES), or "league" to let matchmaking pick. */
+		public String dummyStyle = "";
+
+		/** The style its dummies use: dummyStyle, or the level for scenarios saved before styles. */
+		public String style() {
+			return dummyStyle == null || dummyStyle.isEmpty() ? "L" + dummyLevel : dummyStyle;
+		}
+
+		/** Cycles through the styles, then "league". */
+		public void nextStyle() {
+			java.util.List<String> all = new java.util.ArrayList<>(io.github.mudklip.minigamebots.training.dummy.DummySettings.STYLES);
+			all.add(League.LEAGUE);
+			dummyStyle = all.get((all.indexOf(style()) + 1) % all.size());
+		}
 
 		public String label() {
 			return Character.toUpperCase(color.charAt(0)) + color.substring(1).replace('_', ' ');

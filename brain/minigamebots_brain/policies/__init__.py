@@ -6,6 +6,7 @@ before any learning exists. Learned brains plug in the same way.
 
 from .base import Policy
 from .follow import FollowPolicy
+from .teacher import TeacherPolicy
 from .learned import LearnedPolicy, create_learned
 from .simple import IdlePolicy, RandomPolicy, SpinPolicy
 from .smoke import TorchSmokePolicy
@@ -35,6 +36,7 @@ POLICIES = {
     "random": RandomPolicy,
     "spin": SpinPolicy,
     "follow": FollowPolicy,
+    "teacher": TeacherPolicy,
     "torch_smoke": TorchSmokePolicy,
     "learned": create_learned,
     "vpt": _vpt,

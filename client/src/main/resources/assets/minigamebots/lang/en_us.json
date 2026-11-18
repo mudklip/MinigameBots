@@ -223,5 +223,14 @@
 	"minigamebots.profiles.merge_help": "Make a new AI from this one and another, choosing which AI each skill comes from.",
 	"minigamebots.merge.screen": "Merge %s with another AI",
 	"minigamebots.merge.create": "Create merged AI",
-	"minigamebots.merge.help": "Makes a new AI. The two you merge from stay as they are."
+	"minigamebots.merge.help": "Makes a new AI. The two you merge from stay as they are.",
+	"minigamebots.teacher.button": "Teacher demos...",
+	"minigamebots.teacher.button_help": "Record a scripted expert playing as this AI, to train on. No skill needed from you.",
+	"minigamebots.teacher.screen": "Teacher demos",
+	"minigamebots.teacher.start": "Start recording",
+	"minigamebots.teacher.help": "A scripted expert plays through the AI's own keys and mouse (with its human limits) while the recorder runs. The recording then appears in the list here: tick it and train, like any recording.",
+	"minigamebots.teacher.tip_grounds": "Tip: start a Training Grounds match first (e.g. against a league or godly opponent) so every round is recorded.",
+	"minigamebots.teacher.tip_alone": "Tip: it fights the nearest player, hostile mob or training dummy. With Training Grounds you get arenas, opponents and instant resets.",
+	"minigamebots.training.aim_drill": "Aim drill",
+	"minigamebots.training.aim_drill_help": "Also learn aiming, tracking and chasing in a tiny built-in simulator (very fast). Lite base only; works even with no recordings."
 }

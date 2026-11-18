@@ -69,6 +69,8 @@ public final class ScenarioManager {
 		final Map<UUID, Integer> players = new LinkedHashMap<>();
 		final Map<UUID, GameType> previousMode = new HashMap<>();
 		final Map<UUID, Integer> dummies = new LinkedHashMap<>();
+		/** Style of each dummy that was picked by the league, to record the result against. */
+		final Map<UUID, String> leagueStyles = new LinkedHashMap<>();
 		final Set<UUID> out = new HashSet<>();
 		final Map<UUID, Stats> stats = new HashMap<>();
 		final int[] started;
@@ -110,9 +112,16 @@ public final class ScenarioManager {
 
 	// --- Storage ---
 
+	private final League league = new League();
+
+	public League league() {
+		return league;
+	}
+
 	public void load(MinecraftServer server) {
 		this.server = server;
 		scenarios.clear();
+		league.load(TgStorage.dir(server).resolve("league.json"));
 		Path dir = dir();
 		if (!Files.isDirectory(dir)) {
 			return;
@@ -316,11 +325,19 @@ public final class ScenarioManager {
 			for (int i = 0; i < team.dummies; i++) {
 				double[] sp = spawn(arena, team, t, next[t]++);
 				Vec3 at = sp != null ? new Vec3(sp[0], sp[1], sp[2]) : arena.box().getCenter();
-				DummySettings ds = DummySettings.preset(team.dummyLevel);
+				String style = team.style();
+				boolean picked = League.LEAGUE.equals(style);
+				if (picked) {
+					style = league.pick(e.players.keySet().iterator().next(), level.getRandom());
+				}
+				DummySettings ds = DummySettings.style(style);
 				ds.infiniteHealth = false;
 				ds.fightsBack = true;
 				Mannequin m = dummyManager.spawnAt(level, at, sp != null ? (float) sp[3] : 0, ds, false);
 				if (m != null) {
+					if (picked) {
+						e.leagueStyles.put(m.getUUID(), ds.style);
+					}
 					dummyManager.setPaused(m.getUUID(), true);
 					srv.getScoreboard().addPlayerToTeam(m.getScoreboardName(), teams.get(t));
 					e.dummies.put(m.getUUID(), t);
@@ -340,8 +357,21 @@ public final class ScenarioManager {
 			j.addProperty("rule", s.rule.name().toLowerCase());
 			j.addProperty("time_limit", s.timeLimit);
 			j.addProperty("teammates", e.started[e.players.get(id)] - 1);
+			j.addProperty("opponents", opponents(e, e.players.get(id)));
 			truth.send(p, "episode_start", j);
 		}
+	}
+
+	/** Styles of the dummies not on {@code team}, e.g. "godly, L3". */
+	private String opponents(Episode e, int team) {
+		List<String> out = new java.util.ArrayList<>();
+		for (Map.Entry<UUID, Integer> d : e.dummies.entrySet()) {
+			if (d.getValue() != team) {
+				var dummy = dummyManager.byId(d.getKey());
+				out.add(dummy == null ? "?" : dummy.settings.style);
+			}
+		}
+		return String.join(", ", out);
 	}
 
 	/** Where member number {@code index} of a team starts: its own spawns, else the arena's. */
@@ -518,6 +548,14 @@ public final class ScenarioManager {
 			j.addProperty("damage_dealt", st.dealt);
 			j.addProperty("damage_taken", st.taken);
 			j.addProperty("team_kills", e.kills[en.getValue()]);
+			j.addProperty("opponents", opponents(e, en.getValue()));
+			if (!"stopped".equals(o.reason())) {
+				for (Map.Entry<UUID, String> ls : e.leagueStyles.entrySet()) {
+					if (!en.getValue().equals(e.dummies.get(ls.getKey()))) {
+						league.result(p.getUUID(), ls.getValue(), "win".equals(result));
+					}
+				}
+			}
 			truth.send(p, "episode_end", j);
 		}
 	}

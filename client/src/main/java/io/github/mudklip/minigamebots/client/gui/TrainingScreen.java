@@ -104,6 +104,9 @@ public final class TrainingScreen extends Screen {
 				.pos(rx, 98).selected(!trainedBefore).onValueChange((c, on) -> fresh = on)
 				.tooltip(Tooltip.create(Component.translatable("minigamebots.training.fresh_help"))).build());
 		fresh = !trainedBefore;
+		addRenderableWidget(Checkbox.builder(Component.translatable("minigamebots.training.aim_drill"), font)
+				.pos(rx + bw / 2 + 2, 98).selected(training.aimDrill()).onValueChange((c, on) -> training.setAimDrill(on))
+				.tooltip(Tooltip.create(Component.translatable("minigamebots.training.aim_drill_help"))).build());
 
 		start = addRenderableWidget(Button.builder(Component.translatable("minigamebots.training.start"), b -> startTraining())
 				.pos(rx, 124).width(bw / 2 - 2).build());
@@ -129,6 +132,9 @@ public final class TrainingScreen extends Screen {
 		}).pos(listX, height - 28).width(50).build());
 		addRenderableWidget(Button.builder(Component.translatable("minigamebots.training.none"), b -> chosen.clear())
 				.pos(listX + 54, height - 28).width(50).build());
+		addRenderableWidget(Button.builder(Component.translatable("minigamebots.teacher.button"),
+				b -> minecraft.gui.setScreen(new TeacherScreen(this))).pos(listX + 108, height - 28).width(80)
+				.tooltip(Tooltip.create(Component.translatable("minigamebots.teacher.button_help"))).build());
 		updateButtons();
 	}
 
@@ -168,7 +174,8 @@ public final class TrainingScreen extends Screen {
 
 	private void updateButtons() {
 		boolean busy = training.busy();
-		start.active = !busy && !chosen.isEmpty() && MinigameBotsClient.instance().brain().runtime().installed();
+		start.active = !busy && (!chosen.isEmpty() || training.aimDrill() && base == null)
+				&& MinigameBotsClient.instance().brain().runtime().installed();
 		stop.active = busy && training.status() == TrainingManager.Status.RUNNING && profile.id.equals(training.profileId());
 		play.active = !busy && Files.exists(MinigameBotsClient.instance().profiles().store().dir(profile.id)
 				.resolve("core/model.safetensors")) && minecraft.player != null;

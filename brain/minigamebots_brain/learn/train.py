@@ -17,6 +17,7 @@ import sys
 import threading
 import time
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 
@@ -88,7 +89,7 @@ class StopFlag:
 
 def train(profile: str, recordings: list, steps: int, resources: str = "balanced", fresh: bool = False,
           device: str | None = None, stop: StopFlag | None = None, eval_every: int = 250, seed: int = 0,
-          batch_size: int | None = None) -> dict:
+          batch_size: int | None = None, sim: str | None = None) -> dict:
     res = RESOURCES[resources]
     torch.set_num_threads(res["threads"])
     torch.manual_seed(seed)
@@ -97,6 +98,15 @@ def train(profile: str, recordings: list, steps: int, resources: str = "balanced
 
     train_data = SequenceSampler(recordings, SEQ_LEN, "train", mirror=0.5, hindsight=0.5, seed=seed)
     val_data = SequenceSampler(recordings, SEQ_LEN, "val", seed=seed + 1)
+    if sim == "aim":
+        from .aimsim import AimSim
+
+        if len(train_data) == 0:
+            train_data, val_data = AimSim(SEQ_LEN, seed), AimSim(SEQ_LEN, seed + 1)
+        else:
+            train_data = MixedSampler(train_data, AimSim(SEQ_LEN, seed), 0.25)
+    elif sim:
+        raise ValueError(f"Unknown simulator {sim}")
     if len(train_data) == 0:
         raise ValueError("Not enough recorded ticks to train on (need at least a few seconds per recording)")
 
@@ -175,6 +185,21 @@ def train(profile: str, recordings: list, steps: int, resources: str = "balanced
     return result
 
 
+class MixedSampler:
+    """Batches from recordings with a share of simulator windows mixed in."""
+
+    def __init__(self, data, sim, share: float):
+        self.data, self.sim, self.share = data, sim, share
+
+    def __len__(self):
+        return len(self.data)
+
+    def batch(self, size: int) -> dict:
+        n_sim = max(1, int(round(size * self.share)))
+        a, b = self.data.batch(size - n_sim), self.sim.batch(n_sim)
+        return {k: np.concatenate([a[k], b[k]]) for k in a if k in b}
+
+
 def save_checkpoint(profile, model, optimizer, global_step, val_loss, best, recordings, improved):
     info = {"step": global_step, "val_loss": val_loss, "best_val_loss": best,
             "recordings": [os.path.basename(r.rstrip("/\\")) for r in recordings]}
@@ -198,7 +223,8 @@ def evaluate(model, data, batch_size, device, use_amp, batches: int = 4) -> floa
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="minigamebots_brain train")
     p.add_argument("--profile", required=True)
-    p.add_argument("--recording", action="append", required=True)
+    p.add_argument("--recording", action="append", default=[])
+    p.add_argument("--sim", choices=["aim"], help="also (or only) train on a built-in simulator drill")
     p.add_argument("--steps", type=int, default=2000)
     p.add_argument("--resources", choices=sorted(RESOURCES), default="balanced")
     p.add_argument("--fresh", action="store_true")
@@ -215,7 +241,10 @@ def main(argv=None) -> int:
             vpt_tune.train(args.profile, args.recording, args.steps, args.foundation, args.resources, args.fresh,
                            args.device, StopFlag())
         else:
-            train(args.profile, args.recording, args.steps, args.resources, args.fresh, args.device, StopFlag())
+            if not args.recording and not args.sim:
+                raise ValueError("Choose recordings to train on (or a simulator drill)")
+            train(args.profile, args.recording, args.steps, args.resources, args.fresh, args.device, StopFlag(),
+                  sim=args.sim)
         return 0
     except (ValueError, FileNotFoundError) as e:
         emit("error", message=str(e))

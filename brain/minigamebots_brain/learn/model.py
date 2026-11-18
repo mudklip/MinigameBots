@@ -112,8 +112,13 @@ class LitePolicy(nn.Module):
     def forward(self, x: dict, state: torch.Tensor | None = None):
         """Inputs are [batch, time, ...] tensors as produced by `to_tensors`."""
         b, t = x["self"].shape[:2]
-        frames = x["frames"].reshape(b * t, *x["frames"].shape[2:]).permute(0, 3, 1, 2).float() / 255.0
-        vis = F.relu(self.cnn_out(F.relu(self.cnn(frames)).flatten(1))).reshape(b, t, -1)
+        if "has_frame" in x and not bool(x["has_frame"].any()):
+            # No pictures at all (simulator drills): every frame is blank, so encode one and reuse it.
+            blank = x["frames"][:1, :1].reshape(1, *x["frames"].shape[2:]).permute(0, 3, 1, 2).float() / 255.0
+            vis = F.relu(self.cnn_out(F.relu(self.cnn(blank)).flatten(1))).expand(b * t, -1).reshape(b, t, -1)
+        else:
+            frames = x["frames"].reshape(b * t, *x["frames"].shape[2:]).permute(0, 3, 1, 2).float() / 255.0
+            vis = F.relu(self.cnn_out(F.relu(self.cnn(frames)).flatten(1))).reshape(b, t, -1)
 
         items = torch.cat([self.item_emb(x["items"]), x["item_vals"]], dim=-1).flatten(2)
         state_vec = F.relu(self.state(torch.cat([x["self"], items], dim=-1)))

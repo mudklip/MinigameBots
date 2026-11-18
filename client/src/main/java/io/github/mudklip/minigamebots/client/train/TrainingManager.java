@@ -177,6 +177,17 @@ public final class TrainingManager {
 		start(profile, chosen, plan, resources, fresh, foundationId, "general");
 	}
 
+	private boolean aimDrill;
+
+	/** Also train on the built-in fast-sim aim drill (Lite only): recordings become optional. */
+	public void setAimDrill(boolean on) {
+		aimDrill = on;
+	}
+
+	public boolean aimDrill() {
+		return aimDrill;
+	}
+
 	/** Trains one of the AI's skills ("general" is the AI's main network). */
 	public void start(ProfileManifest profile, List<RecordingMeta> chosen, Plan plan, Resources resources, boolean fresh,
 			@Nullable String foundationId, String skill) throws IOException {
@@ -186,13 +197,14 @@ public final class TrainingManager {
 		if (!runtime.installed()) {
 			throw new IOException("Set up the brain first (F10 > Brain > Install)");
 		}
-		if (chosen.isEmpty()) {
-			throw new IOException("Pick at least one recording to learn from");
+		boolean sim = aimDrill && foundationId == null;
+		if (chosen.isEmpty() && !sim) {
+			throw new IOException("Pick at least one recording to learn from (or tick Aim drill)");
 		}
 		var code = runtime.prepareCode();
 		java.nio.file.Path skillDir = io.github.mudklip.minigamebots.client.profile.Skills.dir(profiles.dir(profile.id), skill);
 		io.github.mudklip.minigamebots.client.profile.VersionHistory.before(profiles.dir(profile.id), skillDir.resolve("core"),
-				String.format("Before training %s (%s, %d recordings%s)", skill, plan.label, chosen.size(),
+				String.format("Before training %s (%s, %d recordings%s%s)", skill, plan.label, chosen.size(), sim ? ", aim drill" : "",
 						foundationId == null ? "" : ", " + foundationId));
 		List<String> command = new ArrayList<>(List.of(runtime.venvPython().toString(), "-m", "minigamebots_brain", "train",
 				"--profile", skillDir.toString(), "--steps", Integer.toString(plan.steps),
@@ -203,6 +215,9 @@ public final class TrainingManager {
 		}
 		if (fresh) {
 			command.add("--fresh");
+		}
+		if (sim) {
+			command.addAll(List.of("--sim", "aim"));
 		}
 		var foundations = MinigameBotsClient.instance().profiles().foundations();
 		if (foundationId != null) {

@@ -53,7 +53,8 @@ public record Observation(
 			double dx, double dy, double dz, double vx, double vy, double vz, float health, float maxHealth,
 			String heldItem, int armor, boolean visible, int ticksSinceSeen, int hitMe, int hitByMe, int hitProtected,
 			boolean sameTeam, boolean protectedTarget, boolean hostile, String insignia, int relation,
-			boolean allyInsignia, boolean enemyInsignia, int myHitsToKill, int theirHitsToKill, float fightOdds) {
+			boolean allyInsignia, boolean enemyInsignia, int myHitsToKill, int theirHitsToKill, float fightOdds,
+			boolean blocking) {
 	}
 
 	/**

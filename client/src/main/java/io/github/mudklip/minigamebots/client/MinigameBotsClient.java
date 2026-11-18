@@ -292,6 +292,7 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		if (tick % 20 == 0) {
 			sendStatus();
 		}
+		io.github.mudklip.minigamebots.client.train.TeacherDemos.tick(client);
 		memory.tick(client);
 		// Perception costs CPU, so it only runs while something needs it.
 		if (AgentControl.aiActive() || watching || recorder.recording()) {

@@ -134,9 +134,11 @@ final class TgCommands {
 								})))))
 				.then(Commands.literal("dummy").requires(tg::canManage)
 						.then(Commands.literal("spawn")
-								.executes(ctx -> spawnDummy(ctx, tg, 1))
-								.then(Commands.argument("level", IntegerArgumentType.integer(1, 5))
-										.executes(ctx -> spawnDummy(ctx, tg, IntegerArgumentType.getInteger(ctx, "level")))))
+								.executes(ctx -> spawnDummy(ctx, tg, "L1"))
+								.then(Commands.argument("style", com.mojang.brigadier.arguments.StringArgumentType.word())
+										.suggests((c, sb) -> net.minecraft.commands.SharedSuggestionProvider.suggest(DummySettings.STYLES, sb))
+										.executes(ctx -> spawnDummy(ctx, tg,
+												com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "style")))))
 						.then(Commands.literal("remove")
 								.executes(ctx -> removeDummies(ctx, tg, 10))
 								.then(Commands.argument("radius", DoubleArgumentType.doubleArg(0))
@@ -213,13 +215,15 @@ final class TgCommands {
 		return 1;
 	}
 
-	private static int spawnDummy(CommandContext<CommandSourceStack> ctx, TrainingGrounds tg, int level) throws CommandSyntaxException {
-		var m = tg.dummies().spawn(ctx.getSource().getPlayerOrException(), DummySettings.preset(level));
+	private static int spawnDummy(CommandContext<CommandSourceStack> ctx, TrainingGrounds tg, String style) throws CommandSyntaxException {
+		String n = style.matches("[1-5]") ? "L" + style : style;
+		DummySettings ds = DummySettings.style(n);
+		var m = tg.dummies().spawn(ctx.getSource().getPlayerOrException(), ds);
 		if (m == null) {
 			fail(ctx, "Couldn't spawn a dummy here");
 			return 0;
 		}
-		ok(ctx, "Spawned an L" + level + " dummy. Sneak + right-click it to change it.");
+		ok(ctx, "Spawned a " + ds.style + " dummy. Sneak + right-click it to change it.");
 		return 1;
 	}
 

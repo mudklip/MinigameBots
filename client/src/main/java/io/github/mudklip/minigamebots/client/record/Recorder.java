@@ -129,6 +129,23 @@ public final class Recorder {
 		}
 	}
 
+	/** Names the recording being made and notes where its input came from (e.g. "teacher"). */
+	public void label(String name, String source) {
+		RecordingMeta m = meta;
+		if (m == null) {
+			return;
+		}
+		synchronized (m) {
+			m.name = name;
+			m.source = source;
+		}
+		try {
+			store.saveMeta(m);
+		} catch (IOException e) {
+			MinigameBotsClient.LOGGER.warn("Couldn't name recording {}", m.id, e);
+		}
+	}
+
 	/** Adds a mark at the current tick ({@code good}, {@code mistake}, {@code base}). */
 	public void mark(Minecraft client, String type) {
 		RecordingMeta m = meta;

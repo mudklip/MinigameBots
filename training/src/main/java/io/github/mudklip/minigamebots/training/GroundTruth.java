@@ -59,6 +59,9 @@ public final class GroundTruth {
 			add(d, "victim", victim);
 			d.addProperty("victim_health", victim.getHealth());
 			d.addProperty("distance", p.distanceTo(victim));
+			if (source.getDirectEntity() == p) {
+				AttackDetails.describe(d, p, victim, blocked);
+			}
 			send(p, "damage_dealt", d);
 		}
 	}

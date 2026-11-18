@@ -165,5 +165,142 @@
         "note": "swing"
       }
     ]
+  },
+  "crit_drill": {
+    "name": "Crit drill",
+    "description": "Critical hits (jump, hit while falling, fully charged). Use against a stationary or L2 dummy.",
+    "rules": [
+      {
+        "event": "tg_damage_dealt",
+        "where": {
+          "crit": true
+        },
+        "value": 1.0,
+        "tier": 1,
+        "note": "crit"
+      },
+      {
+        "event": "tg_damage_dealt",
+        "where": {
+          "crit": false,
+          "charge": {
+            "min": 0.9
+          }
+        },
+        "value": 0.2,
+        "tier": 2,
+        "note": "charged hit"
+      },
+      {
+        "event": "tg_damage_dealt",
+        "where": {
+          "charge": {
+            "max": 0.6
+          }
+        },
+        "value": -0.3,
+        "tier": 2,
+        "note": "spam-clicked hit"
+      },
+      {
+        "event": "second",
+        "value": -0.01,
+        "tier": 4,
+        "note": "stalling"
+      }
+    ]
+  },
+  "wtap_drill": {
+    "name": "W-tap drill",
+    "description": "Sprint hits for extra knockback: let go of forward (or tap S) after each hit, sprint back in.",
+    "rules": [
+      {
+        "event": "tg_damage_dealt",
+        "where": {
+          "sprint_hit": true,
+          "charge": {
+            "min": 0.9
+          }
+        },
+        "value": 1.0,
+        "tier": 1,
+        "note": "sprint hit"
+      },
+      {
+        "event": "tg_damage_dealt",
+        "where": {
+          "sprint_hit": false
+        },
+        "value": 0.1,
+        "tier": 2,
+        "note": "plain hit"
+      },
+      {
+        "event": "damage_taken",
+        "value": -0.05,
+        "per": "amount",
+        "tier": 3,
+        "note": "hurt",
+        "forgive": {
+          "by": [
+            {
+              "event": "tg_damage_dealt",
+              "where": {
+                "sprint_hit": true
+              }
+            }
+          ],
+          "within": 20
+        }
+      },
+      {
+        "event": "second",
+        "value": -0.01,
+        "tier": 4,
+        "note": "stalling"
+      }
+    ]
+  },
+  "shield_drill": {
+    "name": "Shield-break drill",
+    "description": "Against a blocker dummy: hit a raised shield with an axe to disable it, then follow up.",
+    "rules": [
+      {
+        "event": "tg_damage_dealt",
+        "where": {
+          "shield_disabled": true
+        },
+        "value": 2.0,
+        "tier": 1,
+        "note": "shield disabled"
+      },
+      {
+        "event": "tg_damage_dealt",
+        "where": {
+          "blocked": false
+        },
+        "value": 0.1,
+        "per": "amount",
+        "cap": 4,
+        "tier": 2,
+        "note": "hit landed"
+      },
+      {
+        "event": "tg_damage_dealt",
+        "where": {
+          "blocked": true,
+          "shield_disabled": false
+        },
+        "value": -0.2,
+        "tier": 2,
+        "note": "hit the shield"
+      },
+      {
+        "event": "second",
+        "value": -0.01,
+        "tier": 4,
+        "note": "stalling"
+      }
+    ]
   }
 }
