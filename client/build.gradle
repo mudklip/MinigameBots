@@ -1,6 +1,22 @@
+repositories {
+	maven {
+		name = 'Xander Maven (YACL)'
+		url = 'https://maven.isxander.dev/releases'
+	}
+	maven {
+		name = 'TerraformersMC (Mod Menu)'
+		url = 'https://maven.terraformersmc.com/releases'
+	}
+}
+
 dependencies {
 	implementation project(':common')
 	include project(':common')
+
+	implementation "dev.isxander:yet-another-config-lib:${project.yacl_version}"
+	// Optional at runtime: only used to add a config button to Mod Menu.
+	compileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+	localRuntime "com.terraformersmc:modmenu:${project.modmenu_version}"
 
 	// Load Training Grounds in the dev client so singleplayer tests have both mods.
 	localRuntime project(':training')

@@ -1,0 +1,20 @@
+{
+	"required": true,
+	"package": "io.github.mudklip.minigamebots.client.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"BossHealthOverlayAccessor",
+		"FramerateLimitTrackerMixin",
+		"HudAccessor",
+		"KeyMappingAccessor",
+		"KeyboardHandlerMixin",
+		"MinecraftMixin",
+		"MouseHandlerAccessor",
+		"MouseHandlerMixin",
+		"MultiPlayerGameModeMixin",
+		"PlayerTabOverlayAccessor"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

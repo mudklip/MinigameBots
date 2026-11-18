@@ -1,22 +1,47 @@
 package io.github.mudklip.minigamebots.client;
 
+import io.github.mudklip.minigamebots.client.config.MgbConfig;
+import io.github.mudklip.minigamebots.client.control.AgentControl;
+import io.github.mudklip.minigamebots.client.control.Hotkeys;
+import io.github.mudklip.minigamebots.client.debug.DebugCommands;
+import io.github.mudklip.minigamebots.client.events.EventDetector;
+import io.github.mudklip.minigamebots.client.events.EventTypes;
+import io.github.mudklip.minigamebots.client.observe.FrameCapture;
+import io.github.mudklip.minigamebots.client.observe.Observation;
+import io.github.mudklip.minigamebots.client.observe.Observer;
+import io.github.mudklip.minigamebots.client.observe.SoundTracker;
+import io.github.mudklip.minigamebots.client.observe.TextTracker;
 import io.github.mudklip.minigamebots.common.MinigameBotsCommon;
 import io.github.mudklip.minigamebots.common.Protocol;
 import io.github.mudklip.minigamebots.common.net.Compatibility;
 import io.github.mudklip.minigamebots.common.net.HelloPayload;
 import java.util.List;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.event.client.player.ClientPlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.network.chat.Component;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** MinigameBots client mod: the AI and everything around it. */
 public final class MinigameBotsClient implements ClientModInitializer {
+	private static MinigameBotsClient instance;
+
+	private final SoundTracker sounds = new SoundTracker();
+	private final TextTracker text = new TextTracker();
+	private final Observer observer = new Observer(sounds, text);
+	private final EventDetector events = new EventDetector();
+	private long tick;
+	private volatile boolean watching;
 	public static final String MOD_ID = "minigamebots";
 	public static final Logger LOGGER = LoggerFactory.getLogger("MinigameBots");
 
@@ -25,7 +50,11 @@ public final class MinigameBotsClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
+		instance = this;
 		MinigameBotsCommon.init();
+		MgbConfig.HANDLER.load();
+		Hotkeys.init();
+		registerBody();
 
 		String version = FabricLoader.getInstance().getModContainer(MOD_ID)
 				.map(c -> c.getMetadata().getVersion().getFriendlyString())
@@ -51,6 +80,77 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> TrainingLink.clear());
 
 		LOGGER.info("MinigameBots {} loaded (protocol v{})", version, Protocol.VERSION);
+	}
+
+	public static MinigameBotsClient instance() {
+		return instance;
+	}
+
+	public static EventDetector events() {
+		return instance.events;
+	}
+
+	public void setWatching(boolean on) {
+		watching = on;
+	}
+
+	/** Observes right now (for /mgb observe), whether or not the AI is active. */
+	public @Nullable Observation observeNow() {
+		return observer.observe(Minecraft.getInstance(), tick);
+	}
+
+	/** Wires the AI's body into the game: input every tick, perception and events. */
+	private void registerBody() {
+		ClientTickEvents.START_CLIENT_TICK.register(client -> AgentControl.get().onStartTick(client));
+		ClientTickEvents.END_CLIENT_TICK.register(this::endTick);
+		ClientLifecycleEvents.CLIENT_STARTED.register(client -> client.getSoundManager().addListener(sounds));
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, context) -> DebugCommands.register(dispatcher));
+
+		ClientReceiveMessageEvents.CHAT.register((message, signed, sender, params, time) -> {
+			text.onChat(message.getString());
+			events.onChat(message.getString(), false);
+		});
+		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
+			if (!overlay) {
+				text.onChat(message.getString());
+			}
+			events.onChat(message.getString(), overlay);
+		});
+		ClientReceiveMessageEvents.TITLE.register(title -> events.onTitle(title.getString(), false));
+		ClientReceiveMessageEvents.SUBTITLE.register(subtitle -> events.onTitle(subtitle.getString(), true));
+		ClientPlayerBlockBreakEvents.AFTER.register((level, player, pos, state) -> events.onBlockBroken(pos, state));
+		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+			events.reset();
+			text.clear();
+		});
+
+		events.addListener(event -> {
+			if (watching) {
+				Minecraft client = Minecraft.getInstance();
+				if (client.player != null && !event.type().equals(EventTypes.SOUND_HEARD)
+						&& !event.type().equals(EventTypes.CHAT)) {
+					// Straight into the chat box: going through the message system would be seen
+					// as a new chat message, and loop forever.
+					client.gui.hud.getChat().addClientSystemMessage(Component.literal("§7[event] §f" + event));
+				}
+			}
+		});
+	}
+
+	private void endTick(Minecraft client) {
+		tick++;
+		sounds.setTick(tick);
+		if (client.level == null || client.player == null) {
+			return;
+		}
+		// Perception costs CPU, so it only runs while something needs it.
+		if (AgentControl.aiActive() || watching) {
+			Observation obs = observer.observe(client, tick);
+			if (obs != null) {
+				events.onTick(tick, obs, client.level);
+			}
+			FrameCapture.get().request(tick);
+		}
 	}
 
 	private static void showLinkToast(Minecraft client, HelloPayload payload, Compatibility.Result result) {
