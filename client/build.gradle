@@ -31,3 +31,49 @@ loom {
 		remove server
 	}
 }
+
+// --- The brain's Python code ships inside the jar and is unpacked on first use. ---
+def brainDir = rootProject.file('brain')
+def brainIndex = layout.buildDirectory.file('generated/brain/files.txt')
+
+tasks.register('brainIndex') {
+	inputs.dir(brainDir).withPropertyName('brain')
+	outputs.file(brainIndex)
+	doLast {
+		def files = []
+		brainDir.eachFileRecurse { f ->
+			def rel = brainDir.toPath().relativize(f.toPath()).toString().replace('\\', '/')
+			if (f.isFile() && (rel ==~ /minigamebots_brain\/.*\.py/ || rel == 'requirements.txt')) {
+				files << rel
+			}
+		}
+		def out = brainIndex.get().asFile
+		out.parentFile.mkdirs()
+		out.text = files.sort().join('\n') + '\n'
+	}
+}
+
+processResources {
+	dependsOn 'brainIndex'
+	includeEmptyDirs = false
+	from(brainDir) {
+		include 'minigamebots_brain/**/*.py', 'requirements.txt'
+		into 'minigamebots/brain'
+	}
+	from(brainIndex) {
+		into 'minigamebots/brain'
+	}
+}
+
+// Python unit tests for the brain. Skipped (with a warning) if python3 isn't installed.
+tasks.register('brainTest', Exec) {
+	workingDir brainDir
+	commandLine 'python3', '-m', 'unittest', 'discover', '-s', 'tests'
+	ignoreExitValue false
+	onlyIf {
+		def ok = ['python3', '--version'].execute().waitFor() == 0
+		if (!ok) logger.warn('python3 not found: skipping brain tests')
+		ok
+	}
+}
+check.dependsOn 'brainTest'

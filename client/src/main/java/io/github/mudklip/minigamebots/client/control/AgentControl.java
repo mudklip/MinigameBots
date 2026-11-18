@@ -44,6 +44,11 @@ public final class AgentControl {
 		return lastInput;
 	}
 
+	/** The tick number the next action will be performed in. */
+	public long nextTick() {
+		return tick;
+	}
+
 	public Humanizer humanizer() {
 		return humanizer;
 	}
@@ -118,7 +123,8 @@ public final class AgentControl {
 			stop(client, Component.translatable("minigamebots.control.finished", source.name()));
 			return;
 		}
-		humanizer.submit(source.next(client), tick);
+		AgentAction action = source.next(client);
+		humanizer.submit(action, source.decisionTick(tick));
 		lastInput = humanizer.tick(tick);
 		input.apply(client, lastInput);
 		camera.beginTick(client, lastInput.yaw(), lastInput.pitch());

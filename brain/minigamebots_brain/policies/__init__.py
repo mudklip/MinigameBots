@@ -1,0 +1,24 @@
+"""Brains that decide what to do each tick.
+
+These are simple hand-written test brains used to check the whole loop (mod -> brain -> mod)
+before any learning exists. Learned brains plug in the same way.
+"""
+
+from .base import Policy
+from .follow import FollowPolicy
+from .simple import IdlePolicy, RandomPolicy, SpinPolicy
+from .smoke import TorchSmokePolicy
+
+POLICIES = {
+    "idle": IdlePolicy,
+    "random": RandomPolicy,
+    "spin": SpinPolicy,
+    "follow": FollowPolicy,
+    "torch_smoke": TorchSmokePolicy,
+}
+
+
+def create(name: str, args: dict | None = None) -> Policy:
+    if name not in POLICIES:
+        raise ValueError(f"unknown policy '{name}', choose from {sorted(POLICIES)}")
+    return POLICIES[name](**(args or {}))

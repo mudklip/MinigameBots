@@ -102,6 +102,11 @@ public final class MgbConfig {
 	@SerialEntry
 	public boolean showRecordingIndicator = true;
 
+	// Brain (set from the Brain screen, not shown in this settings screen)
+	/** Your own Python to build the brain's environment from; empty = download a standalone Python. */
+	@SerialEntry
+	public String customPythonPath = "";
+
 	public static MgbConfig get() {
 		return HANDLER.instance();
 	}

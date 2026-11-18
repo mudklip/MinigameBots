@@ -89,5 +89,21 @@
 	"yacl3.config.minigamebots:config.maxRecordingMinutes.desc": "A recording stops by itself after this long.",
 	"yacl3.config.minigamebots:config.showRecordingIndicator": "Show REC indicator",
 	"yacl3.config.minigamebots:config.showRecordingIndicator.desc": "Small REC badge in the corner while recording.",
-	"minigamebots.viewer.no_frame": "No frame yet"
+	"minigamebots.viewer.no_frame": "No frame yet",
+	"minigamebots.menu.brain": "Brain...",
+	"minigamebots.brain.title": "Brain",
+	"minigamebots.brain.screen": "Brain",
+	"minigamebots.brain.install_gpu": "Install (GPU)",
+	"minigamebots.brain.install_cpu": "Install (CPU)",
+	"minigamebots.brain.own_python": "Use my own Python...",
+	"minigamebots.brain.own_python_title": "Use My Own Python",
+	"minigamebots.brain.own_python_help": "Full path to a Python 3.10+ executable, e.g. C:\\Python312\\python.exe. The brain gets its own environment built from it; your Python itself isn't changed. Leave empty to download a standalone Python instead.",
+	"minigamebots.brain.use_standalone": "Download one instead",
+	"minigamebots.brain.not_installed": "Not installed yet. Install (GPU) for NVIDIA cards (about 4-5 GB), or Install (CPU).",
+	"minigamebots.brain.start": "Start",
+	"minigamebots.brain.stop": "Stop",
+	"minigamebots.brain.policy": "Brain: %s",
+	"minigamebots.brain.play": "Give it control",
+	"minigamebots.brain.logs": "Logs",
+	"minigamebots.brain.stopped_ai": "The brain stopped. You're in control."
 }

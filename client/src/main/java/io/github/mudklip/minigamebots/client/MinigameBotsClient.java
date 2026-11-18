@@ -1,5 +1,8 @@
 package io.github.mudklip.minigamebots.client;
 
+import io.github.mudklip.minigamebots.client.brain.BrainManager;
+import io.github.mudklip.minigamebots.client.brain.BrainRuntime;
+import io.github.mudklip.minigamebots.client.brain.BrainSource;
 import io.github.mudklip.minigamebots.client.config.MgbConfig;
 import io.github.mudklip.minigamebots.client.control.AgentControl;
 import io.github.mudklip.minigamebots.client.control.Hotkeys;
@@ -49,6 +52,8 @@ public final class MinigameBotsClient implements ClientModInitializer {
 	private final HumanInput humanInput = new HumanInput();
 	private final Recorder recorder = new Recorder(
 			new RecordingStore(FabricLoader.getInstance().getGameDir().resolve("minigamebots/recordings")), humanInput);
+	private final BrainManager brain = new BrainManager(
+			new BrainRuntime(FabricLoader.getInstance().getGameDir().resolve("minigamebots")));
 	private volatile @Nullable Observation lastObservation;
 	private long tick;
 	private volatile boolean watching;
@@ -104,6 +109,10 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		return humanInput;
 	}
 
+	public BrainManager brain() {
+		return brain;
+	}
+
 	public Recorder recorder() {
 		return recorder;
 	}
@@ -129,7 +138,10 @@ public final class MinigameBotsClient implements ClientModInitializer {
 			recorder.onStartTick(client, lastObservation);
 		});
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "recording"), new RecordingIndicator(recorder));
-		ClientLifecycleEvents.CLIENT_STOPPING.register(recorder::stop);
+		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+			recorder.stop(client);
+			brain.shutdown();
+		});
 		ClientTickEvents.END_CLIENT_TICK.register(this::endTick);
 		ClientLifecycleEvents.CLIENT_STARTED.register(client -> client.getSoundManager().addListener(sounds));
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, context) -> DebugCommands.register(dispatcher));
@@ -179,6 +191,10 @@ public final class MinigameBotsClient implements ClientModInitializer {
 			lastObservation = obs;
 			if (obs != null) {
 				events.onTick(tick, obs, client.level);
+				AgentControl control = AgentControl.get();
+				if (control.active() && control.source() instanceof BrainSource source) {
+					brain.sendObservation(source, control.nextTick(), obs, FrameCapture.get().latest());
+				}
 			}
 			FrameCapture.get().request(tick);
 		} else {

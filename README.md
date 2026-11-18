@@ -22,9 +22,34 @@ The full plan is in [docs/DESIGN.md](docs/DESIGN.md).
 | M1 Skeleton: two jars, versioned handshake | Done |
 | M2 Body: virtual input, Humanizer, background mode, hotkeys, Observer, Event Detector | Done |
 | M3 Recorder: record demos, marks, Recorder screen, playback viewer, export/import | Done |
-| M4 Brain link and runtime | Next |
+| M4 Brain link: in-game setup of Python + PyTorch, local brain process, test brains | Done |
+| M5 Profiles | Next |
 
-There is no brain yet: the AI's body can be driven with test scripts (below).
+There is no learned brain yet. The brain link works with simple hand-written test brains, and
+the AI's body can also be driven with test scripts (below).
+
+## The brain
+
+The AI thinks in a separate Python process on your PC (nothing goes online). Set it up once in
+**F10 > Brain**:
+
+- **Install (GPU)** for NVIDIA cards (downloads a standalone Python and the CUDA build of
+  PyTorch, about 4-5 GB), or **Install (CPU)**.
+- **Use my own Python...** builds the brain's environment from a Python 3.10+ you already have
+  instead of downloading one. Your Python itself isn't changed.
+
+Then pick a test brain and press **Give it control**:
+
+| Test brain | What it does |
+|---|---|
+| follow | Equips a sword or axe, walks to the nearest pig and hits it |
+| random | Wanders around |
+| spin | Turns on the spot |
+| idle | Does nothing |
+| torch_smoke | Runs a small (untrained) neural network on every frame, to check PyTorch and the GPU |
+
+F9 always takes control back. Logs: `minigamebots/logs/brain.log` and `install.log`. Protocol:
+[docs/formats/brain-protocol.md](docs/formats/brain-protocol.md).
 
 ## Hotkeys
 
@@ -71,6 +96,7 @@ Client-side only; they never reach the server.
 | `/mgb events [n]` | List the last n detected events |
 | `/mgb rec start` / `stop` / `list` / `open` | Recorder controls |
 | `/mgb rec mark <type>` | Mark the current moment (good, mistake, base, or your own) |
+| `/mgb brain open` / `play <brain>` / `stop` | Brain screen, give a test brain control, stop the brain |
 | `/mgb config` | Open settings |
 
 Script steps (separated by `;`): `hold <keys> <ticks>`, `tap <key>`, `look <yaw> <pitch>`,
@@ -99,7 +125,8 @@ Jars end up in `client/build/libs/` and `training/build/libs/`.
 |---|---|
 | `./gradlew :client:runClient` | Dev client with both mods (singleplayer has Training Grounds) |
 | `./gradlew :training:runServer` | Dev dedicated server with Training Grounds |
-| `./gradlew test` | Unit tests |
+| `./gradlew test` | Unit tests (Java) |
+| `./gradlew brainTest` | Unit tests (Python brain) |
 
 Project layout:
 
@@ -107,5 +134,6 @@ Project layout:
 |---|---|
 | `common/` | Shared protocol code, bundled inside both jars |
 | `client/` | MinigameBots client mod |
+| `brain/` | The brain's Python code (bundled into the client jar) |
 | `training/` | Training Grounds server mod |
 | `docs/` | Design and specs |

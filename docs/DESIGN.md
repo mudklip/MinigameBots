@@ -133,7 +133,7 @@ model files). Gson and Netty come with Minecraft.
 
 Brain Server (Python, installed by the Setup screen): **PyTorch** (CUDA), **NumPy**,
 **safetensors** (model files), **PyAV** (video decode with FFmpeg included),
-**OpenCV-headless** (video preprocessing), **msgpack** (messages). The RL algorithms are
+**OpenCV-headless** (video preprocessing), JSON over the local socket (no extra library needed; fast enough for one observation per tick). The RL algorithms are
 written in-house in a small, readable CleanRL style rather than adding a heavy RL framework.
 
 Rule for adding a library later: actively maintained, used widely, available for the current
@@ -775,7 +775,7 @@ kits.
 
 | Link | Transport | Notes |
 |---|---|---|
-| Client mod ↔ Brain Server | Shared memory (frames) + localhost TCP (messages) | Versioned; local machine only |
+| Client mod ↔ Brain Server | Shared memory (frames) + localhost TCP with length-prefixed JSON (messages) | Versioned; local machine only; token-checked. See `docs/formats/brain-protocol.md` |
 | Client mod ↔ Training Grounds | Fabric custom payload channel `minigamebots:tg/v1` | Handshake with feature list; graceful when absent |
 | Brain Server ↔ files | `.minecraft/minigamebots/` | Atomic writes and checkpoint rotation |
 

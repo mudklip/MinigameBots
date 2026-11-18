@@ -1,0 +1,4 @@
+# Installed by the mod's Setup screen into its own Python environment.
+# PyTorch is installed separately, from PyTorch's own index, so the right CUDA build is used.
+numpy>=2.0
+safetensors>=0.4

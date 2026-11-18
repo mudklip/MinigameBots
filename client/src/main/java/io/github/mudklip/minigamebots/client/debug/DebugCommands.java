@@ -84,6 +84,22 @@ public final class DebugCommands {
 							c.schedule(() -> c.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.RecorderScreen(null)));
 							return 1;
 						})))
+				.then(literal("brain")
+						.then(literal("open").executes(ctx -> {
+							Minecraft c = Minecraft.getInstance();
+							c.schedule(() -> c.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.BrainScreen(null)));
+							return 1;
+						}))
+						.then(literal("play").then(argument("policy", StringArgumentType.word()).executes(ctx -> {
+							Minecraft c = Minecraft.getInstance();
+							String policy = StringArgumentType.getString(ctx, "policy");
+							c.schedule(() -> MinigameBotsClient.instance().brain().play(c, policy));
+							return 1;
+						})))
+						.then(literal("stop").executes(ctx -> {
+							MinigameBotsClient.instance().brain().stop();
+							return 1;
+						})))
 				.then(literal("config").executes(ctx -> {
 					Minecraft client = Minecraft.getInstance();
 					// Open after the chat screen has closed.

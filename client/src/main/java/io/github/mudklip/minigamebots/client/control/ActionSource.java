@@ -7,6 +7,14 @@ public interface ActionSource {
 	/** Called once per game tick while the AI is in control. */
 	AgentAction next(Minecraft client);
 
+	/**
+	 * The tick the last returned action was decided for. Sources that think in the background
+	 * (the brain) return an earlier tick, so their thinking time counts towards the reaction delay.
+	 */
+	default long decisionTick(long currentTick) {
+		return currentTick;
+	}
+
 	/** When true, control goes back to the human. */
 	default boolean finished() {
 		return false;
