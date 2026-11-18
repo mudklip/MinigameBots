@@ -668,6 +668,15 @@ the handful of formulas. Three parts:
      mace fall damage; bow and crossbow charge and arrow arcs; trident; fishing-rod pulls;
      ender pearls; potions and their counters; golden apples; end crystal and respawn-anchor
      damage; fall damage and the ways to cancel it (water, hay, slime, boats, cobwebs).
+   - **Advanced techniques** (the "obscure but essential" layer, each with what it needs and
+     which versions it works in): attribute swapping (hitting, then switching items in the
+     same tick so the other item's attributes or enchantments apply), hotbar order and
+     priority for fast swaps, crossbow inventory reloading (charging one and swapping
+     uncharged ones in through the inventory to fill several at once), stun-slamming (axe to
+     disable the shield, then mace), totem re-equip timing, pearl and wind-charge movement,
+     shield timing, rod and projectile combos, crystal and anchor sequences. Each entry says
+     what inputs it takes, so the AI's action space and humanizer settings can be checked
+     against it (some need several actions within one tick).
    - **Mobs:** health, damage, speed and behaviour per mob (creeper fuse and blast radius,
      skeleton range, enderman aggro, piglin gold rules, warden senses), and how to counter each.
    - **World:** ore distribution by Y level and biome, structure locations and loot, biome
@@ -694,12 +703,17 @@ the handful of formulas. Three parts:
   giving them directly makes learning much faster and helps even untrained play.
 - **"Can I win?" before training:** the DPS race gives the Manager a fight-or-flee estimate
   from day one; the learned value head takes over as it gets better.
-- **Goal parameters:** "get diamonds" -> Y about -58, branch mine; "gold farm" -> nether roof
+- **Goal parameters:** "get diamonds" -> explore caves around Y -59 (caving beats strip
+  mining since 1.18), strip mine only as a fallback; "gold farm" -> nether roof
   over nether wastes, right Y, right chunk; "beat this mob" -> its counter.
 - **Objectives:** shaping from facts (a bonus for reaching the right Y level, a warning when an
   Objective rewards something the facts say is impossible).
 - **The optional mind** (section 9) looks things up here, so it doesn't need a big model that
   happens to remember Minecraft.
+
+**Knowing vs doing:** the knowledge says a technique exists and how it works; performing it
+well is a skill. Each advanced technique gets a matching Training Grounds drill so it can be
+practised, and self-play can still discover techniques nobody wrote down.
 
 The files can be edited; the Video Lab's Question Queue adds answers (the Knowledge Book,
 M13); servers with custom rules can override entries.
