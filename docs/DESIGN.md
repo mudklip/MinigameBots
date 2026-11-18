@@ -920,12 +920,40 @@ Each milestone ends with tests, a working jar, and a short demo you can try.
 Ideas to consider once both mods are fully usable. Not part of the milestones; each will be
 discussed before any work starts.
 
-- **Local chat brain (optional):** a small open model (e.g. Llama 3.2 3B or Qwen 2.5 3B)
-  running locally through llama.cpp, about 2-3 GB, on the GPU or CPU. It would understand
-  chat ("follow me", "get iron then come back", "protect Alex") and turn it into goals, read
-  signs, books and server rules, and chat simply with friends. It would not play: the trained
-  network still does all movement and fighting. Off by default. How it works is still to be
-  decided together.
+**Long-term goal:** a fully autonomous player, in the spirit of AI streamers, that is very
+good at every part of Minecraft and does things because it wants to, but can also be told
+what to do. Examples: wins 1v1s, wins or survives 2v1s, escapes armies, wins with worse gear
+or unusual kits, gathers its own resources, builds item farms correctly (right chunk, right
+Y level, right biome), builds for fun, builds traps that work, contributes in team fights,
+makes medium redstone, explores and remembers valuable places (a fortress, its nether-roof
+hole), and treats people based on its history with them. The mod must stay light enough not
+to wreck a normal PC.
+
+**Optional "mind" (local language model), to be discussed in detail first:**
+
+- **Two layers.** The trained network stays the body: all movement, fighting and building.
+  A small open model (around 1-4B parameters, quantised, run through llama.cpp) is a slow
+  "mind" on top: it picks goals for the Manager, talks, and explains itself. It never drives
+  the keys directly; its choices go through the goal system, which already filters and
+  checks them.
+- **Fully optional.** It can be switched off per PC even for an AI trained with it, and the AI
+  still plays fully without it, so a shared AI works on a PC that can't afford the extra
+  2-4 GB.
+- **Adapted for local use and learning.** Small-model LoRA fine-tuning (fits a 6 GB GPU for
+  1-3B models) on its own Minecraft knowledge: the Knowledge Book, its memories and the
+  history of its conversations.
+- **Stages:**
+  1. Chat: it can talk in game chat, behind layered safety (an output filter, a block list,
+     topic limits, rate limits and an off switch).
+  2. Client commands: the person running the client gives tasks in plain words with a
+     command (e.g. `/mgb ask go build an iron farm near base`), instead of menus.
+  3. Voice: a voice chat mod integration with local speech-to-text (e.g. Whisper),
+     recognising who is speaking, replying with local text-to-speech.
+- **Who can command it:** only the person running the client, unless a future version can
+  make other people's commands provably safe. Others can talk to it; it doesn't take orders
+  from them.
+- **Relationship memory:** a short per-player history (how they treated it, what happened
+  together) in the world memory, so it treats people according to its past with them.
 
 ### How development is tested
 
