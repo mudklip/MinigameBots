@@ -1,0 +1,2 @@
+// Shared code: network protocol and formats both mods must agree on.
+// Shipped inside both jars (jar-in-jar), never installed on its own.

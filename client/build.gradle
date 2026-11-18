@@ -1,0 +1,17 @@
+dependencies {
+	implementation project(':common')
+	include project(':common')
+
+	// Load Training Grounds in the dev client so singleplayer tests have both mods.
+	localRuntime project(':training')
+}
+
+loom {
+	runs {
+		client {
+			// Keep the test world and game files out of the source tree.
+			runDir = '../run'
+		}
+		remove server
+	}
+}

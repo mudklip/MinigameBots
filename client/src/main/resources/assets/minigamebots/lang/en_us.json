@@ -1,0 +1,6 @@
+{
+	"minigamebots.toast.link.title": "MinigameBots",
+	"minigamebots.toast.link.ok": "Linked to Training Grounds %s",
+	"minigamebots.toast.link.update_client": "Training Grounds needs a newer MinigameBots. Update this mod.",
+	"minigamebots.toast.link.update_server": "This server's Training Grounds is too old. Update it."
+}

@@ -1,0 +1,22 @@
+{
+	"schemaVersion": 1,
+	"id": "minigamebots-training",
+	"version": "${version}",
+	"name": "MinigameBots Training Grounds",
+	"description": "Training rooms for MinigameBots AIs: arenas, instant resets, practice targets, drills and opponents. Runs on servers and in singleplayer.",
+	"authors": ["mudklip"],
+	"contact": {
+		"sources": "https://github.com/mudklip/MinigameBots"
+	},
+	"license": "All-Rights-Reserved",
+	"environment": "*",
+	"entrypoints": {
+		"main": ["io.github.mudklip.minigamebots.training.TrainingGrounds"]
+	},
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

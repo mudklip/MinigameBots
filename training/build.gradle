@@ -1,0 +1,13 @@
+dependencies {
+	implementation project(':common')
+	include project(':common')
+}
+
+loom {
+	runs {
+		server {
+			runDir = '../run'
+		}
+		remove client
+	}
+}
