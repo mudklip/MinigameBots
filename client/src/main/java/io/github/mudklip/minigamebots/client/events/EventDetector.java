@@ -63,7 +63,15 @@ public final class EventDetector {
 	}
 
 	public void emit(String type, Map<String, Object> data) {
-		GameEvent event = GameEvent.client(tick, type, data);
+		publish(GameEvent.client(tick, type, data));
+	}
+
+	/** An event reported by Training Grounds (exact, from the server). */
+	public void emitServer(String type, Map<String, Object> data) {
+		publish(new GameEvent(tick, type, data, "server"));
+	}
+
+	private void publish(GameEvent event) {
 		synchronized (this) {
 			recent.addLast(event);
 			while (recent.size() > RECENT) {

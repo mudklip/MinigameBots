@@ -13,6 +13,9 @@
 	"entrypoints": {
 		"main": ["io.github.mudklip.minigamebots.training.TrainingGrounds"]
 	},
+	"mixins": [
+		"minigamebots-training.mixins.json"
+	],
 	"depends": {
 		"fabricloader": ">=${loader_version}",
 		"minecraft": "~${minecraft_version}",

@@ -13,6 +13,8 @@ public final class Protocol {
 	/** Feature flags a peer can advertise. Peers ignore flags they don't know. */
 	public static final class Features {
 		public static final String HANDSHAKE = "handshake";
+		/** Ground-truth game events (damage, kills, aim trainer, arenas) via TgEventPayload. */
+		public static final String EVENTS = "events";
 
 		private Features() {
 		}

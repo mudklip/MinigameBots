@@ -27,6 +27,8 @@ public final class MinigameBotsCommon {
 		// The hello payload travels both ways: server -> client first, client answers.
 		PayloadTypeRegistry.clientboundPlay().register(HelloPayload.TYPE, HelloPayload.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(HelloPayload.TYPE, HelloPayload.CODEC);
+		PayloadTypeRegistry.clientboundPlay().register(io.github.mudklip.minigamebots.common.net.TgEventPayload.TYPE,
+				io.github.mudklip.minigamebots.common.net.TgEventPayload.CODEC);
 		LOGGER.info("MinigameBots protocol v{} registered", Protocol.VERSION);
 	}
 

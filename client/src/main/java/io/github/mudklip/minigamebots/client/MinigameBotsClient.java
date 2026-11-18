@@ -68,7 +68,7 @@ public final class MinigameBotsClient implements ClientModInitializer {
 	public static final String MOD_ID = "minigamebots";
 	public static final Logger LOGGER = LoggerFactory.getLogger("MinigameBots");
 
-	private static final List<String> FEATURES = List.of(Protocol.Features.HANDSHAKE);
+	private static final List<String> FEATURES = List.of(Protocol.Features.HANDSHAKE, Protocol.Features.EVENTS);
 	private static final SystemToast.SystemToastId LINK_TOAST = new SystemToast.SystemToastId();
 
 	@Override
@@ -99,6 +99,26 @@ public final class MinigameBotsClient implements ClientModInitializer {
 						payload.modVersion(), payload.protocol(), result);
 			}
 		});
+
+		// Ground truth from Training Grounds: becomes "tg_<kind>" events with source "server".
+		ClientPlayNetworking.registerGlobalReceiver(io.github.mudklip.minigamebots.common.net.TgEventPayload.TYPE,
+				(payload, context) -> {
+					java.util.Map<String, Object> data = new java.util.LinkedHashMap<>();
+					try {
+						var obj = com.google.gson.JsonParser.parseString(payload.json()).getAsJsonObject();
+						for (var e : obj.entrySet()) {
+							var v = e.getValue();
+							if (v.isJsonPrimitive()) {
+								var p = v.getAsJsonPrimitive();
+								data.put(e.getKey(), p.isNumber() ? p.getAsDouble() : p.isBoolean() ? p.getAsBoolean() : p.getAsString());
+							}
+						}
+					} catch (RuntimeException e) {
+						LOGGER.debug("Bad Training Grounds event {}", payload.kind(), e);
+						return;
+					}
+					events.emitServer("tg_" + payload.kind(), data);
+				});
 
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> TrainingLink.clear());
 

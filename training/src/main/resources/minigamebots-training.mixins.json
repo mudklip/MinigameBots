@@ -1,0 +1,12 @@
+{
+	"required": true,
+	"package": "io.github.mudklip.minigamebots.training.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [
+		"MannequinAccessor",
+		"ServerGamePacketListenerMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}
