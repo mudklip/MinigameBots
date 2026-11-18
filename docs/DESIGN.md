@@ -759,6 +759,17 @@ while training, as a teacher; the AI that plays always uses virtual keyboard and
   and scenarios more often.
 - **"Which was better?" (M12):** you pick the better or more human of two short clips; a small
   reward model learns your taste and adds to the Objective, faster than writing style rules.
+- **Learning from everyone on a server (M14):** on a consenting server with Training Grounds,
+  every player's movement, aim, hotbar, attacks, item use and the outcome of each fight are
+  recorded exactly, tick by tick (players are told and can opt out). Each fight then becomes
+  demos from *both* sides. Imitation is weighted by outcome: moments that led to winning
+  trades or kills count more, losing moments count less or not at all, so it learns from the
+  enemy's good play and not their mistakes. Flashback replays are used the same way. This
+  needs no skill from you and is far more efficient than video.
+- **Learning from its own mistakes:** practice already punishes what lost (death, lost rounds,
+  wasted damage), "mistake" marks are never imitated, and exams point practice at weak spots.
+- **No skill needed from you:** self-play, cheating teacher opponents and teacher demos supply
+  expert examples without any human recordings; your recordings and videos only add style.
 - **Already planned elsewhere:** fast simulation for combat (M11), learning from any video
   through the input-guessing model (M13), Flashback replays of friends' games (M14).
 
@@ -1017,7 +1028,7 @@ Each milestone ends with tests, a working jar, and a short demo you can try.
 | M11 | **Combat league** | Self-play matchmaking, scripted opponents, fast-sim aim, drills for the advanced techniques (section 4.6.1), godly teacher opponents and client teacher mode with Baritone, teacher demos, practice weighted toward exam weaknesses (section 4.10) |
 | M12 | **Realism** | Realism critic, humanizer tuning from your data, "which was better?" clip comparisons training a style reward model (section 4.10) |
 | M13 | **Video Lab** | Pipeline, IDM labeling, reference atlas, Question Queue, Knowledge Book |
-| M14 | **Flashback** | Replay import, POV capture, re-render variety |
+| M14 | **Flashback** | Replay import, POV capture, re-render variety, server-wide recording of every player through Training Grounds, learning from other players' (and enemies') good play (section 4.10) |
 | M15 | **Autonomy and polish** | Watchdog, idle behavior, protected zones, chat, Figure It Out, minigame templates and generator |
 
 ### Possible future additions (after M15, not scheduled)
