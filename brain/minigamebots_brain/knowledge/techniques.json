@@ -1,0 +1,18 @@
+{
+  "_about": "Advanced combat techniques. 'inputs' says what the AI must be able to do; 'ticks' how fast. Techniques depend on version and server rules: 'check' marks ones to verify in the Training Grounds on the running version before relying on them.",
+  "w_tap": {"how": "Release and re-press forward (or tap back) right after a hit so the next hit is a sprint hit with extra knockback.", "inputs": ["forward", "attack"], "check": false},
+  "strafing": {"how": "Move sideways around the opponent while aiming, making their aim harder and dodging sweeps and arrows.", "inputs": ["left", "right", "camera"], "check": false},
+  "crit_spacing": {"how": "Jump and time hits on the way down for x1.5; space hits to the weapon's cooldown.", "inputs": ["jump", "attack"], "check": false},
+  "shield_disable": {"how": "Switch to an axe, hit the shielding opponent to disable their shield for 5 s, switch back to the main weapon.", "inputs": ["hotbar", "attack"], "check": false},
+  "stun_slam": {"how": "Disable the shield with an axe and smash with the mace right after, so the slam can't be blocked.", "inputs": ["hotbar", "attack", "fall"], "ticks": "within a few ticks", "check": true},
+  "attribute_swap": {"how": "Hit, then switch hotbar slot in the same tick so another item's attributes or enchantments affect the hit (e.g. a mace's or sword's bonus with another item's enchantment). Behaviour depends on version and server.", "inputs": ["attack", "hotbar"], "ticks": "same tick", "check": true},
+  "hotbar_layout": {"how": "Keep the main weapon, axe, pearls, healing, blocks and totems on fixed slots (number keys) so swaps are instant; the offhand holds a totem or shield.", "inputs": ["hotbar"], "check": false},
+  "crossbow_inventory_reload": {"how": "Charge one crossbow, then in the inventory swap uncharged crossbows into the charging slot so several get loaded at once; fire them back to back.", "inputs": ["use", "inventory", "gui clicks"], "ticks": "several actions within a tick or two", "check": true},
+  "totem_reequip": {"how": "After a totem pops, put a new one in the offhand at once (swap-hands key, or from the inventory) before the next hit lands.", "inputs": ["swap_offhand", "inventory"], "check": false},
+  "pearl_escape": {"how": "Throw a pearl away (or up) to break a combo, escape a trap, or reach high ground; account for the 5 damage.", "inputs": ["hotbar", "use", "camera"], "check": false},
+  "water_clutch": {"how": "While falling, look down and place water just before landing to cancel fall damage, then pick it back up.", "inputs": ["hotbar", "use", "camera"], "check": false},
+  "rod_combo": {"how": "Hook the opponent with a fishing rod to interrupt their sprint or start a combo, then switch to the sword.", "inputs": ["hotbar", "use", "attack"], "check": false},
+  "crystal_sequence": {"how": "Place obsidian, place a crystal on it and hit it as the opponent gets close; repeat fast. Blast Protection and distance reduce the damage taken yourself.", "inputs": ["hotbar", "use", "attack"], "check": true},
+  "anchor_sequence": {"how": "Place a respawn anchor, charge it with glowstone and use it near the opponent (outside the Nether) to explode it.", "inputs": ["hotbar", "use"], "check": true},
+  "block_clutch": {"how": "Place blocks under yourself while bridging or falling (sneak at edges), or tower up to escape melee.", "inputs": ["use", "sneak", "camera"], "check": false}
+}

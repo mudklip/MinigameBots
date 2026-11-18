@@ -39,6 +39,9 @@ WAYPOINT_TYPES = ("base", "chest", "mine", "portal", "danger", "farm", "custom")
 MAX_WAYPOINTS = 4
 WAYPOINT_DIM = len(WAYPOINT_TYPES) + 6
 ENTITY_REL_DIM = 4
+# Knowledge-base calculators (the mod computes them from real item stats).
+ENTITY_CALC_DIM = 3  # 1/hits I need, 1/hits they need, fight odds (-1 lose .. 1 win)
+SELF_CALC_DIM = 3  # attack charge, crit ready, fall damage if landing now
 FRAME_SIZE = 128
 
 
@@ -130,6 +133,7 @@ def featurize(obs: dict) -> dict:
     ent_vals = np.zeros((MAX_ENTITIES, ENTITY_DIM), dtype=np.float32)
     ent_mask = np.zeros(MAX_ENTITIES, dtype=np.bool_)
     ent_rel = np.zeros((MAX_ENTITIES, ENTITY_REL_DIM), dtype=np.float32)
+    ent_calc = np.zeros((MAX_ENTITIES, ENTITY_CALC_DIM), dtype=np.float32)
     entities = sorted(obs.get("entities") or [], key=importance)
     for i, e in enumerate(entities[:MAX_ENTITIES]):
         dx, dy, dz = e.get("dx", 0.0), e.get("dy", 0.0), e.get("dz", 0.0)
@@ -155,6 +159,8 @@ def featurize(obs: dict) -> dict:
         # Friend or foe: remembered names, scoreboard teams and insignia (shields, banners, dyes).
         ent_rel[i] = [float(e.get("relation", 0)), float(e.get("allyInsignia", False)),
                       float(e.get("enemyInsignia", False)), float(bool(e.get("insignia")))]
+        mine, theirs = e.get("myHitsToKill", 0), e.get("theirHitsToKill", 0)
+        ent_calc[i] = [1.0 / mine if mine else 0.0, 1.0 / theirs if theirs else 0.0, float(e.get("fightOdds", 0.0))]
 
     wp_vals = np.zeros((MAX_WAYPOINTS, WAYPOINT_DIM), dtype=np.float32)
     wp_mask = np.zeros(MAX_WAYPOINTS, dtype=np.bool_)
@@ -189,7 +195,9 @@ def featurize(obs: dict) -> dict:
         "crowd": crowd_features(crowd, yaw),
         "self": self_vec, "items": items, "item_vals": item_vals, "ent_type": ent_type, "ent_held": ent_held,
         "ent_vals": ent_vals, "ent_mask": ent_mask, "blocks": blocks, "screen": np.int64(screen),
-        "ent_rel": ent_rel, "wp_vals": wp_vals, "wp_mask": wp_mask,
+        "ent_rel": ent_rel, "wp_vals": wp_vals, "wp_mask": wp_mask, "ent_calc": ent_calc,
+        "self_calc": np.array([float(me.get("attackReady", 1.0)), float(me.get("critReady", False)),
+                               min(float(me.get("fallDamage", 0.0)), 40.0) / 20.0], dtype=np.float32),
     }
 
 

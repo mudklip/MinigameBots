@@ -1,0 +1,20 @@
+{
+  "_about": "Where things are and how the world works (as of 1.21).",
+  "spawning": {"fact": "Hostile mobs spawn in the Overworld only at block light 0 (since 1.18), on the top of a solid, opaque block with enough room (2 blocks of air for most, 3 for endermen). Mob caps limit how many exist near players; mobs further than 128 blocks despawn at once, and beyond 32 blocks they may despawn randomly. Slabs (bottom half), glass, leaves and carpets aren't spawnable."},
+  "slime_chunks": {"fact": "Slimes spawn below Y 40 in about 1 of 10 chunks (fixed by the seed) at any light level, and in swamps at night depending on the moon."},
+  "nether": {"fact": "1 block in the Nether = 8 in the Overworld. Beds and respawn anchors explode in the Nether and End (anchors work in the Nether). Water evaporates. The bedrock roof is at Y 128; above it is a flat, empty area where no mobs spawn naturally except from portals.", "roof_access": "Pearl or a portal glitch through the roof, or build a portal; remember where you got up."},
+  "nether_biomes": {"fact": "Nether wastes (zombified piglins, ghasts, magma cubes), crimson forest (piglins, hoglins), warped forest (endermen, safe from most mobs), soul sand valley (skeletons, ghasts, slow soul sand), basalt deltas (magma cubes)."},
+  "fortress": {"fact": "Nether brick corridors with blaze spawners and nether wart; wither skeletons spawn only inside fortress bounds. Usually found along the Nether's X or Z axes."},
+  "bastion": {"fact": "Blackstone ruins in the Nether full of piglins and brutes; lots of gold, netherite upgrade templates, sometimes ancient debris."},
+  "stronghold": {"fact": "Holds the End portal. Eyes of ender fly toward it. The closest ones are in a ring roughly 1,280-2,816 blocks from the world centre."},
+  "end": {"fact": "The dragon's island has obsidian pillars with end crystals; beyond the gateway (made by killing the dragon) are end cities with shulkers, elytra in end ships, and chorus fruit."},
+  "ancient_city": {"fact": "Deep dark biome around Y -51, under mountains; sculk sensors and shriekers summon the warden. Loot: Swift Sneak, enchanted golden apples, echo shards."},
+  "trial_chambers": {"fact": "Copper and tuff structures around Y -40 to -20 with trial spawners and breezes; trial and ominous keys open vaults with the heavy core (mace) and other loot."},
+  "ocean_monument": {"fact": "Underwater structure in deep oceans with guardians and three elder guardians; sponges and gold blocks inside."},
+  "woodland_mansion": {"fact": "In dark forests, far from spawn; evokers (totems) and vindicators."},
+  "villages_and_outposts": {"fact": "Villages trade, breed and give beds; pillager outposts nearby start raids (Bad Omen, then entering a village)."},
+  "desert_and_jungle_temples": {"fact": "Desert pyramids have a TNT trap under a pressure plate and 4 chests; jungle temples have tripwire and arrow traps."},
+  "buried_treasure": {"fact": "Found with explorer maps from shipwrecks; contains a heart of the sea (for a conduit)."},
+  "biome_mobs": {"fact": "Mooshrooms on mushroom islands (no hostile spawns there), polar bears in snowy biomes, pandas in bamboo jungles, frogs in swamps, axolotls in lush caves, strays in snowy biomes, husks in deserts."},
+  "day_night": {"fact": "A day is 20 minutes: 10 day, 1.5 dusk, 7 night, 1.5 dawn. Sleeping skips the night and resets phantom spawning."}
+}

@@ -109,7 +109,8 @@ public final class Observer {
 				p.getFoodData().getSaturationLevel(), p.getArmorValue(), p.experienceLevel, p.experienceProgress,
 				p.getAirSupply(), p.getMaxAirSupply(), p.onGround(), p.isInWater(), p.isInLava(), p.isShiftKeyDown(),
 				p.isSprinting(), p.isUsingItem(), p.getYRot(), p.getXRot(), p.getX(), p.getY(), p.getZ(), v.x, v.y, v.z,
-				level.dimension().identifier().toString(), effects, p.isDeadOrDying());
+				level.dimension().identifier().toString(), effects, p.isDeadOrDying(), p.getAttackStrengthScale(0.5f),
+				Calculator.critReady(p), Calculator.fallDamage(p));
 	}
 
 	private static List<Observation.ItemInfo> inventory(LocalPlayer player) {
@@ -206,6 +207,8 @@ public final class Observer {
 			PlayerTeam team = e.getTeam();
 			boolean isPlayer = e instanceof Player;
 			int id = e.getId();
+			Calculator.Fight fight = e instanceof LivingEntity le2 && le2.isAlive() && (isPlayer || e instanceof Enemy || le2.getMaxHealth() > 0)
+					? Calculator.fight(player, le2) : Calculator.Fight.NONE;
 			// Who is this to the AI: by remembered name, scoreboard team and insignia (shield, banner, dyes).
 			var ins = e instanceof LivingEntity le ? io.github.mudklip.minigamebots.client.memory.Insignia.of(le)
 					: io.github.mudklip.minigamebots.client.memory.Insignia.Info.NONE;
@@ -230,7 +233,7 @@ public final class Observer {
 					vel.z, health, maxHealth, held, armor, visible, since, relations.ticksSinceHitMe(id),
 					relations.ticksSinceHitByMe(id), relations.ticksSinceHitProtected(id),
 					myTeam != null && myTeam == team, id == relations.protectedId(), e instanceof Enemy, ins.id(), relation,
-					allyIns, enemyIns));
+					allyIns, enemyIns, fight.myHitsToKill(), fight.theirHitsToKill(), fight.odds()));
 		}
 		lastSeen.clear();
 		lastSeen.putAll(stillSeen);

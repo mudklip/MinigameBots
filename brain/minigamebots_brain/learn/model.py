@@ -84,6 +84,9 @@ class LitePolicy(nn.Module):
         self.memory_in = nn.Sequential(nn.Linear(features.MAX_WAYPOINTS * features.WAYPOINT_DIM, 64), nn.ReLU(),
                                        nn.Linear(64, hidden))
         self.head_mark = nn.Linear(hidden, 1 + len(features.WAYPOINT_TYPES))
+        # Knowledge-base calculators (also zero-initialised): per-entity fight maths and own state.
+        self.ent_calc = nn.Linear(features.ENTITY_CALC_DIM, 96)
+        self.self_calc = nn.Linear(features.SELF_CALC_DIM, hidden)
         self.reset_memory_modules()
 
     def reset_memory_modules(self):
@@ -94,6 +97,9 @@ class LitePolicy(nn.Module):
         nn.init.zeros_(self.memory_in[2].weight)
         nn.init.zeros_(self.memory_in[2].bias)
         nn.init.zeros_(self.head_mark.weight)
+        for m in (self.ent_calc, self.self_calc):
+            nn.init.zeros_(m.weight)
+            nn.init.zeros_(m.bias)
         with torch.no_grad():
             self.head_mark.bias.fill_(0.0)
             self.head_mark.bias[0] = 10.0
@@ -114,6 +120,8 @@ class LitePolicy(nn.Module):
                                   x["ent_vals"]], dim=-1))
         if "ent_rel" in x:
             ent = ent + self.ent_rel(x["ent_rel"])
+        if "ent_calc" in x:
+            ent = ent + self.ent_calc(x["ent_calc"])
         mask = x["ent_mask"].unsqueeze(-1)
         ent_max = torch.where(mask, ent, torch.full_like(ent, -1e4)).max(dim=2).values
         ent_max = torch.where(mask.any(dim=2), ent_max, torch.zeros_like(ent_max))
@@ -128,6 +136,8 @@ class LitePolicy(nn.Module):
         if "wp_vals" in x:
             wp = x["wp_vals"] * x["wp_mask"].unsqueeze(-1)
             h = h + self.memory_in(wp.flatten(2))
+        if "self_calc" in x:
+            h = h + self.self_calc(x["self_calc"])
         if state is None:
             state = self.initial_state(b, h.device)
         out, state = self.memory(h, state)
@@ -144,7 +154,7 @@ class LitePolicy(nn.Module):
 
 
 INPUT_KEYS = ("self", "items", "item_vals", "ent_type", "ent_held", "ent_vals", "ent_mask", "blocks", "screen", "crowd",
-              "frames", "ent_rel", "wp_vals", "wp_mask")
+              "frames", "ent_rel", "wp_vals", "wp_mask", "ent_calc", "self_calc")
 
 
 def to_tensors(batch: dict, device) -> dict:
@@ -153,7 +163,7 @@ def to_tensors(batch: dict, device) -> dict:
 
 
 # Parameters that may be missing from older checkpoints (they start fresh when loaded).
-OPTIONAL_PREFIXES = ("head_value.", "ent_rel.", "memory_in.", "head_mark.")
+OPTIONAL_PREFIXES = ("head_value.", "ent_rel.", "memory_in.", "head_mark.", "ent_calc.", "self_calc.")
 
 
 def count_parameters(model: nn.Module) -> int:

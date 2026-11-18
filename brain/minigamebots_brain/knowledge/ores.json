@@ -1,0 +1,14 @@
+{
+  "_about": "Overworld and Nether ore distribution since 1.18 (unchanged through 1.21). Y values are block heights. 'best' is where the most generates; 'method' is how to look for it.",
+  "coal": {"range": [0, 320], "best": 96, "notes": "Common everywhere above Y 0; also exposed on mountains.", "method": "surface caves and mountains"},
+  "copper": {"range": [-16, 112], "best": 48, "notes": "Large veins in dripstone caves.", "method": "caves around Y 48, dripstone caves"},
+  "iron": {"range": [-64, 320], "best": 16, "also_best": 232, "notes": "Peaks around Y 16 and high in mountains (Y 232). Large raw-iron veins below Y 0.", "method": "caves around Y 16, or mountain peaks"},
+  "gold": {"range": [-64, 32], "best": -16, "notes": "Badlands have extra gold from Y 32 up to 256. Nether gold ore drops nuggets.", "method": "caves around Y -16, or anywhere in badlands"},
+  "redstone": {"range": [-64, 15], "best": -59, "notes": "More common the deeper you go.", "method": "deep caves near bedrock"},
+  "lapis": {"range": [-64, 64], "best": 0, "notes": "Peaks around Y 0; some buried variants only appear when not exposed to air.", "method": "caves around Y 0"},
+  "diamond": {"range": [-64, 16], "best": -59, "notes": "More common the deeper you go. Many diamond veins are skipped if they touch air, but caving still beats strip mining because caves expose far more ore faces per minute.", "method": "explore caves and deepslate areas around Y -59; strip mine at Y -59 only as a fallback"},
+  "emerald": {"range": [-16, 320], "best": 236, "biomes": ["mountains (windswept hills, peaks, meadow, grove, slopes)"], "notes": "Only in mountain biomes. Villager trading is the easier source.", "method": "high in mountain biomes, or trade with villagers"},
+  "ancient_debris": {"dimension": "minecraft:the_nether", "range": [8, 119], "best": 15, "notes": "Never exposed to air in its common form; blast-resistant, so beds or TNT can clear netherrack to find it.", "method": "Y 15 in the Nether, bed or TNT mining, or strip mine"},
+  "nether_quartz": {"dimension": "minecraft:the_nether", "range": [10, 117], "best": 60, "method": "anywhere in the Nether"},
+  "nether_gold": {"dimension": "minecraft:the_nether", "range": [10, 117], "best": 60, "notes": "Drops gold nuggets; mining it angers nearby piglins.", "method": "anywhere in the Nether"}
+}

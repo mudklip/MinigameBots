@@ -1,0 +1,11 @@
+{
+  "_about": "Survival know-how: what to do first and how to prepare.",
+  "first_day": {"fact": "Wood, crafting table, wooden then stone tools, food, shelter or a bed before night (sleeping skips it)."},
+  "progression": {"fact": "Stone -> iron (tools, armour, bucket, shield) -> diamond -> enchanting table (books around it for level 30) -> Nether (blaze rods, ender pearls, netherite) -> eyes of ender -> stronghold -> End."},
+  "food": {"fact": "Saturation matters more than hunger points: cooked steak and porkchop are among the best, golden carrots the best overall; hunger below 6 stops sprinting; health regenerates when hunger is 18 or more."},
+  "safe_mining": {"fact": "Don't dig straight down or up; watch for lava below Y 0 (lava lakes) and gravel or sand above. Carry water and blocks."},
+  "nether_prep": {"fact": "Gold armour piece for piglins, Fire Resistance potions, blocks, food, a way back (remember the portal)."},
+  "end_prep": {"fact": "12 eyes of ender (some portals have eyes already), a bow and arrows for caged crystals, beds or blocks, water bucket, ender pearls, food, slow falling helps."},
+  "enchanting": {"fact": "15 bookshelves around the table (one block gap) give level 30 enchantments. Anvils combine enchantments; renaming and repairs get more expensive with each use. Mending and Unbreaking keep gear forever."},
+  "armour_trims_and_netherite": {"fact": "Netherite upgrades diamond gear at a smithing table with a netherite upgrade template (from bastions) and an ingot (4 scrap + 4 gold)."}
+}

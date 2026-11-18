@@ -1,0 +1,10 @@
+{
+  "_about": "Redstone rules and common circuits. A redstone tick = 2 game ticks = 0.1 s.",
+  "signal": {"fact": "Power travels up to 15 blocks of dust, losing 1 per block. Repeaters refresh it to 15 and add 1-4 redstone ticks of delay; they also stop backflow."},
+  "comparator": {"fact": "Compares or subtracts signals and reads containers (fuller = stronger signal)."},
+  "observer": {"fact": "Sends a short pulse when the block in front changes. Used for flying machines and crop farms."},
+  "pistons": {"fact": "Push up to 12 blocks; sticky pistons pull back one. Obsidian, bedrock and some blocks can't be moved. Quasi-connectivity: pistons, droppers and dispensers also turn on from power to the space above them (Java only)."},
+  "hoppers": {"fact": "Move 2.5 items per second; a powered hopper stops."},
+  "common_circuits": {"fact": "Clock (repeater loop or observer clock), T flip-flop (toggle), pulse extender, item sorter (hopper with comparator), hidden piston doors, TNT cannons (water to protect the cannon), flying machines (slime blocks, observers and pistons)."},
+  "traps": {"fact": "Pressure plates or tripwires trigger TNT, dispensers with lava or arrows, or pistons that drop players into pits; observers detect blocks broken or placed; sculk sensors detect sounds at range."}
+}

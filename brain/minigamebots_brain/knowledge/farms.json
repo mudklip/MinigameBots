@@ -1,0 +1,15 @@
+{
+  "_about": "What farms need to work, not exact designs. Placement rules matter more than the shape.",
+  "mob_farm_general": {"fact": "Build far (over 128 blocks) from other caves and dark areas, or light them all up, so mobs spawn only in the farm. Stand 24-32 blocks from the spawning floor (closer than 24 nothing spawns, beyond 128 everything despawns). Spawning floors must be dark (block light 0) and spawnable."},
+  "gold_farm": {"fact": "Zombified piglins: on the Nether roof (above Y 128) over a nether wastes biome, spawning platforms of magma blocks or other spawnable blocks with turtle eggs as bait; they spawn because the biome below is nether wastes and the roof has no other spawns. Alternatively portal-based farms in the Overworld."},
+  "iron_farm": {"fact": "Iron golems spawn near villagers that have beds and work stations and are scared by a zombie (they panic and summon a golem). At least 3 villagers who sleep, see the zombie and can't reach it; golems spawn in a 16x13x16 area around them and are killed with lava or in a drop."},
+  "crop_farm": {"fact": "Crops grow on farmland within 4 blocks of water, need light 9 or more, and grow faster in rows with different crops around. Villager farmers can harvest and replant automatically; observers and pistons or water can harvest sugar cane, kelp, bamboo and pumpkins."},
+  "animal_farm": {"fact": "Breed animals with their food (wheat for cows and sheep, seeds for chickens, carrots for pigs); babies grow in 20 minutes. Chicken farms with egg dispensers, cooking with lava under them."},
+  "xp_farm": {"fact": "Spawner farms (zombie, skeleton, spider) or general mob farms bring mobs to a kill point; hitting them yourself gives XP. Enderman farms in the End give lots of XP fast."},
+  "slime_farm": {"fact": "In slime chunks below Y 40 with spawning floors, or swamps at night."},
+  "wither_skeleton_farm": {"fact": "In a fortress: clear all other spawning space inside the fortress bounds so only the platform spawns them."},
+  "blaze_farm": {"fact": "Around a blaze spawner; the player must be within 16 blocks of the spawner for it to work."},
+  "guardian_farm": {"fact": "At an ocean monument, after clearing it; guardians spawn in water inside the monument's bounds."},
+  "raid_farm": {"fact": "Around an outpost or with Bad Omen near a village: raiders spawn in waves; gives emeralds and totems."},
+  "villager_trading": {"fact": "Assign a profession by placing a workstation; if the trade you want isn't offered, break and replace the workstation before you trade with it to reroll. Curing a zombie villager gives big discounts. Librarians sell enchanted books."}
+}

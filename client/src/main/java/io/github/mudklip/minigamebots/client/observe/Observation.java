@@ -32,7 +32,8 @@ public record Observation(
 	public record Self(float health, float maxHealth, int food, float saturation, int armor, int xpLevel,
 			float xpProgress, int air, int maxAir, boolean onGround, boolean inWater, boolean inLava,
 			boolean sneaking, boolean sprinting, boolean usingItem, float yaw, float pitch, double x, double y,
-			double z, double vx, double vy, double vz, String dimension, List<String> effects, boolean dead) {
+			double z, double vx, double vy, double vz, String dimension, List<String> effects, boolean dead,
+			float attackReady, boolean critReady, float fallDamage) {
 	}
 
 	/** An item stack. {@code slot} follows the player inventory (0-8 hotbar, 9-35 main, then armor, offhand). */
@@ -52,7 +53,7 @@ public record Observation(
 			double dx, double dy, double dz, double vx, double vy, double vz, float health, float maxHealth,
 			String heldItem, int armor, boolean visible, int ticksSinceSeen, int hitMe, int hitByMe, int hitProtected,
 			boolean sameTeam, boolean protectedTarget, boolean hostile, String insignia, int relation,
-			boolean allyInsignia, boolean enemyInsignia) {
+			boolean allyInsignia, boolean enemyInsignia, int myHitsToKill, int theirHitsToKill, float fightOdds) {
 	}
 
 	/**
