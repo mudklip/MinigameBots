@@ -201,10 +201,16 @@ public final class ArenaManager {
 
 	/** Uses the player's current inventory as the kit everyone gets on reset. */
 	public int setKit(Arena a, ServerPlayer player) {
+		a.kit = captureKit(player);
+		saveQuietly(a);
+		return a.kit.size();
+	}
+
+	/** The player's whole inventory (armour and offhand included) as a kit. */
+	public static com.google.gson.JsonArray captureKit(ServerPlayer player) {
 		RegistryOps<com.google.gson.JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE, player.registryAccess());
-		a.kit = new com.google.gson.JsonArray();
+		com.google.gson.JsonArray kit = new com.google.gson.JsonArray();
 		var inv = player.getInventory();
-		int items = 0;
 		for (int i = 0; i < inv.getContainerSize(); i++) {
 			ItemStack s = inv.getItem(i);
 			if (s.isEmpty()) {
@@ -215,12 +221,38 @@ public final class ArenaManager {
 				JsonObject o = new JsonObject();
 				o.addProperty("slot", i);
 				o.add("item", encoded.get());
-				a.kit.add(o);
-				items++;
+				kit.add(o);
 			}
 		}
-		saveQuietly(a);
-		return items;
+		return kit;
+	}
+
+	/** Replaces the player's inventory with a kit. */
+	public static void applyKit(ServerPlayer p, com.google.gson.JsonArray kit) {
+		var inv = p.getInventory();
+		inv.clearContent();
+		RegistryOps<com.google.gson.JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE, p.registryAccess());
+		for (var el : kit) {
+			JsonObject o = el.getAsJsonObject();
+			int slot = o.get("slot").getAsInt();
+			ItemStack.CODEC.parse(ops, o.get("item")).result().ifPresent(s -> {
+				if (slot >= 0 && slot < inv.getContainerSize()) {
+					inv.setItem(slot, s);
+				}
+			});
+		}
+		p.containerMenu.broadcastChanges();
+	}
+
+	/** Full health and hunger, no effects, fire or fall damage pending. */
+	public static void refresh(ServerPlayer p) {
+		p.removeAllEffects();
+		p.setHealth(p.getMaxHealth());
+		p.getFoodData().setFoodLevel(20);
+		p.getFoodData().setSaturation(5f);
+		p.clearFire();
+		p.resetFallDistance();
+		p.setAirSupply(p.getMaxAirSupply());
 	}
 
 	public void clearKit(Arena a) {
@@ -269,27 +301,9 @@ public final class ArenaManager {
 	}
 
 	private void resetPlayer(Arena a, ServerPlayer p, double @Nullable [] spawn) {
-		p.removeAllEffects();
-		p.setHealth(p.getMaxHealth());
-		p.getFoodData().setFoodLevel(20);
-		p.getFoodData().setSaturation(5f);
-		p.clearFire();
-		p.resetFallDistance();
-		p.setAirSupply(p.getMaxAirSupply());
+		refresh(p);
 		if (!a.kit.isEmpty()) {
-			var inv = p.getInventory();
-			inv.clearContent();
-			RegistryOps<com.google.gson.JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE, p.registryAccess());
-			for (var el : a.kit) {
-				JsonObject o = el.getAsJsonObject();
-				int slot = o.get("slot").getAsInt();
-				ItemStack.CODEC.parse(ops, o.get("item")).result().ifPresent(s -> {
-					if (slot >= 0 && slot < inv.getContainerSize()) {
-						inv.setItem(slot, s);
-					}
-				});
-			}
-			p.containerMenu.broadcastChanges();
+			applyKit(p, a.kit);
 		}
 		if (spawn != null) {
 			p.teleportTo(p.level(), spawn[0], spawn[1], spawn[2], Set.of(), (float) spawn[3], (float) spawn[4], true);
@@ -297,7 +311,7 @@ public final class ArenaManager {
 		p.setDeltaMovement(Vec3.ZERO);
 	}
 
-	private ServerLevel level(Arena a) throws ArenaException {
+	public ServerLevel level(Arena a) throws ArenaException {
 		ResourceKey<Level> key = ResourceKey.create(Registries.DIMENSION, Identifier.parse(a.dimension));
 		ServerLevel level = server().getLevel(key);
 		if (level == null) {

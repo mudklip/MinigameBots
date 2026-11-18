@@ -15,6 +15,8 @@ public final class Protocol {
 		public static final String HANDSHAKE = "handshake";
 		/** Ground-truth game events (damage, kills, aim trainer, arenas) via TgEventPayload. */
 		public static final String EVENTS = "events";
+		/** Client reports its AI's speed (TgStatusPayload), so the server can match it. */
+		public static final String STATUS = "status";
 
 		private Features() {
 		}

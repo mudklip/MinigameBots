@@ -36,7 +36,8 @@ public final class TrainingGrounds implements ModInitializer {
 	public static final String MOD_ID = "minigamebots-training";
 	public static final Logger LOGGER = LoggerFactory.getLogger("MinigameBots/TrainingGrounds");
 
-	private static final List<String> FEATURES = List.of(Protocol.Features.HANDSHAKE, Protocol.Features.EVENTS);
+	private static final List<String> FEATURES = List.of(Protocol.Features.HANDSHAKE, Protocol.Features.EVENTS,
+			Protocol.Features.STATUS);
 	private static TrainingGrounds instance;
 
 	private final LinkedClients linkedClients = new LinkedClients();
@@ -44,6 +45,8 @@ public final class TrainingGrounds implements ModInitializer {
 	private final ArenaManager arenas = new ArenaManager();
 	private final DummyManager dummies = new DummyManager(truth);
 	private final AimTrainer aim = new AimTrainer(truth);
+	private final io.github.mudklip.minigamebots.training.scenario.ScenarioManager scenarios =
+			new io.github.mudklip.minigamebots.training.scenario.ScenarioManager(arenas, dummies, truth);
 	private final TgMenus menus = new TgMenus(this);
 
 	public static TrainingGrounds instance() {
@@ -64,6 +67,10 @@ public final class TrainingGrounds implements ModInitializer {
 
 	public AimTrainer aim() {
 		return aim;
+	}
+
+	public io.github.mudklip.minigamebots.training.scenario.ScenarioManager scenarios() {
+		return scenarios;
 	}
 
 	public TgMenus menus() {
@@ -88,6 +95,11 @@ public final class TrainingGrounds implements ModInitializer {
 			truth.send(p, "arena_reset", j);
 		}
 		return players;
+	}
+
+	/** True while the player is playing in a match round (not knocked out). */
+	public static boolean inMatch(ServerPlayer player) {
+		return instance != null && instance.scenarios.playing(player);
 	}
 
 	/** Called by the mixin for every left click a player makes. */
@@ -127,16 +139,22 @@ public final class TrainingGrounds implements ModInitializer {
 			}
 		});
 
+		ServerPlayNetworking.registerGlobalReceiver(io.github.mudklip.minigamebots.common.net.TgStatusPayload.TYPE,
+				(payload, context) -> scenarios.onStatus(context.player(), payload.aiActive(), payload.sustainableTps()));
+
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
 			linkedClients.remove(handler.getPlayer().getUUID());
 			aim.stop(handler.getPlayer(), false);
+			scenarios.onDisconnect(handler.getPlayer());
 		});
 
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			arenas.load(server);
 			dummies.load(server);
+			scenarios.load(server);
 		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+			scenarios.shutdown();
 			aim.clear();
 			dummies.unload();
 		});
@@ -149,16 +167,20 @@ public final class TrainingGrounds implements ModInitializer {
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			dummies.tick();
 			aim.tick(server.getPlayerList().getPlayers());
+			scenarios.tick();
 		});
 
 		ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> dummies.allowDamage(entity, source));
-		ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) -> dummies.allowDeath(entity));
+		ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) ->
+				scenarios.allowDeath(entity, source) && dummies.allowDeath(entity));
 		ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, base, taken, blocked) -> {
 			truth.onDamage(entity, source, taken, blocked);
 			dummies.afterDamage(entity, source, taken, blocked);
+			scenarios.onDamage(entity, source, blocked ? 0 : taken);
 		});
 		ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
 			truth.onDeath(entity, source);
+			scenarios.afterDeath(entity, source);
 			dummies.afterDeath(entity);
 		});
 

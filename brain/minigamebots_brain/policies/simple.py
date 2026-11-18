@@ -5,9 +5,19 @@ from .base import Policy
 
 
 class IdlePolicy(Policy):
+    """Does nothing. `think_ms` makes it take that long per tick, to test how the mod and
+    Training Grounds cope with a slow brain (e.g. "match AI speed")."""
+
     name = "idle"
 
+    def __init__(self, think_ms: float = 0.0):
+        self.think_s = max(0.0, float(think_ms)) / 1000.0
+
     def act(self, obs, frame):
+        if self.think_s:
+            import time
+
+            time.sleep(self.think_s)
         return Action()
 
 

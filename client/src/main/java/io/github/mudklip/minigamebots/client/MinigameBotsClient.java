@@ -68,7 +68,7 @@ public final class MinigameBotsClient implements ClientModInitializer {
 	public static final String MOD_ID = "minigamebots";
 	public static final Logger LOGGER = LoggerFactory.getLogger("MinigameBots");
 
-	private static final List<String> FEATURES = List.of(Protocol.Features.HANDSHAKE, Protocol.Features.EVENTS);
+	private static final List<String> FEATURES = List.of(Protocol.Features.HANDSHAKE, Protocol.Features.EVENTS, Protocol.Features.STATUS);
 	private static final SystemToast.SystemToastId LINK_TOAST = new SystemToast.SystemToastId();
 
 	@Override
@@ -123,6 +123,26 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> TrainingLink.clear());
 
 		LOGGER.info("MinigameBots {} loaded (protocol v{})", version, Protocol.VERSION);
+	}
+
+	/**
+	 * Tells Training Grounds whether the AI is in control and how many ticks per second its brain
+	 * keeps up with (from the measured round trip), for "match AI speed".
+	 */
+	private void sendStatus() {
+		var link = TrainingLink.get().orElse(null);
+		if (link == null || link.result() != Compatibility.Result.COMPATIBLE
+				|| !link.server().features().contains(Protocol.Features.STATUS)
+				|| !ClientPlayNetworking.canSend(io.github.mudklip.minigamebots.common.net.TgStatusPayload.TYPE)) {
+			return;
+		}
+		boolean active = AgentControl.aiActive();
+		float tps = 20;
+		if (active && AgentControl.get().source() instanceof io.github.mudklip.minigamebots.client.brain.BrainSource b
+				&& b.latencyMs() > 0) {
+			tps = (float) Math.max(2, Math.min(20, 1000.0 / (b.latencyMs() + 5)));
+		}
+		ClientPlayNetworking.send(new io.github.mudklip.minigamebots.common.net.TgStatusPayload(active, tps));
 	}
 
 	public static MinigameBotsClient instance() {
@@ -247,6 +267,9 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		if (client.level == null || client.player == null) {
 			lastObservation = null;
 			return;
+		}
+		if (tick % 20 == 0) {
+			sendStatus();
 		}
 		// Perception costs CPU, so it only runs while something needs it.
 		if (AgentControl.aiActive() || watching || recorder.recording()) {

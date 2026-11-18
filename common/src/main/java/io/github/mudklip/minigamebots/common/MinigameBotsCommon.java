@@ -29,6 +29,8 @@ public final class MinigameBotsCommon {
 		PayloadTypeRegistry.serverboundPlay().register(HelloPayload.TYPE, HelloPayload.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(io.github.mudklip.minigamebots.common.net.TgEventPayload.TYPE,
 				io.github.mudklip.minigamebots.common.net.TgEventPayload.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(io.github.mudklip.minigamebots.common.net.TgStatusPayload.TYPE,
+				io.github.mudklip.minigamebots.common.net.TgStatusPayload.CODEC);
 		LOGGER.info("MinigameBots protocol v{} registered", Protocol.VERSION);
 	}
 

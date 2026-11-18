@@ -32,6 +32,8 @@ public final class TgMenus {
 			if (manage) {
 				b.button(10, Items.FILLED_MAP, "Arenas", List.of("Save an area and reset it instantly:", "blocks, items, health, kit, spawns"),
 						(pl, r, s) -> arenas(pl));
+				b.button(11, Items.IRON_SWORD, "Matches", List.of("Team fights with win rules and", "automatic rounds (red vs blue...)"),
+						(pl, r, s) -> matches(pl));
 				b.button(12, Items.ARMOR_STAND, "Training dummies", List.of("Practice targets from punching bag (L1)", "to sweaty (L5)"),
 						(pl, r, s) -> dummies(pl));
 			}
@@ -218,6 +220,197 @@ public final class TgMenus {
 						});
 			}
 			b.button(22, Items.ARROW, "Back", List.of(), (pl, r, s) -> main(pl));
+		});
+	}
+
+	// --- Matches (scenarios) ---
+
+	private static final String[] TEAM_COLORS = {"red", "blue", "green", "yellow"};
+
+	private static DyeColor dye(String color) {
+		return switch (color) {
+			case "blue" -> DyeColor.BLUE;
+			case "green" -> DyeColor.LIME;
+			case "yellow" -> DyeColor.YELLOW;
+			default -> DyeColor.RED;
+		};
+	}
+
+	public void matches(ServerPlayer p) {
+		var sm = tg.scenarios();
+		ButtonMenu.open(p, "Matches", 6, b -> {
+			b.button(0, Items.WRITABLE_BOOK, "New red vs blue match", List.of("Pick the arena it's played in"), (pl, r, s) -> pickArena(pl));
+			var running = sm.running();
+			if (running != null) {
+				b.button(4, Items.BARRIER, "Stop " + running.name, List.of("Ends the current round, no more rounds"), (pl, r, s) -> {
+					sm.stop();
+					matches(pl);
+				});
+			}
+			b.button(8, Items.ARROW, "Back", List.of(), (pl, r, s) -> main(pl));
+			int slot = 9;
+			for (var sc : sm.list()) {
+				if (slot >= 54) {
+					break;
+				}
+				List<String> lore = new ArrayList<>();
+				lore.add(sc.rule.label + " in " + sc.arena);
+				lore.add(String.join(" vs ", sc.teams.stream().map(t -> t.label()).toList()));
+				lore.add(sc.episodes + " rounds played" + (sc.wins.isEmpty() ? "" : ", wins: " + sc.wins));
+				lore.add("");
+				lore.add("Click to open");
+				b.button(slot++, sc == running ? Items.DIAMOND_SWORD : Items.IRON_SWORD, sc.name, lore, (pl, r, s) -> match(pl, sc));
+			}
+		});
+	}
+
+	private void pickArena(ServerPlayer p) {
+		ButtonMenu.open(p, "Play it in which arena?", 6, b -> {
+			b.button(8, Items.ARROW, "Back", List.of(), (pl, r, s) -> matches(pl));
+			int slot = 9;
+			for (Arena a : tg.arenas().list()) {
+				if (slot >= 54) {
+					break;
+				}
+				b.button(slot++, Items.GRASS_BLOCK, a.name, List.of(a.spawns.size() + " spawn(s)"), (pl, r, s) -> {
+					try {
+						var sc = tg.scenarios().create(tg.scenarios().nextName(), a);
+						msg(pl, "Created " + sc.name + ". Join a team and press Start.", true);
+						match(pl, sc);
+					} catch (ArenaManager.ArenaException e) {
+						msg(pl, e.getMessage(), false);
+					}
+				});
+			}
+			if (slot == 9) {
+				b.button(22, Items.PAPER, "No arenas yet", List.of("Make one in Arenas first"), null);
+			}
+		});
+	}
+
+	/** One match: teams to join, team setup, rules and start/stop. */
+	public void match(ServerPlayer p, io.github.mudklip.minigamebots.training.scenario.Scenario sc) {
+		var sm = tg.scenarios();
+		Runnable save = () -> sm.save(sc);
+		ButtonMenu.open(p, "Match " + sc.name, 6, b -> {
+			b.button(4, Items.BOOK, sc.name, List.of("Arena: " + sc.arena, sc.rule.help,
+					sc.episodes + " rounds, wins " + sc.wins + ", draws " + sc.draws, "Delete with /tg match delete " + sc.name), null);
+			b.button(8, Items.ARROW, "Back", List.of(), (pl, r, s) -> matches(pl));
+			int mine = sm.teamOf(sc, p);
+			for (int t = 0; t < sc.teams.size() && t < 4; t++) {
+				int team = t;
+				var def = sc.teams.get(t);
+				b.button(9 + t * 2, Items.WOOL.pick(dye(def.color)), (mine == t ? "In " : "Join ") + def.label(),
+						List.of(sm.joinedCount(sc, t) + " player(s), " + def.dummies + " L" + def.dummyLevel + " dummies",
+								def.spawns.size() + " spawn(s), kit: " + (def.kit.isEmpty() ? "own items" : def.kit.size() + " items"),
+								"", "Left click: join", "Right click: leave"), (pl, r, s) -> {
+							if (r) {
+								sm.leave(sc, pl);
+							} else {
+								sm.join(sc, pl, team);
+							}
+							match(pl, sc);
+						});
+				b.button(18 + t * 2, Items.ARMOR_STAND, def.label() + " dummies: " + def.dummies + " (L" + def.dummyLevel + ")",
+						List.of("Left click: one more (0-4)", "Right click: next level"), (pl, r, s) -> {
+							if (r) {
+								def.dummyLevel = def.dummyLevel % 5 + 1;
+							} else {
+								def.dummies = (def.dummies + 1) % 5;
+							}
+							save.run();
+							match(pl, sc);
+						});
+				b.button(19 + t * 2, Items.CHEST, def.label() + " kit and spawns", List.of("Left: my inventory becomes the kit",
+						"Right: add a spawn where I stand", "Shift + left: no kit (own items)", "Shift + right: clear spawns"), (pl, r, s) -> {
+							if (!r && !s) {
+								def.kit = ArenaManager.captureKit(pl);
+								msg(pl, def.label() + " kit: " + def.kit.size() + " items", true);
+							} else if (r && !s) {
+								def.spawns.add(new double[] {pl.getX(), pl.getY(), pl.getZ(), pl.getYRot(), pl.getXRot()});
+								msg(pl, def.label() + " spawn " + def.spawns.size() + " added", true);
+							} else if (!r) {
+								def.kit = new com.google.gson.JsonArray();
+							} else {
+								def.spawns.clear();
+							}
+							save.run();
+							match(pl, sc);
+						});
+			}
+			b.button(28, Items.GOLDEN_SWORD, "Rule: " + sc.rule.label, List.of(sc.rule.help, "Click to change"), (pl, r, s) -> {
+				sc.rule = cycle(io.github.mudklip.minigamebots.training.scenario.WinRule.values(), sc.rule, r);
+				save.run();
+				match(pl, sc);
+			});
+			int[] times = {0, 60, 120, 180, 300, 600};
+			b.button(29, Items.CLOCK, "Time limit: " + (sc.timeLimit == 0 ? "none" : sc.timeLimit / 60 + ":" + String.format("%02d", sc.timeLimit % 60)),
+					List.of("Click to change"), (pl, r, s) -> {
+						int i = 0;
+						while (i < times.length && times[i] != sc.timeLimit) {
+							i++;
+						}
+						sc.timeLimit = times[(i + 1) % times.length];
+						save.run();
+						match(pl, sc);
+					});
+			int[] targets = {1, 3, 5, 10, 20};
+			b.button(30, Items.SKELETON_SKULL, "Kill target: " + sc.killTarget, List.of("For \"First to N kills\"", "Click to change"),
+					(pl, r, s) -> {
+						int i = 0;
+						while (i < targets.length && targets[i] != sc.killTarget) {
+							i++;
+						}
+						sc.killTarget = targets[(i + 1) % targets.length];
+						save.run();
+						match(pl, sc);
+					});
+			b.button(31, sc.loop ? Items.REPEATER : Items.LEVER, "Rounds: " + (sc.loop ? "keep going" : "one at a time"),
+					List.of("Keep going: a new round starts", "a few seconds after each one ends"), (pl, r, s) -> {
+						sc.loop = !sc.loop;
+						save.run();
+						match(pl, sc);
+					});
+			b.button(32, sc.matchAiSpeed ? Items.CLOCK : Items.COMPASS, "Match AI speed: " + (sc.matchAiSpeed ? "on" : "off"),
+					List.of("Slows the whole game down to the speed", "of the slowest AI playing, so it can",
+							"decide every tick. Affects everyone", "on the server while a round runs."), (pl, r, s) -> {
+						sc.matchAiSpeed = !sc.matchAiSpeed;
+						save.run();
+						match(pl, sc);
+					});
+			if (sc.teams.size() < 4) {
+				b.button(33, Items.WOOL.pick(dye(TEAM_COLORS[sc.teams.size()])), "Add a team", List.of(), (pl, r, s) -> {
+					var t = new io.github.mudklip.minigamebots.training.scenario.Scenario.Team();
+					t.color = TEAM_COLORS[sc.teams.size()];
+					sc.teams.add(t);
+					save.run();
+					match(pl, sc);
+				});
+			}
+			if (sc.teams.size() > 2) {
+				b.button(34, Items.SHEARS, "Remove the last team", List.of(), (pl, r, s) -> {
+					sc.teams.remove(sc.teams.size() - 1);
+					save.run();
+					match(pl, sc);
+				});
+			}
+			boolean running = sm.running() == sc;
+			if (running) {
+				b.button(49, Items.BARRIER, "Stop", List.of("Ends this round, no more rounds"), (pl, r, s) -> {
+					sm.stop();
+					pl.closeContainer();
+				});
+			} else {
+				b.button(49, Items.EMERALD, "Start", List.of("Resets the arena and starts a round.",
+						mine < 0 ? "You'll join " + sc.teams.get(0).label() + " if nobody joined." : ""), (pl, r, s) -> {
+							try {
+								sm.start(sc, pl);
+								pl.closeContainer();
+							} catch (ArenaManager.ArenaException e) {
+								msg(pl, e.getMessage(), false);
+							}
+						});
+			}
 		});
 	}
 

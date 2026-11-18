@@ -47,9 +47,12 @@ public final class DebugCommands {
 						})))
 				.then(literal("observe").executes(DebugCommands::observe))
 				.then(literal("events")
-						.executes(ctx -> events(ctx, 10))
+						.executes(ctx -> events(ctx, 10, ""))
 						.then(argument("count", IntegerArgumentType.integer(1, 100))
-								.executes(ctx -> events(ctx, IntegerArgumentType.getInteger(ctx, "count")))))
+								.executes(ctx -> events(ctx, IntegerArgumentType.getInteger(ctx, "count"), ""))
+								.then(argument("type", com.mojang.brigadier.arguments.StringArgumentType.word())
+										.executes(ctx -> events(ctx, IntegerArgumentType.getInteger(ctx, "count"),
+												com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "type"))))))
 				.then(literal("watch")
 						.then(literal("on").executes(ctx -> watch(ctx, true)))
 						.then(literal("off").executes(ctx -> watch(ctx, false))))
@@ -95,7 +98,20 @@ public final class DebugCommands {
 							String policy = StringArgumentType.getString(ctx, "policy");
 							c.schedule(() -> MinigameBotsClient.instance().brain().play(c, policy));
 							return 1;
-						})))
+						}).then(argument("args", StringArgumentType.greedyString()).executes(ctx -> {
+							// Policy arguments as JSON, e.g. /mgb brain play idle {"think_ms": 100}
+							Minecraft c = Minecraft.getInstance();
+							String policy = StringArgumentType.getString(ctx, "policy");
+							com.google.gson.JsonObject args;
+							try {
+								args = com.google.gson.JsonParser.parseString(StringArgumentType.getString(ctx, "args")).getAsJsonObject();
+							} catch (RuntimeException e) {
+								ctx.getSource().sendError(Component.literal("Arguments must be a JSON object"));
+								return 0;
+							}
+							c.schedule(() -> MinigameBotsClient.instance().brain().play(c, policy, args));
+							return 1;
+						}))))
 						.then(literal("stop").executes(ctx -> {
 							MinigameBotsClient.instance().brain().stop();
 							return 1;
@@ -160,8 +176,11 @@ public final class DebugCommands {
 		return 1;
 	}
 
-	private static int events(CommandContext<FabricClientCommandSource> ctx, int count) {
-		var recent = MinigameBotsClient.events().recent(count);
+	/** The last {@code count} events whose type starts with {@code prefix} (all if empty). */
+	private static int events(CommandContext<FabricClientCommandSource> ctx, int count, String prefix) {
+		var all = MinigameBotsClient.events().recent(500);
+		var matching = all.stream().filter(e -> e.type().startsWith(prefix)).toList();
+		var recent = matching.subList(Math.max(0, matching.size() - count), matching.size());
 		if (recent.isEmpty()) {
 			ctx.getSource().sendFeedback(Component.translatable("minigamebots.debug.no_events"));
 		}

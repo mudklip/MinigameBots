@@ -54,6 +54,10 @@ public final class DummyManager {
 		public String dimension;
 		public double[] anchor;
 		public DummySettings settings;
+		/** False for dummies that belong to a scenario episode: they stay down and are removed after it. */
+		public boolean respawns = true;
+		/** Paused dummies stand still and don't fight (e.g. during an episode countdown). */
+		transient boolean paused;
 		transient HitStats stats = new HitStats();
 		transient int strafeDir = 1;
 		transient int nextTurn;
@@ -152,6 +156,25 @@ public final class DummyManager {
 		return dummies.get(e.getUUID());
 	}
 
+	public void setPaused(UUID id, boolean paused) {
+		Dummy d = dummies.get(id);
+		if (d != null) {
+			d.paused = paused;
+		}
+	}
+
+	/** Removes a dummy by id (loaded or not). */
+	public void remove(UUID id) {
+		Dummy d = dummies.remove(id);
+		if (d != null) {
+			Entity e = entity(d);
+			if (e != null) {
+				e.discard();
+			}
+			save();
+		}
+	}
+
 	public int count() {
 		return dummies.size();
 	}
@@ -163,7 +186,11 @@ public final class DummyManager {
 		return spawnAt(player.level(), at, player.getYRot() + 180, settings);
 	}
 
-	private @Nullable Mannequin spawnAt(ServerLevel level, Vec3 at, float yaw, DummySettings settings) {
+	public @Nullable Mannequin spawnAt(ServerLevel level, Vec3 at, float yaw, DummySettings settings) {
+		return spawnAt(level, at, yaw, settings, true);
+	}
+
+	public @Nullable Mannequin spawnAt(ServerLevel level, Vec3 at, float yaw, DummySettings settings, boolean respawns) {
 		Mannequin m = EntityTypes.MANNEQUIN.create(level, EntitySpawnReason.COMMAND);
 		if (m == null) {
 			return null;
@@ -178,6 +205,7 @@ public final class DummyManager {
 		}
 		Dummy d = new Dummy(m.getUUID(), level.dimension().identifier().toString(), new double[] {at.x, at.y, at.z},
 				settings);
+		d.respawns = respawns;
 		d.ensureTransient();
 		dummies.put(d.id, d);
 		updateName(m, d);
@@ -265,7 +293,7 @@ public final class DummyManager {
 				continue; // Unloaded chunk, or removed by something else.
 			}
 			ServerLevel level = (ServerLevel) m.level();
-			ServerPlayer target = target(m, level);
+			LivingEntity target = d.paused ? null : target(m, level);
 			move(m, d, target, level);
 			defend(m, d, target);
 			if (target != null && d.settings.fightsBack) {
@@ -277,11 +305,15 @@ public final class DummyManager {
 		}
 	}
 
-	private static @Nullable ServerPlayer target(Mannequin m, ServerLevel level) {
-		ServerPlayer best = null;
+	/**
+	 * The nearest opponent: a player (never a teammate), or a dummy on another scoreboard team.
+	 * Dummies without teams leave each other alone.
+	 */
+	private @Nullable LivingEntity target(Mannequin m, ServerLevel level) {
+		LivingEntity best = null;
 		double bestD = TARGET_RANGE * TARGET_RANGE;
 		for (ServerPlayer p : level.players()) {
-			if (p.isSpectator() || !p.isAlive()) {
+			if (p.isSpectator() || !p.isAlive() || m.isAlliedTo(p)) {
 				continue;
 			}
 			double dist = p.distanceToSqr(m);
@@ -290,10 +322,20 @@ public final class DummyManager {
 				bestD = dist;
 			}
 		}
+		if (m.getTeam() != null) {
+			for (Mannequin other : level.getEntitiesOfClass(Mannequin.class, m.getBoundingBox().inflate(TARGET_RANGE),
+					o -> o != m && o.isAlive() && o.getTeam() != null && !m.isAlliedTo(o) && dummies.containsKey(o.getUUID()))) {
+				double dist = other.distanceToSqr(m);
+				if (dist < bestD) {
+					best = other;
+					bestD = dist;
+				}
+			}
+		}
 		return best;
 	}
 
-	private void move(Mannequin m, Dummy d, @Nullable ServerPlayer target, ServerLevel level) {
+	private void move(Mannequin m, Dummy d, @Nullable LivingEntity target, ServerLevel level) {
 		var rand = level.getRandom();
 		Vec3 pos = m.position();
 		Vec3 toAnchor = flat(d.anchorVec().subtract(pos));
@@ -319,6 +361,12 @@ public final class DummyManager {
 				case SWEATY -> d.backOff > 0 ? dir.scale(-0.2).add(side.scale(0.1))
 						: dist > 2.6 ? dir.scale(0.26) : side.scale(0.2);
 			};
+			// A dummy that fights back first closes in to its reach, then moves in its own style.
+			boolean closesIn = s.fightsBack && s.movement != DummySettings.Movement.STATIONARY
+					&& s.movement != DummySettings.Movement.RETREAT && s.movement != DummySettings.Movement.SWEATY;
+			if (closesIn && dist > s.reach) {
+				desired = dir.scale(0.22).add(side.scale(0.05));
+			}
 			face(m, target);
 		} else if (toAnchor.length() > 0.6) {
 			desired = toAnchor.normalize().scale(0.15);
@@ -355,7 +403,7 @@ public final class DummyManager {
 		m.setXRot(pitch);
 	}
 
-	private void defend(Mannequin m, Dummy d, @Nullable ServerPlayer target) {
+	private void defend(Mannequin m, Dummy d, @Nullable LivingEntity target) {
 		DummySettings.Defense def = d.settings.defense;
 		boolean want = false;
 		if (def != DummySettings.Defense.NONE && target != null && target.distanceTo(m) < 6) {
@@ -375,7 +423,7 @@ public final class DummyManager {
 		}
 	}
 
-	private void fight(Mannequin m, Dummy d, ServerPlayer target, ServerLevel level) {
+	private void fight(Mannequin m, Dummy d, LivingEntity target, ServerLevel level) {
 		DummySettings s = d.settings;
 		double reach = Math.sqrt(target.getBoundingBox().distanceToSqr(m.getEyePosition()));
 		if (d.cooldown > 0) {
@@ -397,11 +445,24 @@ public final class DummyManager {
 		m.swing(InteractionHand.MAIN_HAND, m.getMainHandItem().getAttackAnimation(), false);
 		d.cooldown = (int) Math.max(2, Math.round(20 / Math.max(0.5, s.cps)));
 		if (m.getRandom().nextDouble() < s.accuracy) {
-			target.hurtServer(level, level.damageSources().mobAttack(m), s.damage);
+			target.hurtServer(level, attack(m, level), s.damage);
 			if (s.movement == DummySettings.Movement.SWEATY) {
 				d.backOff = 6; // W-tap style: step back after a hit.
 			}
 		}
+	}
+
+	/**
+	 * A melee hit from the dummy. On Peaceful the game cancels all damage "caused by" non-player
+	 * mobs, so there the dummy is only the direct source (knockback still comes from it, and
+	 * GroundTruth.attacker() still credits it); on other difficulties it's a normal mob attack.
+	 */
+	static DamageSource attack(Mannequin m, ServerLevel level) {
+		DamageSource normal = level.damageSources().mobAttack(m);
+		if (level.getDifficulty() == net.minecraft.world.Difficulty.PEACEFUL) {
+			return new DamageSource(normal.typeHolder(), m, null);
+		}
+		return normal;
 	}
 
 	private void updateName(Mannequin m, Dummy d) {
@@ -418,9 +479,10 @@ public final class DummyManager {
 
 	// --- Damage hooks (called from Fabric events) ---
 
-	/** Dummies only take damage from players (and their arrows etc.), not falls or walls. */
+	/** Dummies only take damage from players (and their arrows etc.) or other dummies, not falls or walls. */
 	public boolean allowDamage(LivingEntity e, DamageSource source) {
-		return !isDummy(e) || source.getEntity() instanceof ServerPlayer;
+		Entity attacker = GroundTruth.attacker(source);
+		return !isDummy(e) || attacker instanceof ServerPlayer || attacker != null && isDummy(attacker);
 	}
 
 	/** Infinite-health dummies never die: they heal instead. */
@@ -462,8 +524,11 @@ public final class DummyManager {
 
 	public void afterDeath(LivingEntity e) {
 		Dummy d = dummies.get(e.getUUID());
-		if (d != null) {
+		if (d != null && d.respawns) {
 			d.deadFor = 0; // Comes back at its anchor after a few seconds.
+		} else if (d != null) {
+			dummies.remove(d.id);
+			save();
 		}
 	}
 

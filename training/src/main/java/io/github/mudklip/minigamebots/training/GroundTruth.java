@@ -38,9 +38,14 @@ public final class GroundTruth {
 		}
 	}
 
+	/** Who to credit for a hit: the causing entity, or the direct one if nothing caused it (dummy hits on Peaceful). */
+	public static @org.jspecify.annotations.Nullable Entity attacker(DamageSource source) {
+		return source.getEntity() != null ? source.getEntity() : source.getDirectEntity();
+	}
+
 	/** After any living entity was damaged: tells the victim and the attacker (if they are players). */
 	public void onDamage(LivingEntity victim, DamageSource source, float taken, boolean blocked) {
-		Entity attacker = source.getEntity();
+		Entity attacker = attacker(source);
 		if (victim instanceof ServerPlayer p) {
 			JsonObject d = describe(source, taken, blocked);
 			d.addProperty("health", victim.getHealth());
@@ -59,7 +64,8 @@ public final class GroundTruth {
 	}
 
 	public void onDeath(LivingEntity victim, DamageSource source) {
-		if (source.getEntity() instanceof ServerPlayer killer && killer != victim) {
+		Entity killerEntity = attacker(source);
+		if (killerEntity instanceof ServerPlayer killer && killer != victim) {
 			JsonObject d = new JsonObject();
 			add(d, "victim", victim);
 			d.addProperty("source", source.type().msgId());
@@ -69,8 +75,8 @@ public final class GroundTruth {
 		if (victim instanceof ServerPlayer p) {
 			JsonObject d = new JsonObject();
 			d.addProperty("source", source.type().msgId());
-			if (source.getEntity() != null) {
-				add(d, "killer", source.getEntity());
+			if (killerEntity != null) {
+				add(d, "killer", killerEntity);
 			}
 			send(p, "death", d);
 		}
@@ -81,8 +87,8 @@ public final class GroundTruth {
 		d.addProperty("amount", amount);
 		d.addProperty("blocked", blocked);
 		d.addProperty("source", source.type().msgId());
-		d.addProperty("projectile", source.getDirectEntity() != null && source.getDirectEntity() != source.getEntity());
-		if (source.getEntity() instanceof LivingEntity l) {
+		d.addProperty("projectile", source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.Projectile);
+		if (attacker(source) instanceof LivingEntity l) {
 			d.addProperty("weapon", weapon(l.getMainHandItem()));
 		}
 		return d;

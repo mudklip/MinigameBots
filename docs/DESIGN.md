@@ -905,7 +905,7 @@ Each milestone ends with tests, a working jar, and a short demo you can try.
 | M6a | **Imitation** | BC training with the Lite network, Training screen, checkpoints, learned policy plays (done) |
 | M6b | **Foundation** | VPT port, Foundations screen (download, verify, convert), "vpt" brain, VPT base in the Training screen training the AI's own top layers (done; full Foundation Adaptation to 26.3 visuals comes with more recordings) |
 | M7 | **Training Grounds core** | Arenas with instant reset, kits and spawns; training dummies L1-L5 (vanilla mannequins that strafe, block and fight back); aim trainer (flick, track, switch); ground-truth events; /tg chest menus (done). Scenarios and lockstep move to M7b |
-| M7b | **Scenarios and lockstep** | Scenario builder (arena + kits + opponents + win/lose + rewards), episodes with auto reset, lockstep tick control, team/insignia scenarios |
+| M7b | **Matches** | Matches (scenarios): arena + coloured scoreboard teams with spawns, kits and dummies; win rules (last team standing, first to N kills, most kills in time, survive); countdown, knock-outs as spectator, results, automatic rounds; "match AI speed" slows the game to the slowest AI (done). Insignia (shield) teams come with M9 |
 | M8 | **Objectives and RL** | Objective editor, escrow/priority/budget rewards, PPO, KL-to-prior, exams |
 | M9 | **Memory** | Meta-actions, waypoints, coarse map, memory screen, friend/enemy memory with insignia factions (3.3.1) |
 | M10 | **Skills and Manager** | Skill modules, interrupts, goals, merge, distillation |

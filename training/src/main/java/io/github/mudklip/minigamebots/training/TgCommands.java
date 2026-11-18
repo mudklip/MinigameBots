@@ -79,6 +79,59 @@ final class TgCommands {
 							tg.arenas().clearSpawns(a);
 							ok(ctx, "Removed all spawns of " + a.name);
 						})))
+				.then(Commands.literal("match").requires(tg::canManage)
+						.then(Commands.literal("list").executes(ctx -> {
+							var list = tg.scenarios().list();
+							ok(ctx, list.isEmpty() ? "No matches yet" : "Matches: " + String.join(", ", list.stream().map(m -> m.name).toList()));
+							return list.size();
+						}))
+						.then(Commands.literal("stop").executes(ctx -> {
+							tg.scenarios().stop();
+							ok(ctx, "Stopped");
+							return 1;
+						}))
+						.then(Commands.literal("create").then(Commands.argument("name", StringArgumentType.word())
+								.then(Commands.argument("arena", StringArgumentType.word()).suggests(arenaNames).executes(ctx -> {
+									Arena a = tg.arenas().get(StringArgumentType.getString(ctx, "arena"));
+									if (a == null) {
+										fail(ctx, "No such arena");
+										return 0;
+									}
+									try {
+										tg.scenarios().create(StringArgumentType.getString(ctx, "name"), a);
+									} catch (ArenaManager.ArenaException e) {
+										fail(ctx, e.getMessage());
+										return 0;
+									}
+									ok(ctx, "Created red vs blue match " + StringArgumentType.getString(ctx, "name"));
+									return 1;
+								}))))
+						.then(match("start", tg, (ctx, sc) -> {
+							tg.scenarios().start(sc, ctx.getSource().getPlayerOrException());
+							ok(ctx, "Started " + sc.name);
+						}))
+						.then(match("delete", tg, (ctx, sc) -> {
+							tg.scenarios().delete(sc.name);
+							ok(ctx, "Deleted " + sc.name);
+						}))
+						.then(Commands.literal("join").then(Commands.argument("name", StringArgumentType.word()).suggests(matchNames(tg))
+								.then(Commands.argument("team", StringArgumentType.word()).executes(ctx -> {
+									var sc = tg.scenarios().get(StringArgumentType.getString(ctx, "name"));
+									String color = StringArgumentType.getString(ctx, "team");
+									if (sc == null) {
+										fail(ctx, "No such match");
+										return 0;
+									}
+									for (int t = 0; t < sc.teams.size(); t++) {
+										if (sc.teams.get(t).color.equals(color)) {
+											tg.scenarios().join(sc, ctx.getSource().getPlayerOrException(), t);
+											ok(ctx, "Joined " + sc.teams.get(t).label());
+											return 1;
+										}
+									}
+									fail(ctx, "No team " + color);
+									return 0;
+								})))))
 				.then(Commands.literal("dummy").requires(tg::canManage)
 						.then(Commands.literal("spawn")
 								.executes(ctx -> spawnDummy(ctx, tg, 1))
@@ -101,6 +154,33 @@ final class TgCommands {
 					tg.aim().start(ctx.getSource().getPlayerOrException(), mode, IntegerArgumentType.getInteger(ctx, "seconds"));
 					return 1;
 				}));
+	}
+
+	private static SuggestionProvider<CommandSourceStack> matchNames(TrainingGrounds tg) {
+		return (ctx, b) -> SharedSuggestionProvider.suggest(tg.scenarios().list().stream().map(m -> m.name), b);
+	}
+
+	private interface MatchAction {
+		void run(CommandContext<CommandSourceStack> ctx, io.github.mudklip.minigamebots.training.scenario.Scenario sc)
+				throws CommandSyntaxException, ArenaManager.ArenaException;
+	}
+
+	private static com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> match(String literal, TrainingGrounds tg,
+			MatchAction action) {
+		return Commands.literal(literal).then(Commands.argument("name", StringArgumentType.word()).suggests(matchNames(tg)).executes(ctx -> {
+			var sc = tg.scenarios().get(StringArgumentType.getString(ctx, "name"));
+			if (sc == null) {
+				fail(ctx, "No match called " + StringArgumentType.getString(ctx, "name"));
+				return 0;
+			}
+			try {
+				action.run(ctx, sc);
+			} catch (ArenaManager.ArenaException e) {
+				fail(ctx, e.getMessage());
+				return 0;
+			}
+			return 1;
+		}));
 	}
 
 	private interface ArenaAction {
