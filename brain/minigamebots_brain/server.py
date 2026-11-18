@@ -64,8 +64,12 @@ class Brain:
         frame = None
         if self.frames is not None and message.get("slot", -1) >= 0:
             frame = self.frames.read(message["slot"], message.get("frameTick", -1))
+        obs = message.get("obs") or {}
+        # Game events since the last tick ride along with the observation; policies that learn
+        # from rewards read them from here, others ignore them.
+        obs["_events"] = message.get("events") or []
         try:
-            action = self.policy.act(message.get("obs") or {}, frame)
+            action = self.policy.act(obs, frame)
         except Exception:
             self.errors += 1
             if self.errors <= 5:

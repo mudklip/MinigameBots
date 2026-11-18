@@ -18,6 +18,12 @@ def _vpt(**kwargs) -> Policy:
     return VPTPolicy(**kwargs)
 
 
+def _practice(**kwargs) -> Policy:
+    from .practice import PracticePolicy  # Imported on use: it needs torch.
+
+    return PracticePolicy(**kwargs)
+
+
 POLICIES = {
     "idle": IdlePolicy,
     "random": RandomPolicy,
@@ -26,6 +32,7 @@ POLICIES = {
     "torch_smoke": TorchSmokePolicy,
     "learned": create_learned,
     "vpt": _vpt,
+    "practice": _practice,
 }
 
 

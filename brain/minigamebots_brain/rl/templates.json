@@ -1,0 +1,169 @@
+{
+  "duel": {
+    "name": "Duel",
+    "description": "Win fights: kills and round wins count most; taking hits is forgiven if it wins.",
+    "rules": [
+      {
+        "event": "tg_episode_end",
+        "where": {
+          "result": "win"
+        },
+        "value": 10,
+        "tier": 1,
+        "note": "round won"
+      },
+      {
+        "event": "tg_episode_end",
+        "where": {
+          "result": "loss"
+        },
+        "value": -5,
+        "tier": 1,
+        "note": "round lost"
+      },
+      {
+        "event": "kill",
+        "value": 3,
+        "tier": 1,
+        "note": "kill"
+      },
+      {
+        "event": "damage_dealt",
+        "value": 0.1,
+        "per": "amount",
+        "cap": 6,
+        "tier": 2,
+        "note": "hit"
+      },
+      {
+        "event": "damage_taken",
+        "value": -0.05,
+        "per": "amount",
+        "tier": 3,
+        "note": "hurt",
+        "forgive": {
+          "by": [
+            "kill",
+            {
+              "event": "tg_episode_end",
+              "where": {
+                "result": "win"
+              }
+            }
+          ],
+          "within": 20
+        }
+      },
+      {
+        "event": "death",
+        "value": -3,
+        "tier": 1,
+        "note": "died"
+      },
+      {
+        "event": "second",
+        "value": -0.002,
+        "tier": 4,
+        "note": "stalling"
+      }
+    ]
+  },
+  "hunt": {
+    "name": "Hunt {target}",
+    "description": "Find and kill {target}.",
+    "params": {
+      "target": "minecraft:pig"
+    },
+    "rules": [
+      {
+        "event": "kill",
+        "where": {
+          "target": "{target}"
+        },
+        "value": 5,
+        "tier": 1,
+        "note": "kill"
+      },
+      {
+        "event": "damage_dealt",
+        "where": {
+          "target": "{target}"
+        },
+        "value": 0.2,
+        "per": "amount",
+        "cap": 4,
+        "tier": 2,
+        "note": "hit"
+      },
+      {
+        "event": "death",
+        "value": -5,
+        "tier": 1,
+        "note": "died"
+      },
+      {
+        "event": "second",
+        "value": -0.001,
+        "tier": 4,
+        "note": "time"
+      }
+    ]
+  },
+  "survive": {
+    "name": "Survive",
+    "description": "Stay alive; some damage is fine, but not too much each round.",
+    "rules": [
+      {
+        "event": "second",
+        "where": {
+          "dead": false
+        },
+        "value": 0.02,
+        "cap": 6,
+        "tier": 2,
+        "note": "alive"
+      },
+      {
+        "event": "death",
+        "value": -10,
+        "tier": 1,
+        "note": "died"
+      },
+      {
+        "event": "damage_taken",
+        "value": 0.1,
+        "per": "amount",
+        "budget": {
+          "limit": 10
+        },
+        "tier": 2,
+        "note": "damage over budget"
+      }
+    ]
+  },
+  "aim": {
+    "name": "Aim trainer",
+    "description": "Hit aim-trainer targets fast and accurately.",
+    "rules": [
+      {
+        "event": "tg_aim_hit",
+        "value": 1,
+        "tier": 1,
+        "note": "target hit"
+      },
+      {
+        "event": "tg_aim_result",
+        "value": 5,
+        "per": "accuracy",
+        "tier": 1,
+        "note": "accuracy"
+      },
+      {
+        "event": "attack",
+        "value": -0.02,
+        "tier": 3,
+        "note": "swing"
+      }
+    ]
+  }
+}

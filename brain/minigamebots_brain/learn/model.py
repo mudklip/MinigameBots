@@ -75,6 +75,9 @@ class LitePolicy(nn.Module):
         self.head_uses = nn.Linear(hidden, actions.CLICK_CLASSES)
         self.head_yaw = nn.Linear(hidden, actions.CAMERA_BINS)
         self.head_pitch = nn.Linear(hidden, actions.CAMERA_BINS)
+        # "How well is this going?" (expected future reward). Trained in practice (RL);
+        # imitation leaves it untouched, and older checkpoints without it still load.
+        self.head_value = nn.Linear(hidden, 1)
 
     def initial_state(self, batch: int, device) -> torch.Tensor:
         return torch.zeros(1, batch, self.config["hidden"], device=device)
@@ -110,6 +113,7 @@ class LitePolicy(nn.Module):
             "uses": self.head_uses(out),
             "yaw": self.head_yaw(out),
             "pitch": self.head_pitch(out),
+            "value": self.head_value(out).squeeze(-1),
         }
         return logits, state
 
@@ -121,6 +125,10 @@ INPUT_KEYS = ("self", "items", "item_vals", "ent_type", "ent_held", "ent_vals", 
 def to_tensors(batch: dict, device) -> dict:
     """Numpy batch -> tensors on `device`."""
     return {k: torch.from_numpy(batch[k]).to(device, non_blocking=True) for k in batch}
+
+
+# Parameters that may be missing from older checkpoints (they start fresh when loaded).
+OPTIONAL_PREFIXES = ("head_value.",)
 
 
 def count_parameters(model: nn.Module) -> int:

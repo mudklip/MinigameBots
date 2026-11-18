@@ -55,7 +55,11 @@ def load(profile: str, which: str = "model", device="cpu") -> tuple:
     path = os.path.join(core_dir(profile), f"{which}.safetensors")
     if not os.path.isfile(path):
         path = os.path.join(core_dir(profile), "model.safetensors")
-    model.load_state_dict(load_file(path, device="cpu"))
+    from .model import OPTIONAL_PREFIXES
+
+    missing, unexpected = model.load_state_dict(load_file(path, device="cpu"), strict=False)
+    if unexpected or any(not k.startswith(OPTIONAL_PREFIXES) for k in missing):
+        raise ValueError("This AI's saved network doesn't match; train it again (its recordings still work)")
     return model.to(device), info
 
 

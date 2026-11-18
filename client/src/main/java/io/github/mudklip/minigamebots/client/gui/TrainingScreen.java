@@ -110,6 +110,11 @@ public final class TrainingScreen extends Screen {
 			minecraft.gui.setScreen(null);
 		}).pos(width - 190, height - 28).width(110).tooltip(Tooltip.create(Component.translatable("minigamebots.training.play_help"))).build());
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(width - 74, height - 28).width(64).build());
+		addRenderableWidget(Button.builder(Component.translatable("minigamebots.practice.button"),
+				b -> minecraft.gui.setScreen(new PracticeScreen(this, profile))).pos(width - 154, 8).width(70)
+				.tooltip(Tooltip.create(Component.translatable("minigamebots.practice.button_help"))).build());
+		addRenderableWidget(Button.builder(Component.translatable("minigamebots.practice.exams"),
+				b -> minecraft.gui.setScreen(new ExamsScreen(this, profile))).pos(width - 80, 8).width(70).build());
 		addRenderableWidget(Button.builder(Component.translatable("minigamebots.training.all"), b -> {
 			recordings.forEach(r -> chosen.add(r.id));
 		}).pos(listX, height - 28).width(50).build());

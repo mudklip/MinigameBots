@@ -43,7 +43,7 @@ tasks.register('brainIndex') {
 		def files = []
 		brainDir.eachFileRecurse { f ->
 			def rel = brainDir.toPath().relativize(f.toPath()).toString().replace('\\', '/')
-			if (f.isFile() && (rel ==~ /minigamebots_brain\/.*(\.py|\/LICENSE)/ || rel == 'requirements.txt')) {
+			if (f.isFile() && (rel ==~ /minigamebots_brain\/.*(\.py|\.json|\/LICENSE)/ || rel == 'requirements.txt')) {
 				files << rel
 			}
 		}
@@ -57,7 +57,7 @@ processResources {
 	dependsOn 'brainIndex'
 	includeEmptyDirs = false
 	from(brainDir) {
-		include 'minigamebots_brain/**/*.py', 'minigamebots_brain/**/LICENSE', 'requirements.txt'
+		include 'minigamebots_brain/**/*.py', 'minigamebots_brain/**/*.json', 'minigamebots_brain/**/LICENSE', 'requirements.txt'
 		into 'minigamebots/brain'
 	}
 	from(brainIndex) {

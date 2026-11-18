@@ -59,6 +59,8 @@ public final class MinigameBotsClient implements ClientModInitializer {
 	private final BrainManager brain = new BrainManager(
 			new BrainRuntime(FabricLoader.getInstance().getGameDir().resolve("minigamebots")));
 	private final ProfileManager profiles = new ProfileManager(FabricLoader.getInstance().getGameDir().resolve("minigamebots"));
+	private final io.github.mudklip.minigamebots.client.practice.ExamManager exams =
+			new io.github.mudklip.minigamebots.client.practice.ExamManager();
 	private final TrainingManager training = new TrainingManager(brain.runtime(), profiles.store(), recorder.store());
 	private final io.github.mudklip.minigamebots.client.profile.FoundationInstaller foundationInstaller =
 			new io.github.mudklip.minigamebots.client.profile.FoundationInstaller(brain.runtime(), profiles.foundations());
@@ -161,6 +163,10 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		return relations;
 	}
 
+	public io.github.mudklip.minigamebots.client.practice.ExamManager exams() {
+		return exams;
+	}
+
 	public TrainingManager training() {
 		return training;
 	}
@@ -247,6 +253,8 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		});
 
 		events.addListener(recorder::onEvent);
+		events.addListener(brain::onEvent);
+		events.addListener(exams::onEvent);
 		events.addListener(event -> {
 			if (watching) {
 				Minecraft client = Minecraft.getInstance();

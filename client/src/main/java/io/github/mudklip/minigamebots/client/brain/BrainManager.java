@@ -110,6 +110,21 @@ public final class BrainManager {
 		play(client, "learned", args);
 	}
 
+	/**
+	 * Practice: the AI plays and improves its own network from an Objective's rewards.
+	 * {@code learn} false only plays and scores (used by exams).
+	 */
+	public void practice(Minecraft client, io.github.mudklip.minigamebots.client.profile.ProfileManifest profile,
+			io.github.mudklip.minigamebots.client.practice.Objective objective, boolean learn, double stayHuman, String resources) {
+		JsonObject args = new JsonObject();
+		args.addProperty("profile", MinigameBotsClient.instance().profiles().store().dir(profile.id).toString());
+		args.add("objective", io.github.mudklip.minigamebots.client.practice.ObjectiveStore.toJson(objective));
+		args.addProperty("learn", learn);
+		args.addProperty("stay_human", stayHuman);
+		args.addProperty("resources", resources);
+		play(client, "practice", args);
+	}
+
 	/** Plays with a foundation model as-is (no AI profile on top): mostly to see what it already knows. */
 	public void playFoundation(Minecraft client, String foundationId) {
 		JsonObject args = new JsonObject();
@@ -282,6 +297,18 @@ public final class BrainManager {
 		sendAsync(m);
 	}
 
+	/** Game events since the last observation sent (the brain turns them into rewards when practicing). */
+	private final java.util.concurrent.ConcurrentLinkedQueue<io.github.mudklip.minigamebots.client.events.GameEvent> pendingEvents =
+			new java.util.concurrent.ConcurrentLinkedQueue<>();
+	private static final int MAX_PENDING_EVENTS = 256;
+
+	/** Event listener: keeps events for the next observation, only while the brain drives the AI. */
+	public void onEvent(io.github.mudklip.minigamebots.client.events.GameEvent e) {
+		if (source != null && status == Status.RUNNING && pendingEvents.size() < MAX_PENDING_EVENTS) {
+			pendingEvents.add(e);
+		}
+	}
+
 	/** Called at the end of each tick while the brain drives the AI. */
 	public void sendObservation(BrainSource s, long agentTick, Observation obs, @Nullable Frame frame) {
 		if (status != Status.RUNNING || s != source) {
@@ -298,6 +325,16 @@ public final class BrainManager {
 		m.addProperty("slot", slot);
 		m.addProperty("frameTick", frame == null ? -1 : frame.tick());
 		m.add("obs", RecordingCodec.GSON.toJsonTree(obs));
+		com.google.gson.JsonArray events = new com.google.gson.JsonArray();
+		io.github.mudklip.minigamebots.client.events.GameEvent e;
+		while ((e = pendingEvents.poll()) != null) {
+			com.google.gson.JsonObject ev = new com.google.gson.JsonObject();
+			ev.addProperty("type", e.type());
+			ev.addProperty("source", e.source());
+			ev.add("data", RecordingCodec.GSON.toJsonTree(e.data()));
+			events.add(ev);
+		}
+		m.add("events", events);
 		s.sent(agentTick);
 		sendAsync(m);
 	}
