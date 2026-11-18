@@ -377,6 +377,15 @@ Other files:
 
 Everything lives under `.minecraft/minigamebots/`, browsable from the in-game screens.
 
+**Version history (M10):** every training or practice session first saves a snapshot of the
+AI's network (`core/history/<date>-<step>/`), labelled with what happened since (recordings
+used, Objective practised) and its latest exam scores. The Profiles screen shows the history
+and reverts to any snapshot in one click (the current state is snapshotted first, so a
+revert can itself be undone). The last 10 snapshots are kept plus any you pin (about 12 MB
+each for Lite, 45 MB for VPT-base AIs). Separately from this, practice never replaces the
+version that plays normally unless it scores better, and a drop in exam results shows a
+warning suggesting a revert.
+
 ### 3.9 Combining AIs
 
 Averaging two networks together doesn't work, so combining is **modular**:
@@ -1024,7 +1033,7 @@ Each milestone ends with tests, a working jar, and a short demo you can try.
 | M7b | **Matches** | Matches (scenarios): arena + coloured scoreboard teams with spawns, kits and dummies; win rules (last team standing, first to N kills, most kills in time, survive); countdown, knock-outs as spectator, results, automatic rounds; "match AI speed" slows the game to the slowest AI (done). Insignia (shield) teams come with M9 |
 | M8 | **Objectives and RL** | Objective editor, escrow/priority/budget rewards with warnings, PPO practice in the background with KL-to-prior ("stay human"), exams over Training Grounds rounds (done for the Lite base; VPT-base practice, realism critic and curiosity bonus come later) |
 | M9 | **Memory** | Waypoints per AI per world, coarse map, Memory screen with mini-map, friend/enemy memory with insignia factions (3.3.1), "mark" meta-action learned from recordings and practice (done) |
-| M10 | **Skills and Manager** | Skill modules, interrupts, goals, merge, distillation, built-in Minecraft knowledge (game data reader + facts file, section 4.6.1), hindsight relabelling of goals, mirrored recordings (section 4.10) |
+| M10 | **Skills and Manager** | Skill modules, interrupts, goals, merge, distillation, built-in Minecraft knowledge (game data reader + facts file, section 4.6.1), hindsight relabelling of goals, mirrored recordings (section 4.10), automatic version history with one-click revert (section 3.8) |
 | M11 | **Combat league** | Self-play matchmaking, scripted opponents, fast-sim aim, drills for the advanced techniques (section 4.6.1), godly teacher opponents and client teacher mode with Baritone, teacher demos, practice weighted toward exam weaknesses (section 4.10) |
 | M12 | **Realism** | Realism critic, humanizer tuning from your data, "which was better?" clip comparisons training a style reward model (section 4.10) |
 | M13 | **Video Lab** | Pipeline, IDM labeling, reference atlas, Question Queue, Knowledge Book |
