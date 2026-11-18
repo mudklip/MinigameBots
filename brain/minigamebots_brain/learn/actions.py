@@ -57,3 +57,14 @@ def decode_action(keys_on, attacks: int, uses: int, yaw_bin: int, pitch_bin: int
         attacks=int(attacks), uses=int(uses),
         yaw=bin_to_camera(yaw_bin), pitch=bin_to_camera(pitch_bin),
     )
+
+
+def mirror_targets(t: dict) -> dict:
+    """Training targets (encode_input output, possibly stacked) flipped left-right."""
+    out = dict(t)
+    keys = t["keys"].copy()
+    l, r = KEY_INDEX["left"], KEY_INDEX["right"]
+    keys[..., [l, r]] = keys[..., [r, l]]
+    out["keys"] = keys
+    out["yaw"] = (CAMERA_BINS - 1) - t["yaw"]
+    return out

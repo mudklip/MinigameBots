@@ -204,5 +204,13 @@
 	"minigamebots.memory.auto_help": "Whoever hits the AI (or the person it protects) is remembered as an enemy, and so is everyone wearing the same insignia.",
 	"minigamebots.memory.trust_help": "Which signal decides when they disagree: a remembered name, the scoreboard team (tab/name colour) or the insignia (shield pattern, banner, dyed armour).",
 	"minigamebots.memory.factions_empty": "Nobody remembered yet. Players and insignias are added when they attack the AI (if that's on), or appear here once marked. Same insignia as yours counts as an ally automatically.",
-	"minigamebots.memory.none": "Choose an AI (AI Profiles > Use this AI) and join a world to see what it remembers here."
+	"minigamebots.memory.none": "Choose an AI (AI Profiles > Use this AI) and join a world to see what it remembers here.",
+	"minigamebots.versions.button": "Versions...",
+	"minigamebots.versions.button_help": "Earlier versions of this AI, saved automatically before each training or practice session. Go back to one in one click.",
+	"minigamebots.versions.screen": "Versions: %s",
+	"minigamebots.versions.save_now": "Save one now",
+	"minigamebots.versions.revert": "Go back",
+	"minigamebots.versions.revert_help": "Make this the AI's current version. The version it has now is saved first, so this can be undone.",
+	"minigamebots.versions.pin_help": "Pinned versions are never deleted automatically (only the last 10 are kept otherwise).",
+	"minigamebots.versions.empty": "No saved versions yet. One is saved automatically before every training or practice session."
 }

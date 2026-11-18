@@ -124,8 +124,9 @@ class SequenceSampler:
     """
 
     def __init__(self, directories, length: int = 32, split: str = "train", holdout: float = 0.1,
-                 cache_chunks: int = 8, seed: int | None = None, vpt_targets: bool = False):
+                 cache_chunks: int = 8, seed: int | None = None, vpt_targets: bool = False, mirror: float = 0.0):
         self.vpt_targets = vpt_targets
+        self.mirror = mirror  # Chance that a training window is used flipped left-right.
         self.recordings = [Recording(d) for d in directories]
         self.length = length
         self.rng = random.Random(seed)
@@ -222,7 +223,26 @@ class SequenceSampler:
             w = self.sample()
             attempts += 1
             if w is not None:
+                if self.mirror and self.rng.random() < self.mirror:
+                    w = mirror_window(w)
                 windows.append(w)
             elif attempts > size * 20:
                 raise ValueError("Recordings have too many missing ticks to sample from")
         return {k: np.stack([w[k] for w in windows]) for k in windows[0]}
+
+
+TARGET_KEYS = ("keys", "attacks", "uses", "yaw", "pitch")
+
+
+def mirror_window(w: dict) -> dict:
+    """A window from window() flipped left-right (inputs and targets)."""
+    out = features.mirror(w)
+    t = actions.mirror_targets({k: w[f"target_{k}"] for k in TARGET_KEYS})
+    for k in TARGET_KEYS:
+        out[f"target_{k}"] = t[k]
+    if "vpt_buttons" in w:
+        from ..vpt import actions as vpt_actions
+
+        out["vpt_buttons"] = np.array([vpt_actions.mirror_buttons(b) for b in w["vpt_buttons"]], dtype=np.int64)
+        out["vpt_camera"] = np.array([vpt_actions.mirror_camera(c) for c in w["vpt_camera"]], dtype=np.int64)
+    return out

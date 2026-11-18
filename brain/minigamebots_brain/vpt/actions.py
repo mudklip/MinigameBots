@@ -90,3 +90,23 @@ def encode(inp: dict) -> tuple:
              "attack" if "attack" in keys else "none", "jump" if "jump" in keys else "none",
              "camera" if moving else "none")
     return COMBINATION_INDEX[combo], pitch_bin * CAMERA_BINS + yaw_bin if moving else CAMERA_NULL
+
+
+_MIRROR_BUTTON = {}
+
+
+def mirror_buttons(index: int) -> int:
+    """The same button combination with left and right swapped."""
+    if not _MIRROR_BUTTON:
+        swap = {"left": "right", "right": "left"}
+        for i, c in enumerate(COMBINATIONS):
+            if c == "inventory":
+                _MIRROR_BUTTON[i] = i
+            else:
+                _MIRROR_BUTTON[i] = COMBINATION_INDEX[tuple(swap.get(x, x) for x in c)]
+    return _MIRROR_BUTTON[int(index)]
+
+
+def mirror_camera(index: int) -> int:
+    pitch_bin, yaw_bin = divmod(int(index), CAMERA_BINS)
+    return pitch_bin * CAMERA_BINS + (CAMERA_BINS - 1 - yaw_bin)

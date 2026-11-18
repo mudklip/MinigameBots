@@ -184,6 +184,8 @@ public final class TrainingManager {
 			throw new IOException("Pick at least one recording to learn from");
 		}
 		var code = runtime.prepareCode();
+		io.github.mudklip.minigamebots.client.profile.VersionHistory.before(profiles.dir(profile.id), profiles.dir(profile.id).resolve("core"),
+				String.format("Before training (%s, %d recordings%s)", plan.label, chosen.size(), foundationId == null ? "" : ", " + foundationId));
 		List<String> command = new ArrayList<>(List.of(runtime.venvPython().toString(), "-m", "minigamebots_brain", "train",
 				"--profile", profiles.dir(profile.id).toString(), "--steps", Integer.toString(plan.steps),
 				"--resources", resources.name().toLowerCase(Locale.ROOT)));

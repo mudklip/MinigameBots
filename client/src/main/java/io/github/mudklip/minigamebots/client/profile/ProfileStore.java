@@ -193,7 +193,8 @@ public final class ProfileStore {
 	 * They're left out of exports and skipped on import; the trained network ships as model.safetensors.
 	 */
 	static boolean isTrainingOnly(String rel) {
-		return rel.equals("core/optimizer.pt") || rel.equals("core/latest.safetensors") || rel.endsWith(".tmp");
+		return rel.endsWith("optimizer.pt") || rel.endsWith("latest.safetensors") || rel.endsWith(".tmp")
+				|| rel.contains("history/");
 	}
 
 	/** Imports every .mgbot in {@code import/}, moving each into {@code import/done/}. */

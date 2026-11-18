@@ -67,7 +67,7 @@ def train(profile: str, recordings: list, steps: int, foundation: str, resources
     if device == "cpu":
         emit("log", message="No usable GPU found: VPT training on the CPU is very slow")
 
-    train_data = SequenceSampler(recordings, SEQ_LEN, "train", seed=seed, vpt_targets=True)
+    train_data = SequenceSampler(recordings, SEQ_LEN, "train", mirror=0.5, seed=seed, vpt_targets=True)
     val_data = SequenceSampler(recordings, SEQ_LEN, "val", seed=seed + 1, vpt_targets=True)
     if len(train_data) == 0:
         raise ValueError("Not enough recorded ticks to train on (need at least a few seconds per recording)")

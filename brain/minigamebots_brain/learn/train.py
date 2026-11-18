@@ -95,7 +95,7 @@ def train(profile: str, recordings: list, steps: int, resources: str = "balanced
     device = device or ("cuda" if torch.cuda.is_available() else "cpu")
     use_amp = device == "cuda"
 
-    train_data = SequenceSampler(recordings, SEQ_LEN, "train", seed=seed)
+    train_data = SequenceSampler(recordings, SEQ_LEN, "train", mirror=0.5, seed=seed)
     val_data = SequenceSampler(recordings, SEQ_LEN, "val", seed=seed + 1)
     if len(train_data) == 0:
         raise ValueError("Not enough recorded ticks to train on (need at least a few seconds per recording)")

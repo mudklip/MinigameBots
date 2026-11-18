@@ -117,7 +117,12 @@ public final class BrainManager {
 	public void practice(Minecraft client, io.github.mudklip.minigamebots.client.profile.ProfileManifest profile,
 			io.github.mudklip.minigamebots.client.practice.Objective objective, boolean learn, double stayHuman, String resources) {
 		JsonObject args = new JsonObject();
-		args.addProperty("profile", MinigameBotsClient.instance().profiles().store().dir(profile.id).toString());
+		var dir = MinigameBotsClient.instance().profiles().store().dir(profile.id);
+		if (learn) {
+			io.github.mudklip.minigamebots.client.profile.VersionHistory.before(dir, dir.resolve("core"),
+					"Before practice (" + (objective.name == null || objective.name.isBlank() ? "custom" : objective.name) + ")");
+		}
+		args.addProperty("profile", dir.toString());
 		args.add("objective", io.github.mudklip.minigamebots.client.practice.ObjectiveStore.toJson(objective));
 		args.addProperty("learn", learn);
 		args.addProperty("stay_human", stayHuman);

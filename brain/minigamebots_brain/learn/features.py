@@ -250,3 +250,36 @@ def rotate_blocks(blocks: np.ndarray, yaw_degrees: float) -> np.ndarray:
 def batch(features: list) -> dict:
     """Stacks a list of featurize() results along a new first axis."""
     return {k: np.stack([f[k] for f in features]) for k in features[0]}
+
+
+# --- Mirroring (training data augmentation) ---
+# The same moment seen in a mirror (left <-> right) is an equally valid example, so every
+# recording can also be trained on flipped. Everything here is facing-relative, which makes
+# the flip simple: negate "right" components, flip the block cube and crowd radar sideways.
+SELF_SIN_YAW = 14
+SELF_V_RIGHT = 19
+ENT_RIGHT_COLUMNS = (1, 4, 8)  # right, bearing, sideways velocity
+
+
+def mirror(f: dict) -> dict:
+    """A featurize() result (one tick, or stacked along leading axes) flipped left-right."""
+    out = dict(f)
+    s = f["self"].copy()
+    s[..., SELF_SIN_YAW] *= -1
+    s[..., SELF_V_RIGHT] *= -1
+    out["self"] = s
+    e = f["ent_vals"].copy()
+    for c in ENT_RIGHT_COLUMNS:
+        e[..., c] *= -1
+    out["ent_vals"] = e
+    if "wp_vals" in f:
+        w = f["wp_vals"].copy()
+        w[..., len(WAYPOINT_TYPES) + 1] *= -1
+        out["wp_vals"] = w
+    out["blocks"] = np.ascontiguousarray(np.flip(f["blocks"], axis=-1))
+    crowd = f["crowd"].reshape(*f["crowd"].shape[:-1], CROWD_KINDS, CROWD_BANDS, CROWD_SECTORS)
+    order = [(-k) % CROWD_SECTORS for k in range(CROWD_SECTORS)]
+    out["crowd"] = np.ascontiguousarray(crowd[..., order]).reshape(f["crowd"].shape)
+    if "frames" in f:
+        out["frames"] = np.ascontiguousarray(np.flip(f["frames"], axis=-2))
+    return out
