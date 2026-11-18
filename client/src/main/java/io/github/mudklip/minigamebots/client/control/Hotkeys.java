@@ -80,7 +80,14 @@ public final class Hotkeys {
 			return true;
 		}
 		if (!MARK_BASE.isUnbound() && MARK_BASE.matches(event)) {
-			recorder.mark(client, "base");
+			// Remember it as a base for the active AI; in a recording it's also a lesson ("this is
+			// where a base goes") that the AI learns to repeat.
+			var w = io.github.mudklip.minigamebots.client.MinigameBotsClient.instance().memory().mark(client, "base", false);
+			if (recorder.recording()) {
+				recorder.mark(client, "base");
+			} else if (w != null) {
+				client.gui.hud.setOverlayMessage(net.minecraft.network.chat.Component.translatable("minigamebots.memory.base_marked"), false);
+			}
 			return true;
 		}
 		return false;

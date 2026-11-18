@@ -34,6 +34,11 @@ CROWD_SECTORS = 8  # 45 degrees each; stored by compass direction, turned here t
 CROWD_DIM = CROWD_KINDS * CROWD_BANDS * CROWD_SECTORS
 # Ticks a remembered hit stays relevant (the mod forgets after 30 s).
 HIT_MEMORY = 600
+# Memory inputs (added after features v2; older recordings simply give zeros here).
+WAYPOINT_TYPES = ("base", "chest", "mine", "portal", "danger", "farm", "custom")  # Waypoint.TYPES in the mod
+MAX_WAYPOINTS = 4
+WAYPOINT_DIM = len(WAYPOINT_TYPES) + 6
+ENTITY_REL_DIM = 4
 FRAME_SIZE = 128
 
 
@@ -124,6 +129,7 @@ def featurize(obs: dict) -> dict:
     ent_held = np.zeros(MAX_ENTITIES, dtype=np.int64)
     ent_vals = np.zeros((MAX_ENTITIES, ENTITY_DIM), dtype=np.float32)
     ent_mask = np.zeros(MAX_ENTITIES, dtype=np.bool_)
+    ent_rel = np.zeros((MAX_ENTITIES, ENTITY_REL_DIM), dtype=np.float32)
     entities = sorted(obs.get("entities") or [], key=importance)
     for i, e in enumerate(entities[:MAX_ENTITIES]):
         dx, dy, dz = e.get("dx", 0.0), e.get("dy", 0.0), e.get("dz", 0.0)
@@ -146,6 +152,24 @@ def featurize(obs: dict) -> dict:
             float(e.get("sameTeam", False)), float(e.get("protectedTarget", False)),
         ]
         ent_mask[i] = True
+        # Friend or foe: remembered names, scoreboard teams and insignia (shields, banners, dyes).
+        ent_rel[i] = [float(e.get("relation", 0)), float(e.get("allyInsignia", False)),
+                      float(e.get("enemyInsignia", False)), float(bool(e.get("insignia")))]
+
+    wp_vals = np.zeros((MAX_WAYPOINTS, WAYPOINT_DIM), dtype=np.float32)
+    wp_mask = np.zeros(MAX_WAYPOINTS, dtype=np.bool_)
+    for i, w in enumerate((obs.get("waypoints") or [])[:MAX_WAYPOINTS]):
+        t = w.get("type", "custom")
+        if t in WAYPOINT_TYPES:
+            wp_vals[i, WAYPOINT_TYPES.index(t)] = 1.0
+        dx, dy, dz = w.get("dx", 0.0), w.get("dy", 0.0), w.get("dz", 0.0)
+        ahead, right = to_local(dx, dz, yaw)
+        dist = max(1e-3, float(w.get("distance", math.sqrt(dx * dx + dy * dy + dz * dz))))
+        n = len(WAYPOINT_TYPES)
+        # Direction (unit, facing-relative), height difference and log distance, so far places still register.
+        wp_vals[i, n:n + 6] = [ahead / dist, right / dist, max(-1.0, min(1.0, dy / 32)), math.log1p(dist) / 8,
+                               float(dist < 4), float(w.get("pinned", False))]
+        wp_mask[i] = True
 
     crowd = crowd_counts(obs.get("crowd"))
     # Detailed entities beyond our slots still count, on the crowd radar.
@@ -165,6 +189,7 @@ def featurize(obs: dict) -> dict:
         "crowd": crowd_features(crowd, yaw),
         "self": self_vec, "items": items, "item_vals": item_vals, "ent_type": ent_type, "ent_held": ent_held,
         "ent_vals": ent_vals, "ent_mask": ent_mask, "blocks": blocks, "screen": np.int64(screen),
+        "ent_rel": ent_rel, "wp_vals": wp_vals, "wp_mask": wp_mask,
     }
 
 

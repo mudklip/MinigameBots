@@ -33,6 +33,9 @@ public final class MainScreen extends Screen {
 				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.ProfilesScreen(this))).width(200).build());
 		body.addChild(Button.builder(Component.translatable("minigamebots.menu.brain"),
 				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.BrainScreen(this))).width(200).build());
+		Button memory = body.addChild(Button.builder(Component.translatable("minigamebots.menu.memory"),
+				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.MemoryScreen(this))).width(200).build());
+		memory.active = inWorld && MinigameBotsClient.instance().profiles().active() != null;
 		body.addChild(Button.builder(Component.translatable("minigamebots.menu.recordings"),
 				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.RecorderScreen(this))).width(200).build());
 		body.addChild(Button.builder(Component.translatable("minigamebots.menu.settings"),

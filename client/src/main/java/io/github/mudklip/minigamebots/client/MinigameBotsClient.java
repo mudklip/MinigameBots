@@ -51,8 +51,10 @@ public final class MinigameBotsClient implements ClientModInitializer {
 	private final SoundTracker sounds = new SoundTracker();
 	private final TextTracker text = new TextTracker();
 	private final RelationTracker relations = new RelationTracker();
-	private final Observer observer = new Observer(sounds, text, relations);
 	private final EventDetector events = new EventDetector();
+	private final io.github.mudklip.minigamebots.client.memory.MemoryManager memory =
+			new io.github.mudklip.minigamebots.client.memory.MemoryManager(events);
+	private final Observer observer = new Observer(sounds, text, relations, memory);
 	private final HumanInput humanInput = new HumanInput();
 	private final Recorder recorder = new Recorder(
 			new RecordingStore(FabricLoader.getInstance().getGameDir().resolve("minigamebots/recordings")), humanInput);
@@ -167,6 +169,10 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		return exams;
 	}
 
+	public io.github.mudklip.minigamebots.client.memory.MemoryManager memory() {
+		return memory;
+	}
+
 	public TrainingManager training() {
 		return training;
 	}
@@ -244,6 +250,13 @@ public final class MinigameBotsClient implements ClientModInitializer {
 					data.put("player", p.getName().getString());
 				}
 				events.emit(EventTypes.HIT_BY, data);
+				memory.onAttackedBy(attacker);
+			}
+		});
+		relations.onHitProtected(attackerId -> {
+			Minecraft client = Minecraft.getInstance();
+			if (client.level != null) {
+				memory.onAttackedBy(client.level.getEntity(attackerId));
 			}
 		});
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
@@ -279,12 +292,14 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		if (tick % 20 == 0) {
 			sendStatus();
 		}
+		memory.tick(client);
 		// Perception costs CPU, so it only runs while something needs it.
 		if (AgentControl.aiActive() || watching || recorder.recording()) {
 			Observation obs = observer.observe(client, tick);
 			lastObservation = obs;
 			if (obs != null) {
 				events.onTick(tick, obs, client.level);
+				memory.observe(client, obs);
 				AgentControl control = AgentControl.get();
 				if (control.active() && control.source() instanceof BrainSource source) {
 					brain.sendObservation(source, control.nextTick(), obs, FrameCapture.get().latest());

@@ -19,7 +19,8 @@ import torch.nn.functional as F
 from ..learn import actions, features
 from ..learn.model import to_tensors
 
-CHUNK = 32  # Ticks per training sequence (the GRU memory is replayed over each chunk).
+CHUNK = 32
+CATEGORICAL = ("attacks", "uses", "yaw", "pitch", "mark")  # Ticks per training sequence (the GRU memory is replayed over each chunk).
 
 
 def sample(logits: dict, greedy: bool = False):
@@ -27,7 +28,9 @@ def sample(logits: dict, greedy: bool = False):
     keys_p = torch.sigmoid(logits["keys"][0, 0].float())
     keys = (keys_p > 0.5).float() if greedy else torch.bernoulli(keys_p)
     idx = {"keys": keys}
-    for k in ("attacks", "uses", "yaw", "pitch"):
+    for k in CATEGORICAL:
+        if k not in logits:
+            continue
         l = logits[k][0, 0].float()
         idx[k] = l.argmax() if greedy else torch.multinomial(F.softmax(l, -1), 1)[0]
     return idx
@@ -36,7 +39,7 @@ def sample(logits: dict, greedy: bool = False):
 def log_prob(logits: dict, act: dict) -> torch.Tensor:
     """Log-probability of stored actions under [B, T, ...] logits -> [B, T]."""
     lp = -F.binary_cross_entropy_with_logits(logits["keys"].float(), act["keys"], reduction="none").sum(-1)
-    for k in ("attacks", "uses", "yaw", "pitch"):
+    for k in [c for c in CATEGORICAL if c in act and c in logits]:
         lp = lp + F.log_softmax(logits[k].float(), -1).gather(-1, act[k].unsqueeze(-1)).squeeze(-1)
     return lp
 
@@ -44,7 +47,7 @@ def log_prob(logits: dict, act: dict) -> torch.Tensor:
 def entropy(logits: dict) -> torch.Tensor:
     p = torch.sigmoid(logits["keys"].float())
     ent = -(p * torch.log(p.clamp(min=1e-6)) + (1 - p) * torch.log((1 - p).clamp(min=1e-6))).sum(-1)
-    for k in ("attacks", "uses", "yaw", "pitch"):
+    for k in [c for c in CATEGORICAL if c in logits]:
         lsm = F.log_softmax(logits[k].float(), -1)
         ent = ent - (lsm.exp() * lsm).sum(-1)
     return ent
@@ -55,7 +58,7 @@ def kl(logits: dict, prior: dict) -> torch.Tensor:
     p = torch.sigmoid(logits["keys"].float()).clamp(1e-6, 1 - 1e-6)
     q = torch.sigmoid(prior["keys"].float()).clamp(1e-6, 1 - 1e-6)
     out = (p * torch.log(p / q) + (1 - p) * torch.log((1 - p) / (1 - q))).sum(-1)
-    for k in ("attacks", "uses", "yaw", "pitch"):
+    for k in [c for c in CATEGORICAL if c in logits and c in prior]:
         lp = F.log_softmax(logits[k].float(), -1)
         lq = F.log_softmax(prior[k].float(), -1)
         out = out + (lp.exp() * (lp - lq)).sum(-1)
@@ -252,12 +255,15 @@ class PPOLearner:
 def encode_sample(idx: dict) -> dict:
     """Stored action tensors (CPU)."""
     return {"keys": idx["keys"].detach().cpu().float(),
-            **{k: idx[k].detach().cpu().long().reshape(()) for k in ("attacks", "uses", "yaw", "pitch")}}
+            **{k: idx[k].detach().cpu().long().reshape(()) for k in CATEGORICAL if k in idx}}
 
 
 def decode(idx: dict):
-    return actions.decode_action(idx["keys"].cpu().numpy() > 0.5, int(idx["attacks"]), int(idx["uses"]),
-                                 int(idx["yaw"]), int(idx["pitch"]))
+    action = actions.decode_action(idx["keys"].cpu().numpy() > 0.5, int(idx["attacks"]), int(idx["uses"]),
+                                   int(idx["yaw"]), int(idx["pitch"]))
+    if "mark" in idx and int(idx["mark"]) > 0:
+        action.mark = features.WAYPOINT_TYPES[int(idx["mark"]) - 1]
+    return action
 
 
 def featurize(obs: dict, frame) -> dict:

@@ -95,6 +95,12 @@ class Recording:
         self.last = min(end, ticks - 1) if end is not None and end >= 0 else ticks - 1
         self.chunks = int(self.meta.get("chunks", 0)) or (ticks + per_chunk - 1) // per_chunk
         self.weights = self._tick_weights(ticks)
+        # Places the player marked (e.g. "mark base"): the AI learns to mark them too.
+        self.mark_ticks = {}
+        for mark in self.meta.get("marks") or []:
+            t = mark.get("type")
+            if t in features.WAYPOINT_TYPES:
+                self.mark_ticks[int(mark.get("tick", 0))] = features.WAYPOINT_TYPES.index(t) + 1
 
     def chunk_path(self, index: int) -> str:
         return os.path.join(self.directory, f"chunk-{index:05d}.bin.gz")
@@ -202,6 +208,7 @@ class SequenceSampler:
             out["vpt_buttons"] = np.array([b for b, _ in pairs], dtype=np.int64)
             out["vpt_camera"] = np.array([c for _, c in pairs], dtype=np.int64)
         out["frames"] = np.stack(frames)
+        out["target_mark"] = np.array([rec.mark_ticks.get(start + i, 0) for i in range(self.length)], dtype=np.int64)
         out["weight"] = weights
         out["camera_ok"] = camera_ok
         out["has_frame"] = has_frame

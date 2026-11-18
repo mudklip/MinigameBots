@@ -78,6 +78,25 @@ class LitePolicy(nn.Module):
         # "How well is this going?" (expected future reward). Trained in practice (RL);
         # imitation leaves it untouched, and older checkpoints without it still load.
         self.head_value = nn.Linear(hidden, 1)
+        # Memory (added later; zero-initialised so older checkpoints behave exactly as before):
+        # friend/foe signals per entity, the nearest waypoints, and a "mark this place" output.
+        self.ent_rel = nn.Linear(features.ENTITY_REL_DIM, 96)
+        self.memory_in = nn.Sequential(nn.Linear(features.MAX_WAYPOINTS * features.WAYPOINT_DIM, 64), nn.ReLU(),
+                                       nn.Linear(64, hidden))
+        self.head_mark = nn.Linear(hidden, 1 + len(features.WAYPOINT_TYPES))
+        self.reset_memory_modules()
+
+    def reset_memory_modules(self):
+        """Neutral start for the memory parts: no effect on behaviour until trained, and marking
+        places is very unlikely (P(no mark) ~ 99.98%) until it learns when to."""
+        nn.init.zeros_(self.ent_rel.weight)
+        nn.init.zeros_(self.ent_rel.bias)
+        nn.init.zeros_(self.memory_in[2].weight)
+        nn.init.zeros_(self.memory_in[2].bias)
+        nn.init.zeros_(self.head_mark.weight)
+        with torch.no_grad():
+            self.head_mark.bias.fill_(0.0)
+            self.head_mark.bias[0] = 10.0
 
     def initial_state(self, batch: int, device) -> torch.Tensor:
         return torch.zeros(1, batch, self.config["hidden"], device=device)
@@ -93,6 +112,8 @@ class LitePolicy(nn.Module):
 
         ent = self.ent(torch.cat([self.ent_emb(x["ent_type"]), self.item_emb(x["ent_held"])[..., :16],
                                   x["ent_vals"]], dim=-1))
+        if "ent_rel" in x:
+            ent = ent + self.ent_rel(x["ent_rel"])
         mask = x["ent_mask"].unsqueeze(-1)
         ent_max = torch.where(mask, ent, torch.full_like(ent, -1e4)).max(dim=2).values
         ent_max = torch.where(mask.any(dim=2), ent_max, torch.zeros_like(ent_max))
@@ -104,6 +125,9 @@ class LitePolicy(nn.Module):
         screen = self.screen_emb(x["screen"])
         crowd = F.relu(self.crowd(x["crowd"]))
         h = self.fuse(torch.cat([vis, state_vec, ent_max, ent_mean, blk, screen, crowd], dim=-1))
+        if "wp_vals" in x:
+            wp = x["wp_vals"] * x["wp_mask"].unsqueeze(-1)
+            h = h + self.memory_in(wp.flatten(2))
         if state is None:
             state = self.initial_state(b, h.device)
         out, state = self.memory(h, state)
@@ -114,12 +138,13 @@ class LitePolicy(nn.Module):
             "yaw": self.head_yaw(out),
             "pitch": self.head_pitch(out),
             "value": self.head_value(out).squeeze(-1),
+            "mark": self.head_mark(out),
         }
         return logits, state
 
 
 INPUT_KEYS = ("self", "items", "item_vals", "ent_type", "ent_held", "ent_vals", "ent_mask", "blocks", "screen", "crowd",
-              "frames")
+              "frames", "ent_rel", "wp_vals", "wp_mask")
 
 
 def to_tensors(batch: dict, device) -> dict:
@@ -128,7 +153,7 @@ def to_tensors(batch: dict, device) -> dict:
 
 
 # Parameters that may be missing from older checkpoints (they start fresh when loaded).
-OPTIONAL_PREFIXES = ("head_value.",)
+OPTIONAL_PREFIXES = ("head_value.", "ent_rel.", "memory_in.", "head_mark.")
 
 
 def count_parameters(model: nn.Module) -> int:

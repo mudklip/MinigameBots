@@ -52,6 +52,7 @@ public final class BrainSource implements ActionSource {
 	/** Called from the brain reader thread with an {@code action} message. */
 	public void offer(JsonObject message) {
 		long tick = message.get("tick").getAsLong();
+		metaActions(message);
 		Decision d = new Decision(tick, parse(message), System.nanoTime());
 		latest.accumulateAndGet(d, (old, now) -> old == null || now.tick() > old.tick() ? now : old);
 		synchronized (this) {
@@ -130,6 +131,15 @@ public final class BrainSource implements ActionSource {
 	public double lateFraction() {
 		long total = answered + late;
 		return total == 0 ? 0 : (double) late / total;
+	}
+
+	/** Meta-actions ride along with an action: e.g. "mark": "base" remembers this place. */
+	static void metaActions(JsonObject m) {
+		if (m.has("mark") && m.get("mark").isJsonPrimitive()) {
+			String type = m.get("mark").getAsString();
+			net.minecraft.client.Minecraft c = net.minecraft.client.Minecraft.getInstance();
+			c.execute(() -> io.github.mudklip.minigamebots.client.MinigameBotsClient.instance().memory().mark(c, type, true));
+		}
 	}
 
 	static AgentAction parse(JsonObject m) {

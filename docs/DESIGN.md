@@ -907,7 +907,7 @@ Each milestone ends with tests, a working jar, and a short demo you can try.
 | M7 | **Training Grounds core** | Arenas with instant reset, kits and spawns; training dummies L1-L5 (vanilla mannequins that strafe, block and fight back); aim trainer (flick, track, switch); ground-truth events; /tg chest menus (done). Scenarios and lockstep move to M7b |
 | M7b | **Matches** | Matches (scenarios): arena + coloured scoreboard teams with spawns, kits and dummies; win rules (last team standing, first to N kills, most kills in time, survive); countdown, knock-outs as spectator, results, automatic rounds; "match AI speed" slows the game to the slowest AI (done). Insignia (shield) teams come with M9 |
 | M8 | **Objectives and RL** | Objective editor, escrow/priority/budget rewards with warnings, PPO practice in the background with KL-to-prior ("stay human"), exams over Training Grounds rounds (done for the Lite base; VPT-base practice, realism critic and curiosity bonus come later) |
-| M9 | **Memory** | Meta-actions, waypoints, coarse map, memory screen, friend/enemy memory with insignia factions (3.3.1) |
+| M9 | **Memory** | Waypoints per AI per world, coarse map, Memory screen with mini-map, friend/enemy memory with insignia factions (3.3.1), "mark" meta-action learned from recordings and practice (done) |
 | M10 | **Skills and Manager** | Skill modules, interrupts, goals, merge, distillation |
 | M11 | **Combat league** | Self-play matchmaking, scripted opponents, fast-sim aim |
 | M12 | **Realism** | Realism critic, humanizer tuning from your data |

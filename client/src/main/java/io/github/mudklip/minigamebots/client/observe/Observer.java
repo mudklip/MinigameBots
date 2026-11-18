@@ -61,10 +61,28 @@ public final class Observer {
 	private final RelationTracker relations;
 	private final Map<Integer, Seen> lastSeen = new HashMap<>();
 
-	public Observer(SoundTracker sounds, TextTracker text, RelationTracker relations) {
+	private final io.github.mudklip.minigamebots.client.memory.MemoryManager memory;
+	/** How many nearby waypoints the AI sees. */
+	public static final int WAYPOINTS = 4;
+
+	public Observer(SoundTracker sounds, TextTracker text, RelationTracker relations,
+			io.github.mudklip.minigamebots.client.memory.MemoryManager memory) {
 		this.sounds = sounds;
 		this.text = text;
 		this.relations = relations;
+		this.memory = memory;
+	}
+
+	private List<Observation.WaypointInfo> waypoints(LocalPlayer player, ClientLevel level) {
+		Vec3 eye = player.getEyePosition();
+		List<Observation.WaypointInfo> out = new ArrayList<>();
+		for (var w : memory.nearest(level.dimension().identifier().toString(), eye.x, eye.y, eye.z, WAYPOINTS)) {
+			double dx = w.x + 0.5 - eye.x;
+			double dy = w.y - eye.y;
+			double dz = w.z + 0.5 - eye.z;
+			out.add(new Observation.WaypointInfo(w.type, w.name, dx, dy, dz, Math.sqrt(dx * dx + dy * dy + dz * dz), w.pinned));
+		}
+		return out;
 	}
 
 	public @Nullable Observation observe(Minecraft client, long tick) {
@@ -78,7 +96,7 @@ public final class Observer {
 		List<Observation.EntityInfo> entities = entities(player, level, tick, fair, crowd);
 		return new Observation(tick, self(player, level), inventory(player), player.getInventory().getSelectedSlot(),
 				entities, blocks(player, level, fair), sounds.recent(client), text(client, level), gui(client),
-				new Observation.Crowd(crowd));
+				new Observation.Crowd(crowd), waypoints(player, level));
 	}
 
 	private static Observation.Self self(LocalPlayer p, ClientLevel level) {
@@ -188,12 +206,31 @@ public final class Observer {
 			PlayerTeam team = e.getTeam();
 			boolean isPlayer = e instanceof Player;
 			int id = e.getId();
+			// Who is this to the AI: by remembered name, scoreboard team and insignia (shield, banner, dyes).
+			var ins = e instanceof LivingEntity le ? io.github.mudklip.minigamebots.client.memory.Insignia.of(le)
+					: io.github.mudklip.minigamebots.client.memory.Insignia.Info.NONE;
+			memory.noteInsignia(ins);
+			var wm = memory.memory();
+			String mine = memory.myInsignia();
+			int teamRel = myTeam == null || team == null ? 0 : myTeam == team ? 1 : -1;
+			int relation = 0;
+			boolean allyIns = false;
+			boolean enemyIns = false;
+			if (wm != null && !(e instanceof Enemy)) {
+				String pname = e instanceof Player pl ? pl.getGameProfile().name() : null;
+				relation = isPlayer || ins.present() || teamRel != 0 ? wm.relation(pname, teamRel, ins.id(), mine).value : 0;
+				var insRel = ins.present() ? wm.insignias.get(ins.id()) : null;
+				allyIns = ins.present() && (ins.id().equals(mine) && insRel == null
+						|| insRel == io.github.mudklip.minigamebots.client.memory.Relation.FRIEND);
+				enemyIns = insRel == io.github.mudklip.minigamebots.client.memory.Relation.ENEMY;
+			}
 			out.add(new Observation.EntityInfo(id, BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).toString(),
 					isPlayer, isPlayer || e.hasCustomName() ? e.getName().getString() : null,
 					team == null ? null : team.getName(), pos.x - eye.x, pos.y - eye.y, pos.z - eye.z, vel.x, vel.y,
 					vel.z, health, maxHealth, held, armor, visible, since, relations.ticksSinceHitMe(id),
 					relations.ticksSinceHitByMe(id), relations.ticksSinceHitProtected(id),
-					myTeam != null && myTeam == team, id == relations.protectedId(), e instanceof Enemy));
+					myTeam != null && myTeam == team, id == relations.protectedId(), e instanceof Enemy, ins.id(), relation,
+					allyIns, enemyIns));
 		}
 		lastSeen.clear();
 		lastSeen.putAll(stillSeen);

@@ -61,8 +61,13 @@ class LearnedPolicy(Policy):
         else:
             keys_on = np.random.random(len(keys)) < keys
         self.decisions += 1
-        return actions.decode_action(keys_on, self._pick(logits["attacks"]), self._pick(logits["uses"]),
-                                     self._pick(logits["yaw"]), self._pick(logits["pitch"]))
+        action = actions.decode_action(keys_on, self._pick(logits["attacks"]), self._pick(logits["uses"]),
+                                       self._pick(logits["yaw"]), self._pick(logits["pitch"]))
+        if "mark" in logits:
+            m = self._pick(logits["mark"])
+            if m > 0:
+                action.mark = features.WAYPOINT_TYPES[m - 1]
+        return action
 
     def _pick(self, logit):
         torch = self.torch

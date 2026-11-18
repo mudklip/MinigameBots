@@ -18,7 +18,15 @@ public record Observation(
 		List<SoundInfo> sounds,
 		Text text,
 		@Nullable Gui gui,
-		Crowd crowd) {
+		Crowd crowd,
+		List<WaypointInfo> waypoints) {
+
+	/**
+	 * A remembered place near the AI (same dimension), relative to its eyes. {@code type} is one of
+	 * Waypoint.TYPES. The nearest few are included.
+	 */
+	public record WaypointInfo(String type, String name, double dx, double dy, double dz, double distance, boolean pinned) {
+	}
 
 	/** The player's own state, as the HUD and F3 basics show it. */
 	public record Self(float health, float maxHealth, int food, float saturation, int armor, int xpLevel,
@@ -43,7 +51,8 @@ public record Observation(
 	public record EntityInfo(int id, String type, boolean player, @Nullable String name, @Nullable String team,
 			double dx, double dy, double dz, double vx, double vy, double vz, float health, float maxHealth,
 			String heldItem, int armor, boolean visible, int ticksSinceSeen, int hitMe, int hitByMe, int hitProtected,
-			boolean sameTeam, boolean protectedTarget, boolean hostile) {
+			boolean sameTeam, boolean protectedTarget, boolean hostile, String insignia, int relation,
+			boolean allyInsignia, boolean enemyInsignia) {
 	}
 
 	/**

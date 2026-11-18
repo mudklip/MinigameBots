@@ -58,6 +58,12 @@ def loss_fn(logits: dict, batch: dict) -> tuple:
     pitch = F.cross_entropy(cut(logits["pitch"]).flatten(0, 1), cut(batch["target_pitch"]).flatten(),
                             reduction="none").view_as(w)
     total = ((keys + attacks + uses) * w).sum() / denom + ((yaw + pitch) * cam_ok).sum() / cam_ok.sum().clamp(min=1.0)
+    if "mark" in logits and "target_mark" in batch:
+        # Marking a place is rare: those ticks count much more than "don't mark" ticks.
+        tm = cut(batch["target_mark"])
+        mark = F.cross_entropy(cut(logits["mark"]).flatten(0, 1).float(), tm.flatten(), reduction="none").view_as(w)
+        mark_w = w * torch.where(tm > 0, torch.full_like(w, 50.0), torch.ones_like(w))
+        total = total + 0.2 * (mark * mark_w).sum() / denom
 
     with torch.no_grad():
         pred_keys = (cut(logits["keys"]) > 0).float()

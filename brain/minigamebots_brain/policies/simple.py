@@ -10,15 +10,18 @@ class IdlePolicy(Policy):
 
     name = "idle"
 
-    def __init__(self, think_ms: float = 0.0):
+    def __init__(self, think_ms: float = 0.0, mark: str | None = None):
         self.think_s = max(0.0, float(think_ms)) / 1000.0
+        self.mark = mark  # Test the "mark this place" meta-action once.
 
     def act(self, obs, frame):
         if self.think_s:
             import time
 
             time.sleep(self.think_s)
-        return Action()
+        action = Action(mark=self.mark)
+        self.mark = None
+        return action
 
 
 class SpinPolicy(Policy):

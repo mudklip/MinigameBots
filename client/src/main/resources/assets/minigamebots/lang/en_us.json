@@ -191,5 +191,18 @@
 	"minigamebots.exams.screen": "Exams: %s",
 	"minigamebots.exams.start": "Start exam",
 	"minigamebots.exams.start_help": "The AI plays the next rounds of the Training Grounds match running now, as it normally plays, and the results are saved.",
-	"minigamebots.exams.help": "Start a Training Grounds match set to keep going, then start the exam here. Compare results after more training to see what helps."
+	"minigamebots.exams.help": "Start a Training Grounds match set to keep going, then start the exam here. Compare results after more training to see what helps.",
+	"minigamebots.menu.memory": "Memory...",
+	"minigamebots.memory.screen": "Memory",
+	"minigamebots.memory.places": "Places",
+	"minigamebots.memory.factions": "Allies & enemies",
+	"minigamebots.memory.mark_here": "Mark here",
+	"minigamebots.memory.mark_type_help": "What kind of place to mark where you stand.",
+	"minigamebots.memory.pin_help": "Pinned places are never forgotten or moved by the AI.",
+	"minigamebots.memory.forget": "Forget",
+	"minigamebots.memory.base_marked": "Base marked for the AI",
+	"minigamebots.memory.auto_help": "Whoever hits the AI (or the person it protects) is remembered as an enemy, and so is everyone wearing the same insignia.",
+	"minigamebots.memory.trust_help": "Which signal decides when they disagree: a remembered name, the scoreboard team (tab/name colour) or the insignia (shield pattern, banner, dyed armour).",
+	"minigamebots.memory.factions_empty": "Nobody remembered yet. Players and insignias are added when they attack the AI (if that's on), or appear here once marked. Same insignia as yours counts as an ally automatically.",
+	"minigamebots.memory.none": "Choose an AI (AI Profiles > Use this AI) and join a world to see what it remembers here."
 }

@@ -19,6 +19,7 @@ public final class RelationTracker {
 	private volatile long tick;
 	private volatile int protectedId = -1;
 	private IntConsumer onHitMe = id -> { };
+	private IntConsumer onHitProtected = id -> { };
 
 	public void setTick(long tick) {
 		this.tick = tick;
@@ -39,6 +40,11 @@ public final class RelationTracker {
 	}
 
 	/** Called with the attacker's entity id whenever something hits the local player. */
+	/** Called with the attacker's id whenever the protected entity is hit. */
+	public void onHitProtected(IntConsumer listener) {
+		this.onHitProtected = listener;
+	}
+
 	public void onHitMe(IntConsumer listener) {
 		this.onHitMe = listener;
 	}
@@ -62,6 +68,7 @@ public final class RelationTracker {
 		}
 		if (victim == protectedId && protectedId >= 0) {
 			hitProtected.put(attacker, now);
+			onHitProtected.accept(attacker);
 		}
 	}
 

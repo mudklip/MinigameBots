@@ -16,12 +16,13 @@ class Action:
     uses: int = 0
     yaw: float = 0.0  # Degrees, right is positive.
     pitch: float = 0.0  # Degrees, down is positive.
+    mark: str | None = None  # Meta-action: remember this place as a waypoint of this type ("base", ...).
 
     def to_message(self, tick: int) -> dict:
         unknown = set(self.keys) - set(KEYS)
         if unknown:
             raise ValueError(f"unknown keys: {sorted(unknown)}")
-        return {
+        msg = {
             "type": "action",
             "tick": tick,
             "keys": sorted(self.keys),
@@ -30,6 +31,9 @@ class Action:
             "yaw": float(self.yaw),
             "pitch": float(self.pitch),
         }
+        if self.mark:
+            msg["mark"] = self.mark
+        return msg
 
 
 NOOP = Action()
