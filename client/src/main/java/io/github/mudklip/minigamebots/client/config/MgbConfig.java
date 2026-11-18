@@ -107,6 +107,10 @@ public final class MgbConfig {
 	@SerialEntry
 	public String customPythonPath = "";
 
+	/** Id of the AI profile in use; empty = none chosen yet. Set from the Profiles screen. */
+	@SerialEntry
+	public String activeProfile = "";
+
 	public static MgbConfig get() {
 		return HANDLER.instance();
 	}

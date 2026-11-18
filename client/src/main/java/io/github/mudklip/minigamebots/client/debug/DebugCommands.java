@@ -100,6 +100,11 @@ public final class DebugCommands {
 							MinigameBotsClient.instance().brain().stop();
 							return 1;
 						})))
+				.then(literal("profiles").executes(ctx -> {
+					Minecraft c = Minecraft.getInstance();
+					c.schedule(() -> c.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.ProfilesScreen(null)));
+					return 1;
+				}))
 				.then(literal("config").executes(ctx -> {
 					Minecraft client = Minecraft.getInstance();
 					// Open after the chat screen has closed.

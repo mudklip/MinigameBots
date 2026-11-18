@@ -63,12 +63,14 @@ public final class AgentControl {
 			return;
 		}
 		source = newSource;
-		humanizer.setSettings(MgbConfig.get().humanizer());
+		var profiles = io.github.mudklip.minigamebots.client.MinigameBotsClient.instance().profiles();
+		humanizer.setSettings(profiles.humanizer());
 		humanizer.reset();
 		camera.reset();
 		KeyMapping.releaseAll();
 		active = true;
-		client.player.sendOverlayMessage(Component.translatable("minigamebots.control.ai_on", newSource.name()));
+		client.player.sendOverlayMessage(Component.translatable("minigamebots.control.ai_on",
+				profiles.displayName() + " - " + newSource.name()));
 	}
 
 	/** Gives control back to the human. */

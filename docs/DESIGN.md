@@ -53,6 +53,26 @@ input. There is no ceiling on skill; it depends on how it is trained.
 
 ---
 
+### Guiding principle: the tool is easy, the skill is in the behaviour
+
+Training a great AI takes skill, but that skill must be about **understanding behaviour** (what
+to reward, what to show it, why it does something odd), never about **operating the program**.
+Every feature therefore follows these rules:
+
+- **Menus, not commands.** Everything is reachable from in-game screens; `/mgb` commands are only
+  developer shortcuts.
+- **Plain language.** Every option says what it does and when to use it.
+- **Warn about common mistakes** (e.g. "this objective will probably teach it to avoid fights",
+  "this reward can be farmed by standing still") before they cost hours of training.
+- **Make behaviour visible.** Training sessions and exams can be replayed in the recording viewer
+  with the AI's inputs and rewards tick by tick, so "why does it run away?" is something you watch.
+- **Exams point at problems** ("aim score dropped since the last checkpoint"), not just numbers.
+- **Undo is cheap.** Checkpoints let you roll back a session that made things worse, in one click.
+- **Presets first, details on demand.** Sensible defaults for every plan and objective; advanced
+  settings are there but never required.
+
+---
+
 ## 1. System overview
 
 ```
@@ -290,7 +310,10 @@ attacked entity died shortly after our hit). When Training Grounds is present, i
 
 ### 3.8 AI Profiles and files
 
-The Netflix-style **Profile screen** shows your AIs as cards (name, skin, short stats).
+The Netflix-style **Profile screen** shows your AIs as cards (name, skin face, short stats).
+A profile's skin comes from any Minecraft username, like a player head: it's fetched from
+Mojang while online and kept in the profile (`skin.png`), so it keeps showing offline. A
+username set while offline is fetched automatically the next time you're online.
 Click one to **Play**, **Train**, **Edit**, **Duplicate**, **Merge** or **Export**.
 
 **`.mgbot` file** (a zip, renamable and shareable):

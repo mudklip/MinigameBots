@@ -23,10 +23,23 @@ The full plan is in [docs/DESIGN.md](docs/DESIGN.md).
 | M2 Body: virtual input, Humanizer, background mode, hotkeys, Observer, Event Detector | Done |
 | M3 Recorder: record demos, marks, Recorder screen, playback viewer, export/import | Done |
 | M4 Brain link: in-game setup of Python + PyTorch, local brain process, test brains | Done |
-| M5 Profiles | Next |
+| M5 Profiles: AI cards with skins, editor, per-AI human limits, export/import | Done |
+| M6 Imitation learning | Next |
 
 There is no learned brain yet. The brain link works with simple hand-written test brains, and
 the AI's body can also be driven with test scripts (below).
+
+## AI profiles
+
+Each AI is a profile: **F10 > AI Profiles**. Click **+ New AI** to make one: give it a name, a
+description, optionally any Minecraft username to show that player's skin (fetched while online,
+then kept for offline), and its own human limits (reaction time, clicks per second, turn speed,
+aim wobble). Double-click a card (or **Use this AI**) to choose which AI plays.
+
+Duplicate an AI to experiment safely, or **Export** it to a single `.mgbot` file to share (its
+per-world memories are left out). To import a friend's AI, put the file in
+`minigamebots/profiles/import/` and press **Import**. Train and Merge buttons arrive with
+milestones 6 and 10.
 
 ## The brain
 
@@ -97,6 +110,7 @@ Client-side only; they never reach the server.
 | `/mgb rec start` / `stop` / `list` / `open` | Recorder controls |
 | `/mgb rec mark <type>` | Mark the current moment (good, mistake, base, or your own) |
 | `/mgb brain open` / `play <brain>` / `stop` | Brain screen, give a test brain control, stop the brain |
+| `/mgb profiles` | Open AI Profiles |
 | `/mgb config` | Open settings |
 
 Script steps (separated by `;`): `hold <keys> <ticks>`, `tap <key>`, `look <yaw> <pitch>`,
