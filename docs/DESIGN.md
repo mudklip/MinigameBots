@@ -647,25 +647,62 @@ heads home.
 
 Facts a person learns by being told once aren't worth training: they're looked up instead.
 VPT learned *behaviour* from 1.16 videos (dig down, chop trees first), not facts, and some of
-its habits are outdated (ore heights changed in 1.18). So every AI ships with a default
-knowledge set from two sources:
+its habits are outdated (ore heights changed in 1.18). So every AI ships with a **technical
+knowledge base**: think a Minecraft wiki of the mechanics, minus history, trivia and lore.
+The goal: even an untrained AI has real technical know-how, and a trained one gets something
+close to advanced game sense, because it reasons from the actual numbers.
 
-1. **The game's own data, read at runtime:** recipes, loot tables, item/block/biome tags and,
-   in singleplayer, biome and structure data. Exact, always matches the running version, and
-   covers modded items automatically.
-2. **A curated facts file** (a few hundred KB, hand-written, checked against the Minecraft
-   Wiki; facts are stated in our own words): ore distribution by Y level, mob spawning rules
-   (light, spawnable spaces, biomes, structures), farm requirements (chunk, Y level, biome,
-   spawning spaces, e.g. gold farms on the nether roof in nether wastes), structure locations,
-   and combat mechanics (crit timing, shield and axe cooldowns, knockback).
+**Kept small in code:** almost all of it is data (JSON files), plus one calculator module for
+the handful of formulas. Three parts:
 
-How it's used: the Manager turns goals into parameters with it ("get diamonds" -> Y about -58,
-branch mine; "gold farm" -> nether roof above nether wastes), and Objectives can use it for
-shaping (e.g. a bonus for reaching the right Y level). The network learns the *skill*; the facts
-say *where* and *what*. The file can be edited, the Video Lab's Question Queue adds answers to
-it (the Knowledge Book, M13), and servers with custom rules can override entries. The
-optional mind (section 9) looks facts up here, so it doesn't need a big model that happens
-to remember Minecraft trivia.
+1. **The game's own data, read at runtime** (exact, always the running version, modded
+   content included): recipes and smelting, loot tables, item attributes (attack damage and
+   speed, armor, toughness, knockback resistance), enchantments and their levels, food values,
+   tool tiers and mining speeds, block hardness and blast resistance, tags (what a pickaxe
+   mines, what's flammable), and in singleplayer biome, structure and spawn data.
+2. **The facts files** (hand-written, checked against the Minecraft Wiki, in our own words),
+   by topic:
+   - **Combat:** damage formula with armor, toughness, Protection and resistance; crits
+     (falling, not sprinting); attack cooldown per weapon; sweep; knockback and sprint-reset
+     (w-tap); invulnerability frames; shields (blocking angle, axe disables for 5 s); totems;
+     mace fall damage; bow and crossbow charge and arrow arcs; trident; fishing-rod pulls;
+     ender pearls; potions and their counters; golden apples; end crystal and respawn-anchor
+     damage; fall damage and the ways to cancel it (water, hay, slime, boats, cobwebs).
+   - **Mobs:** health, damage, speed and behaviour per mob (creeper fuse and blast radius,
+     skeleton range, enderman aggro, piglin gold rules, warden senses), and how to counter each.
+   - **World:** ore distribution by Y level and biome, structure locations and loot, biome
+     features, nether and end layout (fortress corridors, bastions, nether roof access, end
+     cities), light and spawning rules (spawnable blocks, light levels, mob caps, despawn
+     distances, spawning spaces).
+   - **Farms and redstone:** what each common farm needs (biome, Y level, chunk alignment,
+     spawning spaces, despawn radius; e.g. gold farms on the nether roof above nether wastes,
+     iron farms by village rules), and redstone basics (signal strength, tick delays,
+     repeaters, comparators, observers, pistons, quasi-connectivity, common circuits).
+   - **Survival know-how:** tool and armor progression, what to do first, nether and end
+     preparation, safe mining (lava levels, gravel), hunger and saturation, enchanting and
+     anvils, villager trades and curing.
+3. **Calculators** (one small module), using the attributes from (1) so modded or server
+   weapons work the same way: hits to kill a target with what I hold vs what they wear;
+   expected damage per second each way; time until I'd die at the current rate; is my attack
+   cooldown ready and would this be a crit; fall damage from here; mining time for a block with
+   my tool; can this mob spawn here; blast damage at this distance.
+
+**How it becomes game sense without much code:**
+- **Extra inputs to the network:** the calculators' results for the nearest opponents and the
+  current situation (hits-to-kill both ways, DPS race, cooldown ready, crit possible, fall
+  damage here). A few numbers like these are what experienced players weigh by instinct;
+  giving them directly makes learning much faster and helps even untrained play.
+- **"Can I win?" before training:** the DPS race gives the Manager a fight-or-flee estimate
+  from day one; the learned value head takes over as it gets better.
+- **Goal parameters:** "get diamonds" -> Y about -58, branch mine; "gold farm" -> nether roof
+  over nether wastes, right Y, right chunk; "beat this mob" -> its counter.
+- **Objectives:** shaping from facts (a bonus for reaching the right Y level, a warning when an
+  Objective rewards something the facts say is impossible).
+- **The optional mind** (section 9) looks things up here, so it doesn't need a big model that
+  happens to remember Minecraft.
+
+The files can be edited; the Video Lab's Question Queue adds answers (the Knowledge Book,
+M13); servers with custom rules can override entries.
 
 ### 4.7 Exams
 
