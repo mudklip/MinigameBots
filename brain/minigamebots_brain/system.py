@@ -26,6 +26,12 @@ def report(benchmark: bool = True) -> dict:
     except ImportError:
         info["problems"].append("numpy is not installed")
     try:
+        import PIL
+
+        info["pillow"] = PIL.__version__
+    except ImportError:
+        info["problems"].append("Pillow is not installed (press Update in the Brain screen)")
+    try:
         import torch
     except ImportError:
         info["problems"].append("PyTorch is not installed")

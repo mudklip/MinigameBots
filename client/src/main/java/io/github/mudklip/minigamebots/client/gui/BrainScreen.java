@@ -21,7 +21,7 @@ import org.jspecify.annotations.Nullable;
  * pick a test brain and hand it control. Shows status and the latest log lines.
  */
 public final class BrainScreen extends Screen {
-	private static final List<String> POLICIES = List.of("follow", "random", "spin", "idle", "torch_smoke");
+	private static final List<String> POLICIES = List.of("learned", "follow", "random", "spin", "idle", "torch_smoke");
 	private static @Nullable RuntimeInstaller installer;
 	private static @Nullable Thread installThread;
 
@@ -35,6 +35,7 @@ public final class BrainScreen extends Screen {
 	private Button startStop;
 	private Button policyButton;
 	private Button play;
+	private Button update;
 
 	public BrainScreen(@Nullable Screen parent) {
 		super(Component.translatable("minigamebots.brain.screen"));
@@ -58,6 +59,9 @@ public final class BrainScreen extends Screen {
 				installer.cancel();
 			}
 		}).pos(left + 314, y).width(60).build());
+		update = addRenderableWidget(Button.builder(Component.translatable("minigamebots.brain.update"), b -> update())
+				.pos(left + 314, y).width(60).tooltip(net.minecraft.client.gui.components.Tooltip.create(
+						Component.translatable("minigamebots.brain.update_help"))).build());
 
 		int y2 = height - 28;
 		startStop = addRenderableWidget(Button.builder(Component.empty(), b -> {
@@ -75,7 +79,16 @@ public final class BrainScreen extends Screen {
 			b.setMessage(policyLabel());
 		}).pos(left + 74, y2).width(110).build());
 		play = addRenderableWidget(Button.builder(Component.translatable("minigamebots.brain.play"), b -> {
-			brain.play(minecraft, POLICIES.get(policyIndex));
+			String policy = POLICIES.get(policyIndex);
+			var active = MinigameBotsClient.instance().profiles().active();
+			if (policy.equals("learned")) {
+				if (active == null) {
+					return;
+				}
+				brain.playLearned(minecraft, active);
+			} else {
+				brain.play(minecraft, policy);
+			}
 			onClose();
 		}).pos(left + 188, y2).width(110).build());
 		addRenderableWidget(Button.builder(Component.translatable("minigamebots.brain.logs"),
@@ -104,6 +117,17 @@ public final class BrainScreen extends Screen {
 		installThread.start();
 	}
 
+	private void update() {
+		if (installing()) {
+			return;
+		}
+		RuntimeInstaller i = new RuntimeInstaller(brain.runtime(), brain.outputSink());
+		installer = i;
+		installThread = new Thread(i::updatePackages, "MinigameBots brain update");
+		installThread.setDaemon(true);
+		installThread.start();
+	}
+
 	private static boolean installing() {
 		return installer != null && !installer.done();
 	}
@@ -120,12 +144,15 @@ public final class BrainScreen extends Screen {
 		installCpu.active = !busy;
 		ownPython.active = !busy;
 		cancel.visible = busy;
+		update.visible = !busy && installed;
 		BrainManager.Status s = brain.status();
 		boolean running = s == BrainManager.Status.RUNNING || s == BrainManager.Status.STARTING;
 		startStop.setMessage(Component.translatable(running ? "minigamebots.brain.stop" : "minigamebots.brain.start"));
 		startStop.active = !busy && installed;
 		policyButton.active = !busy && installed;
-		play.active = !busy && installed && minecraft.player != null && s != BrainManager.Status.STARTING;
+		boolean learnedReady = !POLICIES.get(policyIndex).equals("learned")
+				|| MinigameBotsClient.instance().profiles().active() != null;
+		play.active = !busy && installed && minecraft.player != null && s != BrainManager.Status.STARTING && learnedReady;
 	}
 
 	@Override

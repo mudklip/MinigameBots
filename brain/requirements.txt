@@ -2,3 +2,4 @@
 # PyTorch is installed separately, from PyTorch's own index, so the right CUDA build is used.
 numpy>=2.0
 safetensors>=0.4
+pillow>=10.0

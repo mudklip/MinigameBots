@@ -15,6 +15,7 @@ import io.github.mudklip.minigamebots.client.observe.Observer;
 import io.github.mudklip.minigamebots.client.observe.SoundTracker;
 import io.github.mudklip.minigamebots.client.observe.TextTracker;
 import io.github.mudklip.minigamebots.client.profile.ProfileManager;
+import io.github.mudklip.minigamebots.client.train.TrainingManager;
 import io.github.mudklip.minigamebots.client.record.HumanInput;
 import io.github.mudklip.minigamebots.client.record.Recorder;
 import io.github.mudklip.minigamebots.client.record.RecordingIndicator;
@@ -56,6 +57,7 @@ public final class MinigameBotsClient implements ClientModInitializer {
 	private final BrainManager brain = new BrainManager(
 			new BrainRuntime(FabricLoader.getInstance().getGameDir().resolve("minigamebots")));
 	private final ProfileManager profiles = new ProfileManager(FabricLoader.getInstance().getGameDir().resolve("minigamebots"));
+	private final TrainingManager training = new TrainingManager(brain.runtime(), profiles.store(), recorder.store());
 	private volatile @Nullable Observation lastObservation;
 	private long tick;
 	private volatile boolean watching;
@@ -111,6 +113,10 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		return humanInput;
 	}
 
+	public TrainingManager training() {
+		return training;
+	}
+
 	public ProfileManager profiles() {
 		return profiles;
 	}
@@ -147,6 +153,7 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
 			recorder.stop(client);
 			brain.shutdown();
+			training.shutdown();
 		});
 		ClientTickEvents.END_CLIENT_TICK.register(this::endTick);
 		ClientLifecycleEvents.CLIENT_STARTED.register(client -> client.getSoundManager().addListener(sounds));

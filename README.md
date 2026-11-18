@@ -24,7 +24,8 @@ The full plan is in [docs/DESIGN.md](docs/DESIGN.md).
 | M3 Recorder: record demos, marks, Recorder screen, playback viewer, export/import | Done |
 | M4 Brain link: in-game setup of Python + PyTorch, local brain process, test brains | Done |
 | M5 Profiles: AI cards with skins, editor, per-AI human limits, export/import | Done |
-| M6 Imitation learning | Next |
+| M6a Imitation learning: train an AI on your recordings, Training screen, let it play | Done |
+| M6b Pretrained foundation (OpenAI VPT) | Next |
 
 There is no learned brain yet. The brain link works with simple hand-written test brains, and
 the AI's body can also be driven with test scripts (below).
@@ -36,10 +37,17 @@ description, optionally any Minecraft username to show that player's skin (fetch
 then kept for offline), and its own human limits (reaction time, clicks per second, turn speed,
 aim wobble). Double-click a card (or **Use this AI**) to choose which AI plays.
 
+**Train** teaches an AI to play like your recordings (imitation learning): pick the
+recordings that show what it should learn, a plan (Quick try ... Overnight) and how hard the PC
+may work (Quiet, Balanced, Max), then press **Start**. Progress, accuracy and a graph show while
+it trains; training keeps going if you close the screen, and you get a message when it's done.
+Moments you marked as mistakes in a recording are skipped; marked good moments count double.
+**Let it play** hands control to the trained AI (F9 takes it back). The Predictability setting
+chooses between human-like variety and always its single best guess.
+
 Duplicate an AI to experiment safely, or **Export** it to a single `.mgbot` file to share (its
 per-world memories are left out). To import a friend's AI, put the file in
-`minigamebots/profiles/import/` and press **Import**. Train and Merge buttons arrive with
-milestones 6 and 10.
+`minigamebots/profiles/import/` and press **Import**. Merge arrives with milestone 10.
 
 ## The brain
 
@@ -60,8 +68,10 @@ Then pick a test brain and press **Give it control**:
 | spin | Turns on the spot |
 | idle | Does nothing |
 | torch_smoke | Runs a small (untrained) neural network on every frame, to check PyTorch and the GPU |
+| learned | The AI in use, playing with what it learned in training |
 
-F9 always takes control back. Logs: `minigamebots/logs/brain.log` and `install.log`. Protocol:
+F9 always takes control back. After updating the mod, press **Update** in the Brain screen if
+it asks for new packages. Logs: `minigamebots/logs/brain.log`, `install.log` and `training.log`. Protocol:
 [docs/formats/brain-protocol.md](docs/formats/brain-protocol.md).
 
 ## Hotkeys

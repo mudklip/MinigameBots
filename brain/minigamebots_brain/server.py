@@ -101,6 +101,12 @@ def main(argv=None) -> int:
     run.add_argument("--token", required=True)
     run.add_argument("--frames", help="shared-memory frame file")
     sub.add_parser("selftest", help="print a JSON report of Python, PyTorch and GPU")
+    sub.add_parser("train", help="imitation training on recordings (see learn/train.py)", add_help=False)
+    argv = sys.argv[1:] if argv is None else argv
+    if argv and argv[0] == "train":
+        from .learn import train
+
+        return train.main(argv[1:])
     args = parser.parse_args(argv)
 
     if args.command == "selftest":

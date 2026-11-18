@@ -872,7 +872,8 @@ Each milestone ends with tests, a working jar, and a short demo you can try.
 | M3 | **Recorder** | `.mgbrec` format, recording UI, playback viewer |
 | M4 | **Brain link and runtime** | Setup screen, runtime download, Brain Server, shared memory link, scripted "test brain" |
 | M5 | **Profiles** | `.mgbot` format, Profile screen, import and export, foundation store |
-| M6 | **Imitation** | BC training, VPT foundation loading and adaptation, Training screen, checkpoints |
+| M6a | **Imitation** | BC training with the Lite network, Training screen, checkpoints, learned policy plays (done) |
+| M6b | **Foundation** | VPT weights import and adaptation to 26.3, as a foundation the Lite pipeline can use |
 | M7 | **Training Grounds core** | Arenas, reset, scenarios, dummies, aim trainer, ground-truth events, lockstep |
 | M8 | **Objectives and RL** | Objective editor, escrow/priority/budget rewards, PPO, KL-to-prior, exams |
 | M9 | **Memory** | Meta-actions, waypoints, coarse map, memory screen |

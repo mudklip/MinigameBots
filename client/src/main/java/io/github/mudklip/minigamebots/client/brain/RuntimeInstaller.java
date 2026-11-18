@@ -184,6 +184,41 @@ public final class RuntimeInstaller {
 		}
 	}
 
+	/**
+	 * Installs any packages a newer version of the mod needs (requirements.txt) into the existing
+	 * environment and re-runs the self-test. Much faster than a full install.
+	 */
+	public void updatePackages() {
+		try {
+			Path python = runtime.venvPython();
+			Path code = runtime.prepareCode();
+			setStage("Updating the brain's packages", -1);
+			run(List.of(python.toString(), "-m", "pip", "install", "-r", code.resolve("requirements.txt").toString()));
+			setStage("Testing", -1);
+			StringBuilder json = new StringBuilder();
+			BrainProcess.run(List.of(python.toString(), "-m", "minigamebots_brain", "selftest"), runtime.root(),
+					Map.of("PYTHONPATH", code.toString()), log(), output, line -> {
+						if (line.startsWith("{")) {
+							json.append(line);
+						}
+					});
+			BrainRuntime.BrainState state = runtime.readState();
+			if (state != null && !json.isEmpty()) {
+				state.report = RecordingCodec.GSON.fromJson(json.toString(), JsonObject.class);
+				runtime.writeState(state);
+				setStage(summary(state.report), 1);
+			}
+		} catch (IOException | RuntimeException e) {
+			error = e.getMessage() == null ? e.toString() : e.getMessage();
+			log("Update failed: " + error);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			error = "Interrupted";
+		} finally {
+			done = true;
+		}
+	}
+
 	/** Human summary of a self-test report, e.g. "Ready: PyTorch 2.15 on NVIDIA GeForce RTX 2060 (6 GB)". */
 	public static String summary(@Nullable JsonObject report) {
 		if (report == null) {

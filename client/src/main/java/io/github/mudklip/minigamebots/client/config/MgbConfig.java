@@ -86,6 +86,11 @@ public final class MgbConfig {
 	@SerialEntry
 	public int frameSize = 128;
 
+	@AutoGen(category = "humanizer")
+	@FloatSlider(min = 0f, max = 1f, step = 0.05f, format = "%.2f")
+	@SerialEntry
+	public float predictability = 0.3f;
+
 	// Recording
 	@AutoGen(category = "recording")
 	@IntSlider(min = 50, max = 100, step = 5, format = "%d%%")

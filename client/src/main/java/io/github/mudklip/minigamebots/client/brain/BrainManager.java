@@ -98,12 +98,25 @@ public final class BrainManager {
 
 	/** Starts the brain (if needed) and hands it control of the AI with {@code policyName}. */
 	public void play(Minecraft client, String policyName) {
+		play(client, policyName, new JsonObject());
+	}
+
+	/** Lets {@code profile}'s trained network play. */
+	public void playLearned(Minecraft client, io.github.mudklip.minigamebots.client.profile.ProfileManifest profile) {
+		JsonObject args = new JsonObject();
+		args.addProperty("profile", MinigameBotsClient.instance().profiles().store().dir(profile.id).toString());
+		args.addProperty("temperature", MgbConfig.get().predictability >= 1 ? 0.0 : 1.0 - MgbConfig.get().predictability);
+		play(client, "learned", args);
+	}
+
+	/** Starts the brain (if needed) and hands it control with a policy and its arguments. */
+	public void play(Minecraft client, String policyName, JsonObject args) {
 		policy = policyName;
 		control.execute(() -> {
 			if (status != Status.RUNNING && !startBlocking()) {
 				return;
 			}
-			sendSetPolicy(policyName);
+			sendSetPolicy(policyName, args);
 			BrainSource s = new BrainSource(policyName);
 			source = s;
 			client.execute(() -> AgentControl.get().start(client, s));
@@ -252,10 +265,11 @@ public final class BrainManager {
 		return p.exitCode();
 	}
 
-	private void sendSetPolicy(String name) {
+	private void sendSetPolicy(String name, JsonObject args) {
 		JsonObject m = new JsonObject();
 		m.addProperty("type", "set_policy");
 		m.addProperty("name", name);
+		m.add("args", args);
 		sendAsync(m);
 	}
 

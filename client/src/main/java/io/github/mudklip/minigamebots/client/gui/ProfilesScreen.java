@@ -44,6 +44,7 @@ public final class ProfilesScreen extends Screen {
 	private Button duplicate;
 	private Button delete;
 	private Button export;
+	private Button train;
 	private Button prev;
 	private Button next;
 
@@ -91,9 +92,12 @@ public final class ProfilesScreen extends Screen {
 		for (int i = 0; i < 6; i++) {
 			col[i] = x + i * (sw + 4);
 		}
-		Button train = addRenderableWidget(Button.builder(Component.translatable("minigamebots.profiles.train"), b -> { })
-				.pos(col[0], y2).width(sw).tooltip(Tooltip.create(Component.translatable("minigamebots.profiles.later", 6))).build());
-		train.active = false;
+		train = addRenderableWidget(Button.builder(Component.translatable("minigamebots.profiles.train"), b -> {
+			ProfileManifest p = selectedProfile();
+			if (p != null) {
+				minecraft.gui.setScreen(new TrainingScreen(this, p));
+			}
+		}).pos(col[0], y2).width(sw).build());
 		Button merge = addRenderableWidget(Button.builder(Component.translatable("minigamebots.profiles.merge"), b -> { })
 				.pos(col[1], y2).width(sw).tooltip(Tooltip.create(Component.translatable("minigamebots.profiles.later", 10))).build());
 		merge.active = false;
@@ -118,6 +122,7 @@ public final class ProfilesScreen extends Screen {
 		duplicate.active = has;
 		delete.active = has;
 		export.active = has;
+		train.active = has;
 		prev.visible = page > 0;
 		next.visible = (page + 1) * perPage < all.size() + 1;
 		page = Math.min(page, all.size() / perPage);

@@ -77,6 +77,13 @@ public final class BrainProcess {
 		return p.process.waitFor();
 	}
 
+	/** Sends one line to the process's standard input (e.g. "stop" to the trainer). */
+	public void sendLine(String line) throws IOException {
+		var in = process.getOutputStream();
+		in.write((line + "\n").getBytes(StandardCharsets.UTF_8));
+		in.flush();
+	}
+
 	public boolean alive() {
 		return process.isAlive();
 	}
