@@ -176,7 +176,7 @@ public final class ProfileStore {
 				Stream<Path> files = Files.walk(dir)) {
 			for (Path p : files.filter(Files::isRegularFile).sorted().toList()) {
 				String rel = dir.relativize(p).toString().replace('\\', '/');
-				if (!includeMemories && rel.startsWith("memories/")) {
+				if (!includeMemories && rel.startsWith("memories/") || isTrainingOnly(rel)) {
 					continue;
 				}
 				zip.putNextEntry(new ZipEntry(rel));
@@ -185,6 +185,15 @@ public final class ProfileStore {
 			}
 		}
 		return out;
+	}
+
+	/**
+	 * Files only needed to continue training on this PC: the optimizer state (a pickle, which is
+	 * never loaded from someone else's file), the "latest" weights and half-written temp files.
+	 * They're left out of exports and skipped on import; the trained network ships as model.safetensors.
+	 */
+	static boolean isTrainingOnly(String rel) {
+		return rel.equals("core/optimizer.pt") || rel.equals("core/latest.safetensors") || rel.endsWith(".tmp");
 	}
 
 	/** Imports every .mgbot in {@code import/}, moving each into {@code import/done/}. */
@@ -209,7 +218,7 @@ public final class ProfileStore {
 			try (InputStream raw = Files.newInputStream(file); ZipInputStream zip = new ZipInputStream(raw)) {
 				ZipEntry entry;
 				while ((entry = zip.getNextEntry()) != null) {
-					if (entry.isDirectory()) {
+					if (entry.isDirectory() || isTrainingOnly(entry.getName())) {
 						continue;
 					}
 					Path target = tmp.resolve(entry.getName()).normalize();

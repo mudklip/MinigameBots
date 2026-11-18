@@ -118,7 +118,8 @@ class SequenceSampler:
     """
 
     def __init__(self, directories, length: int = 32, split: str = "train", holdout: float = 0.1,
-                 cache_chunks: int = 8, seed: int | None = None):
+                 cache_chunks: int = 8, seed: int | None = None, vpt_targets: bool = False):
+        self.vpt_targets = vpt_targets
         self.recordings = [Recording(d) for d in directories]
         self.length = length
         self.rng = random.Random(seed)
@@ -194,6 +195,12 @@ class SequenceSampler:
                 weights[i] = 0
         out = features.batch(feats)
         out.update({f"target_{k}": v for k, v in features.batch(targets).items()})
+        if self.vpt_targets:
+            from ..vpt import actions as vpt_actions
+
+            pairs = [vpt_actions.encode(chunk[start + i][0].get("input") or {}) for i in range(self.length)]
+            out["vpt_buttons"] = np.array([b for b, _ in pairs], dtype=np.int64)
+            out["vpt_camera"] = np.array([c for _, c in pairs], dtype=np.int64)
         out["frames"] = np.stack(frames)
         out["weight"] = weights
         out["camera_ok"] = camera_ok

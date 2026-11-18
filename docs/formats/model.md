@@ -9,6 +9,9 @@ Imitation training writes into the AI profile's `core/` folder:
 | `optimizer.pt` | Optimizer state for continuing training |
 | `model.json` | `arch` (`lite-v2`), `features` (input layout version, 2), `config`, `step`, `val_loss`, recordings used |
 
+`optimizer.pt` and `latest.safetensors` stay on the PC that trains: exports leave them out and
+imports skip them (the optimizer file is a pickle, which is never loaded from someone else's file).
+
 An AI trained with an older `arch` or `features` version can't be loaded by a newer brain; the
 Training screen then simply trains it again from its recordings.
 
@@ -39,3 +42,34 @@ keys plus cross-entropy on clicks and camera bins; camera loss is skipped on tel
 Ticks within 40 of a "mistake" mark are not imitated; ticks near "good" marks count double.
 AdamW, gradient clipping, fp16 on NVIDIA GPUs. Resource profiles cap CPU threads, batch size and
 pause between steps.
+
+## VPT base (`vpt-tune`)
+
+With "Base: VPT" in the Training screen, the AI is trained on top of an installed foundation
+model instead of the Lite network. `model.json` then holds `arch: "vpt-tune"`, `foundation`
+(e.g. `vpt-1x`), `foundation_size` and `trainable` (the layer-name prefixes it trained), and
+`model.safetensors` holds **only those layers** in float16: the last transformer block,
+`net.lastlayer`, `net.final_ln` and both action heads, about 23M parameters (45 MB) for 1x. The
+rest comes from the shared foundation, so the AI needs that foundation installed to play.
+
+VPT sees only the 128x128 picture. Each tick it picks one of 8641 button combinations (hotbar,
+forward/back, left/right, sprint/sneak, use, drop, attack, jump, camera on/off, or "inventory")
+and, if the camera is on, one of 121 camera moves (11 mu-law bins per axis, up to 10° per tick).
+Recorded inputs are mapped onto that numbering for training; pick-block and swap-offhand have
+no VPT button and are dropped. Training: same windows, marks and resource profiles as Lite,
+cross-entropy on the button combination and (on ticks where the camera moved) the camera move,
+AdamW at 5e-5, smaller batches.
+
+## Foundations (`.minecraft/minigamebots/foundations/<id>/`)
+
+| File | Content |
+|---|---|
+| `foundation.json` | `id`, `name`, `description`, `kind` (`vpt`), `size` (`1x`/`2x`), `sha256` of the original download, `sizeBytes`, `installed`; written last, so its presence means "installed" |
+| `model.safetensors` | All network weights in float16 |
+
+Installing (Brain > Foundations) downloads OpenAI's published `.weights` file, checks its
+SHA-256 against the pinned value, loads it with `torch.load(weights_only=True)` (tensors only, no
+code), checks every tensor name and shape against the network, and converts it. Downloads retry
+and resume on connection problems. The network code in `brain/minigamebots_brain/vpt/` is
+OpenAI's Video-Pre-Training code (MIT, license file alongside) with gym/MineRL removed; its output
+matches the original exactly.

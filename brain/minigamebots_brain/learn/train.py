@@ -3,7 +3,7 @@
 Run by the mod's Training screen as a separate process:
 
     python -m minigamebots_brain train --profile <dir> --recording <dir> [--recording <dir> ...]
-        [--steps N] [--resources quiet|balanced|max] [--fresh]
+        [--steps N] [--resources quiet|balanced|max] [--fresh] [--base lite|vpt --foundation <dir>]
 
 Progress is printed as one JSON object per line ({"type": "progress", ...}); the mod draws
 graphs from it. Writing "stop" to stdin finishes the current step, saves, and exits.
@@ -113,7 +113,7 @@ def train(profile: str, recordings: list, steps: int, resources: str = "balanced
     opt_path = os.path.join(checkpoint.core_dir(profile), "optimizer.pt")
     if info and os.path.isfile(opt_path):
         try:
-            optimizer.load_state_dict(torch.load(opt_path, map_location=device))
+            optimizer.load_state_dict(torch.load(opt_path, map_location=device, weights_only=True))
         except (RuntimeError, ValueError):
             emit("log", message="Optimizer state didn't match; starting it fresh")
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
@@ -197,9 +197,19 @@ def main(argv=None) -> int:
     p.add_argument("--resources", choices=sorted(RESOURCES), default="balanced")
     p.add_argument("--fresh", action="store_true")
     p.add_argument("--device")
+    p.add_argument("--base", choices=["lite", "vpt"], default="lite")
+    p.add_argument("--foundation", help="installed foundation folder (with --base vpt)")
     args = p.parse_args(argv)
     try:
-        train(args.profile, args.recording, args.steps, args.resources, args.fresh, args.device, StopFlag())
+        if args.base == "vpt":
+            from . import vpt_tune
+
+            if not args.foundation:
+                raise ValueError("Choose a foundation model to train on")
+            vpt_tune.train(args.profile, args.recording, args.steps, args.foundation, args.resources, args.fresh,
+                           args.device, StopFlag())
+        else:
+            train(args.profile, args.recording, args.steps, args.resources, args.fresh, args.device, StopFlag())
         return 0
     except (ValueError, FileNotFoundError) as e:
         emit("error", message=str(e))

@@ -105,8 +105,17 @@ public final class BrainManager {
 	public void playLearned(Minecraft client, io.github.mudklip.minigamebots.client.profile.ProfileManifest profile) {
 		JsonObject args = new JsonObject();
 		args.addProperty("profile", MinigameBotsClient.instance().profiles().store().dir(profile.id).toString());
+		args.addProperty("foundations", MinigameBotsClient.instance().profiles().foundations().root().toString());
 		args.addProperty("temperature", MgbConfig.get().predictability >= 1 ? 0.0 : 1.0 - MgbConfig.get().predictability);
 		play(client, "learned", args);
+	}
+
+	/** Plays with a foundation model as-is (no AI profile on top): mostly to see what it already knows. */
+	public void playFoundation(Minecraft client, String foundationId) {
+		JsonObject args = new JsonObject();
+		args.addProperty("foundation", MinigameBotsClient.instance().profiles().foundations().root().resolve(foundationId).toString());
+		args.addProperty("temperature", MgbConfig.get().predictability >= 1 ? 0.0 : 1.0 - MgbConfig.get().predictability);
+		play(client, "vpt", args);
 	}
 
 	/** Starts the brain (if needed) and hands it control with a policy and its arguments. */

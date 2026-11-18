@@ -4,6 +4,18 @@ from ..actions import Action
 from .base import Policy
 
 
+def create_learned(profile: str, temperature: float = 1.0, device: str | None = None, foundations: str | None = None):
+    """The right player for a trained AI: the Lite network, or VPT plus the AI's own layers."""
+    from ..learn import checkpoint
+
+    info = checkpoint.read_info(profile) or {}
+    if info.get("arch") == "vpt-tune":
+        from .vpt import VPTPolicy
+
+        return VPTPolicy(profile=profile, foundations=foundations, temperature=temperature, device=device)
+    return LearnedPolicy(profile, temperature, device)
+
+
 class LearnedPolicy(Policy):
     """Plays with the network trained for an AI profile (see learn/train.py).
 

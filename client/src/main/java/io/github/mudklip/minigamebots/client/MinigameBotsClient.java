@@ -60,6 +60,8 @@ public final class MinigameBotsClient implements ClientModInitializer {
 			new BrainRuntime(FabricLoader.getInstance().getGameDir().resolve("minigamebots")));
 	private final ProfileManager profiles = new ProfileManager(FabricLoader.getInstance().getGameDir().resolve("minigamebots"));
 	private final TrainingManager training = new TrainingManager(brain.runtime(), profiles.store(), recorder.store());
+	private final io.github.mudklip.minigamebots.client.profile.FoundationInstaller foundationInstaller =
+			new io.github.mudklip.minigamebots.client.profile.FoundationInstaller(brain.runtime(), profiles.foundations());
 	private volatile @Nullable Observation lastObservation;
 	private long tick;
 	private volatile boolean watching;
@@ -123,6 +125,10 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		return training;
 	}
 
+	public io.github.mudklip.minigamebots.client.profile.FoundationInstaller foundationInstaller() {
+		return foundationInstaller;
+	}
+
 	public ProfileManager profiles() {
 		return profiles;
 	}
@@ -160,6 +166,7 @@ public final class MinigameBotsClient implements ClientModInitializer {
 			recorder.stop(client);
 			brain.shutdown();
 			training.shutdown();
+			foundationInstaller.shutdown();
 		});
 		ClientTickEvents.END_CLIENT_TICK.register(this::endTick);
 		ClientLifecycleEvents.CLIENT_STARTED.register(client -> client.getSoundManager().addListener(sounds));

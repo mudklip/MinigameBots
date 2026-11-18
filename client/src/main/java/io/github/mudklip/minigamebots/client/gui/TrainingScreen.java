@@ -37,6 +37,9 @@ public final class TrainingScreen extends Screen {
 	private TrainingManager.Plan plan = TrainingManager.Plan.STANDARD;
 	private TrainingManager.Resources resources = TrainingManager.Resources.QUIET;
 	private boolean fresh;
+	/** null = Lite, else an installed foundation id. */
+	private @Nullable String base;
+	private final List<@Nullable String> bases = new ArrayList<>();
 	private @Nullable String error;
 	private int scroll;
 
@@ -60,6 +63,12 @@ public final class TrainingScreen extends Screen {
 		for (RecordingMeta r : recordings) {
 			chosen.add(r.id);
 		}
+		bases.add(null);
+		for (var f : MinigameBotsClient.instance().profiles().foundations().list()) {
+			bases.add(f.id);
+		}
+		// Keep training on whatever this AI was trained on before, if it's still installed.
+		base = bases.contains(profile.foundation) ? profile.foundation : null;
 	}
 
 	@Override
@@ -71,14 +80,18 @@ public final class TrainingScreen extends Screen {
 		int rx = listX + listW + 14;
 		int bw = Math.min(170, width - rx - 10);
 
+		addRenderableWidget(Button.builder(baseLabel(), b -> {
+			base = bases.get((bases.indexOf(base) + 1) % bases.size());
+			b.setMessage(baseLabel());
+		}).pos(rx, 48).width(bw / 2 - 2).tooltip(Tooltip.create(Component.translatable("minigamebots.training.base_help"))).build());
 		addRenderableWidget(Button.builder(planLabel(), b -> {
 			plan = TrainingManager.Plan.values()[(plan.ordinal() + 1) % TrainingManager.Plan.values().length];
 			b.setMessage(planLabel());
-		}).pos(rx, 48).width(bw).tooltip(Tooltip.create(Component.translatable("minigamebots.training.plan_help"))).build());
+		}).pos(rx, 72).width(bw).tooltip(Tooltip.create(Component.translatable("minigamebots.training.plan_help"))).build());
 		addRenderableWidget(Button.builder(resourcesLabel(), b -> {
 			resources = TrainingManager.Resources.values()[(resources.ordinal() + 1) % TrainingManager.Resources.values().length];
 			b.setMessage(resourcesLabel());
-		}).pos(rx, 72).width(bw).tooltip(Tooltip.create(Component.translatable("minigamebots.training.resources_help"))).build());
+		}).pos(rx + bw / 2 + 2, 48).width(bw / 2 - 2).tooltip(Tooltip.create(Component.translatable("minigamebots.training.resources_help"))).build());
 		boolean trainedBefore = Files.exists(MinigameBotsClient.instance().profiles().store().dir(profile.id)
 				.resolve("core/model.json"));
 		addRenderableWidget(Checkbox.builder(Component.translatable("minigamebots.training.fresh"), font)
@@ -105,6 +118,16 @@ public final class TrainingScreen extends Screen {
 		updateButtons();
 	}
 
+	private Component baseLabel() {
+		if (base == null) {
+			return Component.translatable("minigamebots.training.base", "Lite");
+		}
+		if (base.startsWith("vpt-")) {
+			return Component.translatable("minigamebots.training.base", "VPT " + base.substring(4));
+		}
+		return Component.translatable("minigamebots.training.base", base);
+	}
+
 	private Component planLabel() {
 		return Component.translatable("minigamebots.training.plan", plan.label, plan.steps);
 	}
@@ -116,7 +139,7 @@ public final class TrainingScreen extends Screen {
 	private void startTraining() {
 		List<RecordingMeta> picked = recordings.stream().filter(r -> chosen.contains(r.id)).toList();
 		try {
-			training.start(profile, picked, plan, resources, fresh);
+			training.start(profile, picked, plan, resources, fresh, base);
 			error = null;
 		} catch (IOException e) {
 			error = e.getMessage();
@@ -199,8 +222,14 @@ public final class TrainingScreen extends Screen {
 			if (training.busy()) {
 				line(g, x, y, "Another AI is training right now.", 0xFFFFC060, w);
 			} else {
-				g.textWithWordWrap(font, Component.translatable("minigamebots.training.help"), x, y, w, 0xFFB0B0B0);
-				// (Kept short so it never reaches the buttons at the bottom.)
+				// Only as many lines as fit above the buttons at the bottom.
+				for (var l : font.split(Component.translatable("minigamebots.training.help"), w)) {
+					if (y + 9 > height - 34) {
+						break;
+					}
+					g.text(font, l, x, y, 0xFFB0B0B0, false);
+					y += 9;
+				}
 			}
 			return;
 		}
@@ -255,7 +284,9 @@ public final class TrainingScreen extends Screen {
 	}
 
 	private int line(GuiGraphicsExtractor g, int x, int y, String text, int color, int w) {
-		g.text(font, font.plainSubstrByWidth(text, w), x, y, color, false);
+		if (y + 9 <= height - 34) { // Never draw over the buttons at the bottom.
+			g.text(font, font.plainSubstrByWidth(text, w), x, y, color, false);
+		}
 		return y + 11;
 	}
 

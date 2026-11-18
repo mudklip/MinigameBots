@@ -86,6 +86,9 @@ public final class TrainingManager {
 	private volatile double etaSeconds = Double.NaN;
 	private volatile String device = "";
 	private volatile int parameters;
+	/** Value of {@link ProfileManifest#foundation} for the Lite network. */
+	public static final String LITE = "lite-v1";
+	private volatile String base = LITE;
 	private final List<Point> points = new ArrayList<>();
 	private @Nullable BrainProcess process;
 
@@ -162,6 +165,15 @@ public final class TrainingManager {
 	/** Starts training {@code profile} on {@code chosen} recordings. */
 	public void start(ProfileManifest profile, List<RecordingMeta> chosen, Plan plan, Resources resources, boolean fresh)
 			throws IOException {
+		start(profile, chosen, plan, resources, fresh, null);
+	}
+
+	/**
+	 * Starts training; {@code foundationId} null trains the small Lite network from scratch,
+	 * otherwise the AI's own layers are trained on top of that installed foundation model.
+	 */
+	public void start(ProfileManifest profile, List<RecordingMeta> chosen, Plan plan, Resources resources, boolean fresh,
+			@Nullable String foundationId) throws IOException {
 		if (busy()) {
 			throw new IOException("Already training " + profileId);
 		}
@@ -182,6 +194,14 @@ public final class TrainingManager {
 		if (fresh) {
 			command.add("--fresh");
 		}
+		var foundations = MinigameBotsClient.instance().profiles().foundations();
+		if (foundationId != null) {
+			if (!foundations.has(foundationId)) {
+				throw new IOException("Install " + foundationId + " first (Brain > Foundations)");
+			}
+			command.addAll(List.of("--base", "vpt", "--foundation", foundations.root().resolve(foundationId).toString()));
+		}
+		base = foundationId == null ? LITE : foundationId;
 		synchronized (points) {
 			points.clear();
 		}
@@ -264,7 +284,7 @@ public final class TrainingManager {
 			p.stats.trainingHours += num(m, "hours");
 			p.stats.decisions = m.get("global_step").getAsLong();
 			p.stats.skills = Math.max(1, p.stats.skills);
-			p.foundation = "lite-v1";
+			p.foundation = base;
 			try {
 				profiles.save(p);
 			} catch (IOException e) {

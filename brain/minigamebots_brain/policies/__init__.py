@@ -6,9 +6,17 @@ before any learning exists. Learned brains plug in the same way.
 
 from .base import Policy
 from .follow import FollowPolicy
-from .learned import LearnedPolicy
+from .learned import LearnedPolicy, create_learned
 from .simple import IdlePolicy, RandomPolicy, SpinPolicy
 from .smoke import TorchSmokePolicy
+
+
+
+def _vpt(**kwargs) -> Policy:
+    from .vpt import VPTPolicy  # Imported on use: it needs torch.
+
+    return VPTPolicy(**kwargs)
+
 
 POLICIES = {
     "idle": IdlePolicy,
@@ -16,7 +24,8 @@ POLICIES = {
     "spin": SpinPolicy,
     "follow": FollowPolicy,
     "torch_smoke": TorchSmokePolicy,
-    "learned": LearnedPolicy,
+    "learned": create_learned,
+    "vpt": _vpt,
 }
 
 

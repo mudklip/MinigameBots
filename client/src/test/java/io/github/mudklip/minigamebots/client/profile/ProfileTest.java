@@ -195,4 +195,13 @@ class ProfileTest {
 		assertFalse(SkinFetcher.validName("../etc"));
 		assertEquals(SkinFetcher.Outcome.INVALID_NAME, new SkinFetcher().fetchBlocking("no spaces!", tmp.resolve("s.png")).outcome());
 	}
+
+	@Test
+	void trainingOnlyFilesStayOut() {
+		assertTrue(ProfileStore.isTrainingOnly("core/optimizer.pt"));
+		assertTrue(ProfileStore.isTrainingOnly("core/latest.safetensors"));
+		assertTrue(ProfileStore.isTrainingOnly("core/model.json.tmp"));
+		assertFalse(ProfileStore.isTrainingOnly("core/model.safetensors"));
+		assertFalse(ProfileStore.isTrainingOnly("core/model.json"));
+	}
 }
