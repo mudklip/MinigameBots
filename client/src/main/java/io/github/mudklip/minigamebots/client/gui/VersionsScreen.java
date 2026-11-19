@@ -55,13 +55,22 @@ public final class VersionsScreen extends Screen {
 					message = "Wait for training to finish first";
 					return;
 				}
-				try {
-					VersionHistory.revert(core, s.id);
-					message = "Went back to " + s.date + " (the version you had is saved too)";
-				} catch (IOException e) {
-					message = "Couldn't: " + e.getMessage();
-				}
-				rebuildWidgets();
+				minecraft.gui.setScreen(new DowngradeScreen(this, "This goes back to the " + skill + " network from " + s.date + ".", () -> {
+					try {
+						io.github.mudklip.minigamebots.client.profile.Backups.create(profileDir, "Before going back to " + s.date, false,
+								io.github.mudklip.minigamebots.client.profile.Backups.modVersion());
+					} catch (IOException e) {
+						message = "Backup failed: " + e.getMessage();
+					}
+				}, () -> {
+					try {
+						VersionHistory.revert(core, s.id);
+						message = "Went back to " + s.date + " (the version you had is saved too)";
+					} catch (IOException e) {
+						message = "Couldn't: " + e.getMessage();
+					}
+					minecraft.gui.setScreen(this);
+				}));
 			}).pos(width - 186, y).width(60).tooltip(Tooltip.create(Component.translatable("minigamebots.versions.revert_help"))).build());
 			addRenderableWidget(Button.builder(Component.literal(s.pinned ? "Pinned" : "Pin"), b -> {
 				try {

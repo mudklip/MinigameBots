@@ -45,6 +45,8 @@ public final class SkillsScreen extends Screen {
 	protected void init() {
 		Path dir = profileDir();
 		entries = dir == null ? List.of() : SkillStore.list(dir);
+		addRenderableWidget(Button.builder(Component.literal("Backups"), b -> minecraft.gui.setScreen(new BackupsScreen(this)))
+				.pos(width - 200, 6).width(56).build());
 		addRenderableWidget(Button.builder(Component.literal("Training Hub"), b -> minecraft.gui.setScreen(new HubScreen(this)))
 				.pos(width - 140, 6).width(76).build());
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(width - 60, 6).width(52).build());

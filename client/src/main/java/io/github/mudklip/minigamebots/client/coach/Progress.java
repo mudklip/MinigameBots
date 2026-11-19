@@ -66,6 +66,12 @@ public final class Progress {
 	}
 
 	/** The active AI's progress (loaded on demand), or null without an active AI. */
+	/** Reads the progress file again next time (it was restored from a backup). */
+	public static void forget() {
+		current = null;
+		currentId = "";
+	}
+
 	public static @Nullable Progress active() {
 		ProfileManifest p = MinigameBotsClient.instance().profiles().active();
 		if (p == null) {

@@ -39,7 +39,8 @@ public final class GuideScreen extends Screen {
 			Map.entry("QuestionScreen", "video"), Map.entry("GuideScreen", "start"),
 			Map.entry("SkillsScreen", "skills"), Map.entry("SkillEditorScreen", "skills"), Map.entry("AddSkillScreen", "skills"),
 			Map.entry("RulesScreen", "skills"), Map.entry("PickRuleScreen", "skills"), Map.entry("SkillAdvancedScreen", "skills"),
-			Map.entry("ItemPickerScreen", "skills"), Map.entry("HubScreen", "hub"));
+			Map.entry("ItemPickerScreen", "skills"), Map.entry("HubScreen", "hub"),
+			Map.entry("BackupsScreen", "backups"), Map.entry("DowngradeScreen", "backups"));
 
 	private static final int LIST_W = 110;
 	private static final int LINE = 11;

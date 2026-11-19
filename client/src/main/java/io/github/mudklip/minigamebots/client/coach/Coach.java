@@ -122,6 +122,7 @@ public final class Coach {
 			return "This skill practises in Training Grounds (the training mod): add it to this world, or set Where to \"Nothing\"";
 		}
 		stop("");
+		io.github.mudklip.minigamebots.client.profile.Backups.auto(mgb.profiles().store().dir(p.id), "Before practising " + def.name);
 		skillId = id;
 		skillName = def.name;
 		minutes = budgetMinutes;
@@ -230,6 +231,7 @@ public final class Coach {
 			return "PvP and Aim need Training Grounds (the training mod) in this world";
 		}
 		stop("");
+		io.github.mudklip.minigamebots.client.profile.Backups.auto(mgb.profiles().store().dir(p.id), "Before coaching " + g.label);
 		goal = g;
 		minutes = budgetMinutes;
 		endAt = System.currentTimeMillis() + budgetMinutes * 60_000L;

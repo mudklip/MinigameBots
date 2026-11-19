@@ -26,6 +26,9 @@ and open **Guide**: a getting-started checklist and short pages for every featur
   self-play against its past versions, and multi-world training (many arenas at once).
 - **Learn from others:** gameplay videos (Video Lab, with an input guesser and a Question
   Queue) and other players seen in your recordings or Flashback replays.
+- **Skills, one by one:** 36 ready-made skills plus your own; choose what each is rewarded
+  for, which actions it may not use, its stages, hints and learning speed.
+- **Backups:** of the whole AI; go back completely or only for some parts (e.g. one network).
 - **Play on its own:** goals and a Manager (hunt, mine, explore, follow, protect...), free play,
   memory (waypoints, allies and enemies by banner/shield insignia), built-in Minecraft knowledge.
 - **Stay human and safe:** humanizer limits, a realism critic and your style picks, protected

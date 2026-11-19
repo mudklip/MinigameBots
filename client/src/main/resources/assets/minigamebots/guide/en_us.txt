@@ -218,6 +218,20 @@ Every skill your AI can learn has its own card: [F10] > [Skills], or [Skills...]
 # Advanced
 [Advanced...] has the finer settings: its own network or the shared one, learning speed, exploration, how close to stay to its demo behaviour, a teacher for its first lessons, a target creature, adding or removing stages. [Every detail...] on the rewards screen opens the full rule editor (conditions, caps, cooldowns, forgiving).
 
+=== backups | Backups
+A backup is a copy of the whole AI: every network (what it learned), skill settings and stages, levels and exams, memory, your objectives, and its name, skin and character. Open [Backups...] in the Training Hub or the Skills screen.
+
+# Make one
+- Press [+ Back up now] whenever you like (say, before trying something risky).
+- One is also made by itself before coaching or practising, at most every few hours. The last 5 automatic ones are kept; press [Keep] on any backup to keep it forever.
+
+# Go back
+1. Click a backup on the left.
+2. To go back completely, press [Bring back everything].
+3. To bring back only some parts, untick the rest, then press [Bring back ticked parts]. For example, tick only [Network: combat] to undo bad combat practice and keep everything else.
+! Going back to an older version replaces what it learned since then. You'll be asked first, with the option to [Back up first, then go back], so you can always return to how it is now. It never stops you.
+> The network history in [Advanced] > [Versions] works the same way for a single network, and warns the same way.
+
 === goals | Goals
 The Manager decides what to do moment to moment, using the AI's skills.
 

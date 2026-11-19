@@ -88,7 +88,10 @@ public final class HubScreen extends Screen {
 				}
 			}
 			rebuildWidgets();
-		}).pos(rx + 6, by + 24).width(Math.min(196, rw - 12)).build());
+		}).pos(rx + 6, by + 24).width(Math.min(130, rw - 84)).build());
+		addRenderableWidget(Button.builder(Component.literal("Backups..."), b -> minecraft.gui.setScreen(new BackupsScreen(this)))
+				.pos(rx + 10 + Math.min(130, rw - 84), by + 24).width(66).tooltip(Tooltip.create(Component.literal("Back up the whole AI, "
+						+ "or go back to an earlier backup (all of it, or only some parts)"))).build());
 	}
 
 	@Override

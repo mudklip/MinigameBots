@@ -5,6 +5,7 @@
 	"name": "MinigameBots Training Grounds",
 	"description": "Training rooms for MinigameBots AIs: arenas, instant resets, practice targets, drills and opponents. Runs on servers and in singleplayer.",
 	"authors": ["mudklip"],
+	"icon": "assets/minigamebots-training/icon.png",
 	"contact": {
 		"sources": "https://github.com/mudklip/MinigameBots"
 	},
