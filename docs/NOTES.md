@@ -50,6 +50,14 @@
   what it sees (wins, hits landed vs taken, combos), weight their moments by outcome and by
   that rating, and keep only what worked. Must be easy to understand: one switch, a live
   "learned from N fights, M players" readout. Builds on Watch & learn.
+- **Long goals (manhunt, "kill many players"):** a strategist layer above the Manager that
+  decides every 30-60 s from long-term memory (gear up, hunt the target, retreat and heal,
+  ambush, pick winnable fights); rules first, later learned in sped-up whole-session games
+  (instant modes such as "Manhunt vs bots" and free-for-all survival with bot players). The mind
+  may suggest plans.
+- **Insignia trust:** trust per shield/banner insignia that drops on real attacks by its wearers
+  (more for several different betrayers), suspicious wearers with a bad history, trusted ->
+  careful -> enemy, slow recovery, shown in the Memory screen with the reason and a reset.
 - Auto curriculum, per-skill rating graphs, thought overlay, replay with thoughts, global
   "never do" list and rules of conduct, server profiles, sharing skills/AIs, performance
   guard, menu-minigame skill type, more arena types (bridge, void, parkour, mining, farm,
