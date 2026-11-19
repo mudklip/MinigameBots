@@ -85,6 +85,7 @@ public final class AgentControl {
 			return;
 		}
 		active = false;
+		ActionLocks.clear();
 		input.releaseAll(client);
 		humanizer.reset();
 		camera.reset();
@@ -133,7 +134,7 @@ public final class AgentControl {
 		}
 		AgentAction action = source.next(client);
 		humanizer.submit(action, source.decisionTick(tick));
-		lastInput = Autonomy.filter(client, humanizer.tick(tick));
+		lastInput = ActionLocks.filter(Autonomy.filter(client, humanizer.tick(tick)));
 		input.apply(client, lastInput);
 		camera.beginTick(client, lastInput.yaw(), lastInput.pitch());
 		tick++;

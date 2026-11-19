@@ -41,14 +41,30 @@ class PracticePolicy(Policy):
     FREE_PLAY_TRY_TICKS = 60 * 20
 
     def __init__(self, profile: str, objective="duel", params: dict | None = None, learn: bool = True,
-                 stay_human: float = 0.05, resources: str = "balanced", device: str | None = None, **_):
+                 stay_human: float = 0.05, resources: str = "balanced", device: str | None = None,
+                 skill_def: dict | None = None, stage_dir: str | None = None, **_):
         from ..learn import checkpoint
         from ..learn.model import LitePolicy
         from ..rl import objective as obj
         from ..rl.ppo import PPOLearner
 
+        from ..learn.actions import KEY_INDEX
+        from ..rl import skills
+
         self.profile = profile
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        # A skill (Phase A): its rules and current stage's hints, locks and learning speed.
+        self.skill = skill_def
+        self.tracker = None
+        self.behaviours = skills.Behaviours(skill_def)
+        self.prev_action = None
+        self.key_mask, self.camera_lock = [], False
+        if skill_def:
+            self.tracker = skills.StageTracker(stage_dir or profile, skill_def)
+            objective = skills.build_objective(skill_def, self.tracker.stage)
+            keys, self.camera_lock = skills.locked_keys(skill_def)
+            self.key_mask = [KEY_INDEX[k] for k in keys if k in KEY_INDEX]
+            stay_human = skills.learning(skill_def, self.tracker.stage)["stay_human"]
         self.objective = load_objective(profile, objective, params)
         self.engine = obj.RewardEngine(self.objective)
         self.warnings = obj.analyze(self.objective)
@@ -70,6 +86,9 @@ class PracticePolicy(Policy):
         self.learn = bool(learn)
         self.learner = PPOLearner(model, prior, self.device, rollout=res["rollout"], threads=res["threads"],
                                   stay_human=float(stay_human)) if self.learn else None
+        if self.learner is not None and skill_def:
+            self.learner.mask = self._mask
+            self.learner.set_learning(**skills.learning(skill_def, self.tracker.stage))
         self.state = None
         self.decisions = 0
         self.episodes = 0
@@ -91,7 +110,8 @@ class PracticePolicy(Policy):
     def act(self, obs, frame):
         from ..rl import ppo
 
-        events = obs.get("_events") or []
+        events = list(obs.get("_events") or [])
+        events += self.behaviours.events(obs, self.prev_action, events)
         tick = int(obs.get("tick", self.decisions))
         res = self.engine.step(tick, events, obs)
         if self.learner is not None:
@@ -113,6 +133,8 @@ class PracticePolicy(Policy):
                     self.learner.reward_at(t, amount)
             self.episodes += 1
             self.returns.append(self.engine.last_episode_return)
+            if self.tracker is not None and self.learn and self.tracker.episode(self.engine.last_episode_return):
+                self._next_stage()
             if self.learner is not None and ended:
                 self.learner.end_episode()
         if obs.get("self", {}).get("dead"):
@@ -124,6 +146,7 @@ class PracticePolicy(Policy):
         hidden = self.state if self.state is not None else self.model.initial_state(1, self.device)
         with torch.no_grad():
             logits, self.state = self.model(batch, hidden)
+            logits = self._mask(logits)
             idx = ppo.sample(logits, greedy=not self.learn)
             act = ppo.encode_sample(idx)
             logp = float(ppo.log_prob({k: v for k, v in logits.items()},
@@ -139,7 +162,26 @@ class PracticePolicy(Policy):
                 self._maybe_save()
         action = ppo.decode(idx)
         self._realism_reward(action)
+        self.prev_action = action
         return action
+
+    def _mask(self, logits):
+        from ..rl import skills
+
+        return skills.mask_logits(logits, self.key_mask, self.camera_lock)
+
+    def _next_stage(self):
+        """The skill moved on: new hints and a new learning speed, same network."""
+        from ..rl import objective as obj
+        from ..rl import skills
+
+        self.objective = skills.build_objective(self.skill, self.tracker.stage)
+        budget = self.engine.budget_weight
+        self.engine = obj.RewardEngine(self.objective)
+        if len(budget) == len(self.engine.budget_weight):
+            self.engine.budget_weight = budget
+        if self.learner is not None:
+            self.learner.set_learning(**skills.learning(self.skill, self.tracker.stage))
 
     REALISM_WEIGHT = 0.05
     STYLE_WEIGHT = 0.05
@@ -186,6 +228,10 @@ class PracticePolicy(Policy):
         out = {"objective": self.objective.get("name"), "episodes": self.episodes, "avg_return": avg,
                "last_return": self.returns[-1] if self.returns else None, "device": self.device,
                "warnings": self.warnings, "human_score": self.human}
+        if self.tracker is not None:
+            st = (self.skill.get("stages") or [{}])[self.tracker.stage] if self.skill.get("stages") else {}
+            out.update({"stage": self.tracker.stage, "stage_name": st.get("name", ""),
+                        "stage_episodes": self.tracker.data["episodes"]})
         if self.learner is not None:
             out.update({"updates": self.learner.updates, "learning": self.learner.busy(),
                         "collected": len(self.learner.buffer), "rollout": self.learner.rollout_len,

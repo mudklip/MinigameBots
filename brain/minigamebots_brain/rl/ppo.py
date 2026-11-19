@@ -127,6 +127,17 @@ class PPOLearner:
         self.updates = 0
         self.last_stats = {}
         self.ret_var = 1.0  # Running variance of returns, to keep the value scale sane.
+        self.mask = None  # Skills: makes locked actions impossible (logits -> logits).
+
+    def set_learning(self, lr=None, stay_human=None, entropy=None):
+        """Changes how fast it learns (a skill moving to its next stage)."""
+        if lr is not None:
+            for g in self.optimizer.param_groups:
+                g["lr"] = float(lr)
+        if stay_human is not None:
+            self.stay_human = float(stay_human)
+        if entropy is not None:
+            self.entropy_coef = float(entropy)
 
     # --- acting side ---
 
@@ -218,6 +229,8 @@ class PPOLearner:
                 batch = to_tensors({k: v[idx] for k, v in stacked.items()}, dev)
                 act = {k: v[idx].to(dev) for k, v in acts.items()}
                 logits, _ = self.learner(batch, h0[:, idx].to(dev))
+                if self.mask is not None:
+                    logits = self.mask(logits)
                 lp = log_prob(logits, act)
                 ratio = torch.exp(lp - old_logp[idx].to(dev))
                 a = adv_t[idx].to(dev)
@@ -229,6 +242,8 @@ class PPOLearner:
                 if self.prior is not None and self.stay_human > 0:
                     with torch.no_grad():
                         prior_logits, _ = self.prior(batch, None)
+                        if self.mask is not None:
+                            prior_logits = self.mask(prior_logits)
                     kl_p = kl(logits, prior_logits).mean()
                     loss = loss + self.stay_human * kl_p
                 self.optimizer.zero_grad(set_to_none=True)

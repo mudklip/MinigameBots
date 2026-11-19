@@ -1,0 +1,2884 @@
+{
+ "categories": [
+  "Combat",
+  "Movement",
+  "Mining",
+  "Building",
+  "Farming",
+  "Survival",
+  "Inventory",
+  "Custom"
+ ],
+ "speeds": {
+  "copy": {
+   "label": "Copy all",
+   "help": "Learns very fast: picks up anything it sees or is rewarded for",
+   "lr": 4.0,
+   "stay_human": 0.0
+  },
+  "fast": {
+   "label": "Fast",
+   "help": "Quick learning, some risk of forgetting",
+   "lr": 2.0,
+   "stay_human": 0.02
+  },
+  "normal": {
+   "label": "Normal",
+   "help": "Balanced",
+   "lr": 1.0,
+   "stay_human": 0.05
+  },
+  "careful": {
+   "label": "Careful",
+   "help": "Small changes; keeps what it knows",
+   "lr": 0.5,
+   "stay_human": 0.1
+  },
+  "slow": {
+   "label": "Slow",
+   "help": "Polishing: tiny changes only",
+   "lr": 0.25,
+   "stay_human": 0.15
+  }
+ },
+ "locks": {
+  "move": {
+   "label": "Walk",
+   "keys": [
+    "forward",
+    "back",
+    "left",
+    "right",
+    "sprint"
+   ]
+  },
+  "jump": {
+   "label": "Jump",
+   "keys": [
+    "jump"
+   ]
+  },
+  "sneak": {
+   "label": "Sneak",
+   "keys": [
+    "sneak"
+   ]
+  },
+  "camera": {
+   "label": "Turn",
+   "keys": []
+  },
+  "attack": {
+   "label": "Attack",
+   "keys": [
+    "attack"
+   ]
+  },
+  "use": {
+   "label": "Use",
+   "keys": [
+    "use"
+   ]
+  },
+  "hotbar": {
+   "label": "Hotbar",
+   "keys": [
+    "hotbar_1",
+    "hotbar_2",
+    "hotbar_3",
+    "hotbar_4",
+    "hotbar_5",
+    "hotbar_6",
+    "hotbar_7",
+    "hotbar_8",
+    "hotbar_9"
+   ]
+  },
+  "inventory": {
+   "label": "Inventory",
+   "keys": [
+    "inventory"
+   ]
+  },
+  "drop": {
+   "label": "Drop",
+   "keys": [
+    "drop"
+   ]
+  },
+  "offhand": {
+   "label": "Offhand",
+   "keys": [
+    "swap_offhand"
+   ]
+  },
+  "pick": {
+   "label": "Pick block",
+   "keys": [
+    "pick"
+   ]
+  }
+ },
+ "setups": {
+  "none": "Where you are",
+  "dummy": "Arena + dummy",
+  "duel:L3": "Duel: level 3",
+  "duel:L4": "Duel: level 4",
+  "duel:godly": "Duel: best bot",
+  "duel:league": "Duel: league",
+  "aim:flick": "Aim: flicks",
+  "aim:track": "Aim: tracking"
+ },
+ "behaviours": {
+  "hold_break": "Keeps holding break on a block",
+  "early_release": "Lets go of break before the block breaks",
+  "aim_on_target": "Crosshair on the target",
+  "face_target": "Facing the target",
+  "approach_target": "Closing in on the target",
+  "keep_range": "At good fighting distance",
+  "sprinting": "Sprinting",
+  "moving": "Covering ground",
+  "new_area": "Reaching a new area",
+  "idle": "Standing still doing nothing",
+  "wasted_swing": "Swinging before the attack recharged",
+  "falling_hit": "Hitting while falling (crit)",
+  "sprint_hit": "Hitting while sprinting",
+  "axe_on_shield": "Axe hit on a raised shield",
+  "best_weapon": "Holding the best weapon near a target",
+  "shield_up": "Shield up while an enemy swings nearby",
+  "blocked_hit": "Blocking a hit with the shield",
+  "bow_drawn": "Drawing a bow at a target",
+  "hit_ally": "Hitting an ally",
+  "look_level": "Looking ahead",
+  "look_down": "Looking down",
+  "going_up": "Gaining height",
+  "sneak_edge": "Sneaking at a ledge",
+  "drowning": "Running out of air",
+  "swim_up": "Swimming up when low on air",
+  "in_lava": "Standing in lava",
+  "eat_when_hungry": "Eating while hungry",
+  "ate": "Finished eating something",
+  "starving": "Starving",
+  "escape": "Getting away from danger",
+  "hotbar_tidy": "Useful hotbar (weapon, food, blocks, tools)",
+  "inventory_open": "Opening the inventory",
+  "menu_time": "Time spent in menus"
+ },
+ "events": {
+  "kill": "Kills something",
+  "damage_dealt": "Deals damage",
+  "damage_taken": "Takes damage",
+  "death": "Dies",
+  "block_broken": "Breaks a block",
+  "block_placed": "Places a block",
+  "item_gained": "Gets an item",
+  "item_lost": "Loses an item",
+  "healed": "Heals",
+  "hunger_changed": "Food level changes",
+  "xp_gained": "Gains XP",
+  "attack": "Attacks",
+  "second": "Every second",
+  "tg_episode_end": "Round ends",
+  "tg_aim_hit": "Aim target hit",
+  "tg_aim_result": "Aim session result"
+ },
+ "skills": {
+  "sword_pvp": {
+   "name": "Sword PvP",
+   "icon": "minecraft:diamond_sword",
+   "category": "Combat",
+   "help": "Win sword duels: hit first, hit often, don't get comboed.",
+   "setup": "duel:godly",
+   "manager": "combat",
+   "locks": [
+    "inventory",
+    "drop",
+    "pick"
+   ],
+   "rules": [
+    {
+     "event": "tg_episode_end",
+     "value": 10,
+     "note": "round won",
+     "where": {
+      "result": "win"
+     },
+     "tier": 1
+    },
+    {
+     "event": "tg_episode_end",
+     "value": -5,
+     "note": "round lost",
+     "where": {
+      "result": "loss"
+     },
+     "tier": 1
+    },
+    {
+     "event": "kill",
+     "value": 3,
+     "note": "kill",
+     "tier": 1
+    },
+    {
+     "event": "damage_dealt",
+     "value": 0.15,
+     "note": "hit",
+     "per": "amount",
+     "tier": 2
+    },
+    {
+     "event": "damage_taken",
+     "value": -0.05,
+     "note": "got hit",
+     "per": "amount",
+     "tier": 3
+    },
+    {
+     "event": "death",
+     "value": -3,
+     "note": "died",
+     "tier": 1
+    },
+    {
+     "event": "b:wasted_swing",
+     "value": -0.01,
+     "note": "swinging before recharge",
+     "per": "units",
+     "tier": 3
+    },
+    {
+     "event": "b:idle",
+     "value": -0.002,
+     "note": "standing still doing nothing",
+     "per": "units",
+     "tier": 4
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:face_target",
+       "value": 0.004,
+       "note": "facing the target",
+       "per": "units"
+      },
+      {
+       "event": "b:approach_target",
+       "value": 0.05,
+       "note": "closing in",
+       "per": "units"
+      },
+      {
+       "event": "b:aim_on_target",
+       "value": 0.005,
+       "note": "crosshair on the target",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [
+      {
+       "event": "b:face_target",
+       "value": 0.002,
+       "note": "facing the target",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ],
+   "teacher": "pvp"
+  },
+  "crits": {
+   "name": "Critical hits",
+   "icon": "minecraft:nether_star",
+   "category": "Combat",
+   "help": "Jump and hit on the way down for 1.5x damage.",
+   "setup": "dummy",
+   "manager": "combat",
+   "locks": [
+    "inventory",
+    "drop",
+    "pick"
+   ],
+   "rules": [
+    {
+     "event": "b:falling_hit",
+     "value": 0.3,
+     "note": "hit while falling (crit)",
+     "per": "units",
+     "tier": 1
+    },
+    {
+     "event": "damage_dealt",
+     "value": 0.1,
+     "note": "hit",
+     "per": "amount",
+     "tier": 2
+    },
+    {
+     "event": "b:wasted_swing",
+     "value": -0.02,
+     "note": "swinging before recharge",
+     "per": "units",
+     "tier": 3
+    },
+    {
+     "event": "death",
+     "value": -3,
+     "note": "died",
+     "tier": 1
+    },
+    {
+     "event": "b:idle",
+     "value": -0.002,
+     "note": "standing still doing nothing",
+     "per": "units",
+     "tier": 4
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:face_target",
+       "value": 0.004,
+       "note": "facing the target",
+       "per": "units"
+      },
+      {
+       "event": "b:approach_target",
+       "value": 0.05,
+       "note": "closing in",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ],
+   "teacher": "pvp"
+  },
+  "wtap": {
+   "name": "W-tapping",
+   "icon": "minecraft:leather_boots",
+   "category": "Combat",
+   "help": "Sprint-reset between hits for extra knockback.",
+   "setup": "dummy",
+   "manager": "combat",
+   "locks": [
+    "inventory",
+    "drop",
+    "pick"
+   ],
+   "rules": [
+    {
+     "event": "b:sprint_hit",
+     "value": 0.3,
+     "note": "sprinting hit",
+     "per": "units",
+     "tier": 1
+    },
+    {
+     "event": "damage_dealt",
+     "value": 0.1,
+     "note": "hit",
+     "per": "amount",
+     "tier": 2
+    },
+    {
+     "event": "death",
+     "value": -3,
+     "note": "died",
+     "tier": 1
+    },
+    {
+     "event": "b:idle",
+     "value": -0.002,
+     "note": "standing still doing nothing",
+     "per": "units",
+     "tier": 4
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:face_target",
+       "value": 0.004,
+       "note": "facing the target",
+       "per": "units"
+      },
+      {
+       "event": "b:approach_target",
+       "value": 0.05,
+       "note": "closing in",
+       "per": "units"
+      },
+      {
+       "event": "b:sprinting",
+       "value": 0.002,
+       "note": "sprinting",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ],
+   "teacher": "pvp"
+  },
+  "axe_shield": {
+   "name": "Axe vs shields",
+   "icon": "minecraft:iron_axe",
+   "category": "Combat",
+   "help": "Switch to an axe when they block, break the shield, switch back.",
+   "setup": "dummy",
+   "manager": "combat",
+   "locks": [
+    "inventory",
+    "drop",
+    "pick"
+   ],
+   "rules": [
+    {
+     "event": "b:axe_on_shield",
+     "value": 0.5,
+     "note": "axe hit on a raised shield",
+     "per": "units",
+     "tier": 1
+    },
+    {
+     "event": "damage_dealt",
+     "value": 0.1,
+     "note": "hit",
+     "per": "amount",
+     "tier": 2
+    },
+    {
+     "event": "b:wasted_swing",
+     "value": -0.01,
+     "note": "swinging before recharge",
+     "per": "units",
+     "tier": 3
+    },
+    {
+     "event": "death",
+     "value": -3,
+     "note": "died",
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:face_target",
+       "value": 0.004,
+       "note": "facing the target",
+       "per": "units"
+      },
+      {
+       "event": "b:approach_target",
+       "value": 0.05,
+       "note": "closing in",
+       "per": "units"
+      },
+      {
+       "event": "b:best_weapon",
+       "value": 0.003,
+       "note": "right weapon in hand",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ],
+   "teacher": "pvp"
+  },
+  "shield_block": {
+   "name": "Shield blocking",
+   "icon": "minecraft:shield",
+   "category": "Combat",
+   "help": "Raise the shield when hits are coming, lower it to strike back.",
+   "setup": "duel:L3",
+   "manager": "combat",
+   "locks": [
+    "inventory",
+    "drop",
+    "pick"
+   ],
+   "rules": [
+    {
+     "event": "b:blocked_hit",
+     "value": 0.4,
+     "note": "blocked a hit",
+     "per": "units",
+     "tier": 1
+    },
+    {
+     "event": "damage_taken",
+     "value": -0.1,
+     "note": "got hit",
+     "per": "amount",
+     "tier": 2
+    },
+    {
+     "event": "damage_dealt",
+     "value": 0.1,
+     "note": "hit back",
+     "per": "amount",
+     "tier": 2
+    },
+    {
+     "event": "death",
+     "value": -3,
+     "note": "died",
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:shield_up",
+       "value": 0.004,
+       "note": "shield up while an enemy swings close by",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "weapon_swap": {
+   "name": "Weapon switching",
+   "icon": "minecraft:golden_sword",
+   "category": "Combat",
+   "help": "Use the best of several weapons for each moment (works it out by itself in Mastery).",
+   "setup": "duel:L4",
+   "manager": "combat",
+   "locks": [
+    "inventory",
+    "drop",
+    "pick"
+   ],
+   "rules": [
+    {
+     "event": "damage_dealt",
+     "value": 0.2,
+     "note": "damage dealt",
+     "per": "amount",
+     "tier": 1
+    },
+    {
+     "event": "kill",
+     "value": 3,
+     "note": "kill",
+     "tier": 1
+    },
+    {
+     "event": "death",
+     "value": -3,
+     "note": "died",
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "fast",
+     "shaping": [
+      {
+       "event": "b:best_weapon",
+       "value": 0.004,
+       "note": "best weapon in hand",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 20
+     }
+    },
+    {
+     "name": "Self-discovery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "No hints: finds out which weapon works when"
+    }
+   ]
+  },
+  "aim_flick": {
+   "name": "Aim: flicks",
+   "icon": "minecraft:target",
+   "category": "Combat",
+   "help": "Snap onto targets fast and click them.",
+   "setup": "aim:flick",
+   "manager": "combat",
+   "locks": [
+    "move",
+    "jump",
+    "sneak",
+    "use",
+    "hotbar",
+    "inventory",
+    "drop",
+    "offhand",
+    "pick"
+   ],
+   "rules": [
+    {
+     "event": "tg_aim_hit",
+     "value": 1,
+     "note": "target hit",
+     "tier": 1
+    },
+    {
+     "event": "tg_aim_result",
+     "value": 5,
+     "note": "accuracy at the end",
+     "per": "accuracy",
+     "tier": 1
+    },
+    {
+     "event": "b:wasted_swing",
+     "value": -0.02,
+     "note": "missed click",
+     "per": "units",
+     "tier": 3
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:face_target",
+       "value": 0.01,
+       "note": "turning onto the target",
+       "per": "units"
+      },
+      {
+       "event": "b:aim_on_target",
+       "value": 0.02,
+       "note": "crosshair on the target",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "aim_track": {
+   "name": "Aim: tracking",
+   "icon": "minecraft:spyglass",
+   "category": "Combat",
+   "help": "Keep the crosshair on a moving target.",
+   "setup": "aim:track",
+   "manager": "combat",
+   "locks": [
+    "move",
+    "jump",
+    "sneak",
+    "use",
+    "hotbar",
+    "inventory",
+    "drop",
+    "offhand",
+    "pick"
+   ],
+   "rules": [
+    {
+     "event": "b:aim_on_target",
+     "value": 0.02,
+     "note": "crosshair on the target",
+     "per": "units",
+     "tier": 1
+    },
+    {
+     "event": "tg_aim_hit",
+     "value": 0.5,
+     "note": "target hit",
+     "tier": 2
+    },
+    {
+     "event": "tg_aim_result",
+     "value": 5,
+     "note": "tracking at the end",
+     "per": "tracking",
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:face_target",
+       "value": 0.01,
+       "note": "facing the target",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "bow": {
+   "name": "Archery",
+   "icon": "minecraft:bow",
+   "category": "Combat",
+   "help": "Draw, lead and release arrows into targets.",
+   "setup": "dummy",
+   "manager": "combat",
+   "locks": [
+    "inventory",
+    "drop",
+    "pick"
+   ],
+   "rules": [
+    {
+     "event": "damage_dealt",
+     "value": 0.3,
+     "note": "arrow hit",
+     "per": "amount",
+     "tier": 1
+    },
+    {
+     "event": "kill",
+     "value": 3,
+     "note": "kill",
+     "tier": 1
+    },
+    {
+     "event": "death",
+     "value": -3,
+     "note": "died",
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:face_target",
+       "value": 0.005,
+       "note": "facing the target",
+       "per": "units"
+      },
+      {
+       "event": "b:bow_drawn",
+       "value": 0.002,
+       "note": "drawing the bow at a target",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "mob_fighting": {
+   "name": "Fighting mobs",
+   "icon": "minecraft:zombie_head",
+   "category": "Combat",
+   "help": "Clear hostile mobs without dying.",
+   "setup": "none",
+   "manager": "combat",
+   "locks": [
+    "inventory",
+    "drop",
+    "pick"
+   ],
+   "rules": [
+    {
+     "event": "kill",
+     "value": 2,
+     "note": "kill",
+     "where": {
+      "target": {
+       "contains": "zombie"
+      }
+     },
+     "tier": 1
+    },
+    {
+     "event": "kill",
+     "value": 1.5,
+     "note": "any kill",
+     "tier": 1
+    },
+    {
+     "event": "damage_dealt",
+     "value": 0.05,
+     "note": "hit",
+     "per": "amount",
+     "tier": 2
+    },
+    {
+     "event": "damage_taken",
+     "value": -0.05,
+     "note": "hurt",
+     "per": "amount",
+     "tier": 3
+    },
+    {
+     "event": "death",
+     "value": -3,
+     "note": "died",
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:face_target",
+       "value": 0.004,
+       "note": "facing the target",
+       "per": "units"
+      },
+      {
+       "event": "b:approach_target",
+       "value": 0.05,
+       "note": "closing in",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "team_fight": {
+   "name": "Team fights",
+   "icon": "minecraft:white_banner",
+   "category": "Combat",
+   "help": "Fight alongside allies: focus the same enemy, don't hit friends.",
+   "setup": "duel:league",
+   "manager": "combat",
+   "locks": [
+    "inventory",
+    "drop",
+    "pick"
+   ],
+   "rules": [
+    {
+     "event": "tg_episode_end",
+     "value": 10,
+     "note": "round won",
+     "where": {
+      "result": "win"
+     },
+     "tier": 1
+    },
+    {
+     "event": "kill",
+     "value": 3,
+     "note": "kill",
+     "tier": 1
+    },
+    {
+     "event": "damage_dealt",
+     "value": 0.1,
+     "note": "hit",
+     "per": "amount",
+     "tier": 2
+    },
+    {
+     "event": "b:hit_ally",
+     "value": -0.5,
+     "note": "hit an ally",
+     "per": "units",
+     "tier": 1
+    },
+    {
+     "event": "death",
+     "value": -3,
+     "note": "died",
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:face_target",
+       "value": 0.004,
+       "note": "facing the target",
+       "per": "units"
+      },
+      {
+       "event": "b:approach_target",
+       "value": 0.05,
+       "note": "closing in",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "sprinting": {
+   "name": "Sprinting",
+   "icon": "minecraft:sugar",
+   "category": "Movement",
+   "help": "Get places fast: sprint, sprint-jump, don't stop.",
+   "setup": "none",
+   "manager": "travel",
+   "locks": [
+    "attack",
+    "use",
+    "inventory",
+    "drop",
+    "hotbar"
+   ],
+   "rules": [
+    {
+     "event": "b:moving",
+     "value": 0.01,
+     "note": "ground covered",
+     "per": "units",
+     "tier": 1
+    },
+    {
+     "event": "b:sprinting",
+     "value": 0.003,
+     "note": "sprinting",
+     "per": "units",
+     "tier": 2
+    },
+    {
+     "event": "b:idle",
+     "value": -0.002,
+     "note": "standing still doing nothing",
+     "per": "units",
+     "tier": 4
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:look_level",
+       "value": 0.002,
+       "note": "looking ahead",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ],
+   "teacher": "baritone:TRAVEL"
+  },
+  "parkour": {
+   "name": "Parkour",
+   "icon": "minecraft:slime_block",
+   "category": "Movement",
+   "help": "Jump gaps and climb without falling.",
+   "setup": "none",
+   "manager": "travel",
+   "locks": [
+    "attack",
+    "use",
+    "inventory",
+    "drop",
+    "hotbar"
+   ],
+   "rules": [
+    {
+     "event": "b:new_area",
+     "value": 0.5,
+     "note": "reached somewhere new",
+     "per": "units",
+     "tier": 1
+    },
+    {
+     "event": "damage_taken",
+     "value": -0.2,
+     "note": "fall damage",
+     "per": "amount",
+     "tier": 2
+    },
+    {
+     "event": "death",
+     "value": -3,
+     "note": "died",
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:moving",
+       "value": 0.01,
+       "note": "moving",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "swimming": {
+   "name": "Swimming",
+   "icon": "minecraft:water_bucket",
+   "category": "Movement",
+   "help": "Swim fast, come up for air, get out of water.",
+   "setup": "none",
+   "manager": "travel",
+   "locks": [
+    "attack",
+    "inventory",
+    "drop"
+   ],
+   "rules": [
+    {
+     "event": "b:moving",
+     "value": 0.01,
+     "note": "ground covered",
+     "per": "units",
+     "tier": 1
+    },
+    {
+     "event": "b:drowning",
+     "value": -0.05,
+     "note": "running out of air",
+     "per": "units",
+     "tier": 1
+    },
+    {
+     "event": "death",
+     "value": -3,
+     "note": "died",
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:swim_up",
+       "value": 0.003,
+       "note": "surfacing when low on air",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "exploring": {
+   "name": "Exploring",
+   "icon": "minecraft:compass",
+   "category": "Movement",
+   "help": "See new places without getting lost or hurt.",
+   "setup": "none",
+   "manager": "explore",
+   "locks": [
+    "inventory",
+    "drop"
+   ],
+   "rules": [
+    {
+     "event": "b:new_area",
+     "value": 1,
+     "note": "new area",
+     "per": "units",
+     "tier": 1
+    },
+    {
+     "event": "damage_taken",
+     "value": -0.05,
+     "note": "hurt",
+     "per": "amount",
+     "tier": 3
+    },
+    {
+     "event": "death",
+     "value": -3,
+     "note": "died",
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:moving",
+       "value": 0.005,
+       "note": "moving",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ],
+   "teacher": "baritone:TRAVEL"
+  },
+  "bridging": {
+   "name": "Bridging",
+   "icon": "minecraft:oak_planks",
+   "category": "Building",
+   "help": "Place blocks under yourself to cross gaps.",
+   "setup": "none",
+   "manager": "building",
+   "locks": [
+    "attack",
+    "inventory",
+    "drop"
+   ],
+   "rules": [
+    {
+     "event": "block_placed",
+     "value": 0.5,
+     "note": "block placed",
+     "tier": 1
+    },
+    {
+     "event": "b:moving",
+     "value": 0.01,
+     "note": "progress",
+     "per": "units",
+     "tier": 2
+    },
+    {
+     "event": "death",
+     "value": -3,
+     "note": "died",
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:sneak_edge",
+       "value": 0.003,
+       "note": "sneaking at the edge",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "mining_blocks": {
+   "name": "Breaking blocks",
+   "icon": "minecraft:wooden_pickaxe",
+   "category": "Mining",
+   "help": "Hold break on a block until it breaks. The first thing to learn for mining.",
+   "setup": "none",
+   "manager": "mining",
+   "locks": [
+    "inventory",
+    "drop",
+    "use"
+   ],
+   "rules": [
+    {
+     "event": "block_broken",
+     "value": 1,
+     "note": "block broken",
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:hold_break",
+       "value": 0.02,
+       "note": "keeps holding break on a block",
+       "per": "units"
+      },
+      {
+       "event": "b:early_release",
+       "value": -0.05,
+       "note": "let go before it broke",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 10
+     }
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [
+      {
+       "event": "b:hold_break",
+       "value": 0.005,
+       "note": "keeps holding break on a block",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 40
+     }
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true
+    }
+   ]
+  },
+  "ore_mining": {
+   "name": "Ore mining",
+   "icon": "minecraft:iron_pickaxe",
+   "category": "Mining",
+   "help": "Find and mine ores; diamonds count most.",
+   "setup": "none",
+   "manager": "mining",
+   "locks": [
+    "inventory",
+    "drop"
+   ],
+   "rules": [
+    {
+     "event": "block_broken",
+     "value": 5,
+     "note": "diamond ore",
+     "where": {
+      "block": {
+       "contains": "diamond_ore"
+      }
+     },
+     "tier": 1
+    },
+    {
+     "event": "block_broken",
+     "value": 2,
+     "note": "iron/gold ore",
+     "where": {
+      "block": {
+       "contains": "iron_ore"
+      }
+     },
+     "tier": 1
+    },
+    {
+     "event": "block_broken",
+     "value": 0.5,
+     "note": "coal ore",
+     "where": {
+      "block": {
+       "contains": "coal_ore"
+      }
+     },
+     "tier": 2
+    },
+    {
+     "event": "block_broken",
+     "value": 0.02,
+     "note": "any block",
+     "tier": 3
+    },
+    {
+     "event": "damage_taken",
+     "value": -0.1,
+     "note": "hurt",
+     "per": "amount",
+     "tier": 3
+    },
+    {
+     "event": "death",
+     "value": -3,
+     "note": "died",
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:hold_break",
+       "value": 0.005,
+       "note": "keeps mining",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ],
+   "teacher": "baritone:MINE"
+  },
+  "tree_chopping": {
+   "name": "Chopping trees",
+   "icon": "minecraft:oak_log",
+   "category": "Mining",
+   "help": "Cut down trees for logs.",
+   "setup": "none",
+   "manager": "mining",
+   "locks": [
+    "inventory",
+    "drop"
+   ],
+   "rules": [
+    {
+     "event": "block_broken",
+     "value": 1,
+     "note": "log",
+     "where": {
+      "block": {
+       "contains": "_log"
+      }
+     },
+     "tier": 1
+    },
+    {
+     "event": "item_gained",
+     "value": 0.1,
+     "note": "picked up",
+     "tier": 2
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:hold_break",
+       "value": 0.005,
+       "note": "keeps chopping",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "digging_safe": {
+   "name": "Safe digging",
+   "icon": "minecraft:stone_pickaxe",
+   "category": "Mining",
+   "help": "Dig down and through stone without falling into lava.",
+   "setup": "none",
+   "manager": "mining",
+   "locks": [
+    "inventory",
+    "drop"
+   ],
+   "rules": [
+    {
+     "event": "block_broken",
+     "value": 0.1,
+     "note": "block dug",
+     "tier": 2
+    },
+    {
+     "event": "b:in_lava",
+     "value": -1,
+     "note": "in lava",
+     "per": "units",
+     "tier": 1
+    },
+    {
+     "event": "damage_taken",
+     "value": -0.2,
+     "note": "hurt",
+     "per": "amount",
+     "tier": 1
+    },
+    {
+     "event": "death",
+     "value": -3,
+     "note": "died",
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:hold_break",
+       "value": 0.005,
+       "note": "keeps digging",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "placing": {
+   "name": "Placing blocks",
+   "icon": "minecraft:bricks",
+   "category": "Building",
+   "help": "Place blocks where they're aimed.",
+   "setup": "none",
+   "manager": "building",
+   "locks": [
+    "attack",
+    "inventory",
+    "drop"
+   ],
+   "rules": [
+    {
+     "event": "block_placed",
+     "value": 0.5,
+     "note": "block placed",
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "towering": {
+   "name": "Towering up",
+   "icon": "minecraft:scaffolding",
+   "category": "Building",
+   "help": "Jump and place blocks under yourself to go up.",
+   "setup": "none",
+   "manager": "building",
+   "locks": [
+    "attack",
+    "inventory",
+    "drop",
+    "move"
+   ],
+   "rules": [
+    {
+     "event": "b:going_up",
+     "value": 0.2,
+     "note": "height gained",
+     "per": "units",
+     "tier": 1
+    },
+    {
+     "event": "block_placed",
+     "value": 0.1,
+     "note": "block placed",
+     "tier": 2
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:look_down",
+       "value": 0.002,
+       "note": "looking down to place",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "house": {
+   "name": "Building a shelter",
+   "icon": "minecraft:oak_door",
+   "category": "Building",
+   "help": "Wall yourself in before night falls.",
+   "setup": "none",
+   "manager": "building",
+   "locks": [
+    "inventory",
+    "drop"
+   ],
+   "rules": [
+    {
+     "event": "block_placed",
+     "value": 0.3,
+     "note": "block placed",
+     "tier": 1
+    },
+    {
+     "event": "damage_taken",
+     "value": -0.1,
+     "note": "hurt",
+     "per": "amount",
+     "tier": 2
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "crops": {
+   "name": "Crop farming",
+   "icon": "minecraft:wheat",
+   "category": "Farming",
+   "help": "Harvest grown crops and replant them.",
+   "setup": "none",
+   "manager": "general",
+   "locks": [
+    "inventory",
+    "drop"
+   ],
+   "rules": [
+    {
+     "event": "block_broken",
+     "value": 1,
+     "note": "crop harvested",
+     "where": {
+      "block": {
+       "contains": "wheat"
+      }
+     },
+     "tier": 1
+    },
+    {
+     "event": "block_placed",
+     "value": 0.5,
+     "note": "replanted",
+     "where": {
+      "block": {
+       "contains": "wheat"
+      }
+     },
+     "tier": 1
+    },
+    {
+     "event": "block_broken",
+     "value": -0.2,
+     "note": "broke something else",
+     "tier": 4
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "animals": {
+   "name": "Animal farming",
+   "icon": "minecraft:wheat_seeds",
+   "category": "Farming",
+   "help": "Breed animals and collect food from them.",
+   "setup": "none",
+   "manager": "hunting",
+   "locks": [
+    "inventory",
+    "drop"
+   ],
+   "rules": [
+    {
+     "event": "item_gained",
+     "value": 0.5,
+     "note": "food gained",
+     "where": {
+      "item": {
+       "contains": "beef"
+      }
+     },
+     "tier": 1
+    },
+    {
+     "event": "kill",
+     "value": 0.5,
+     "note": "animal",
+     "tier": 2
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:face_target",
+       "value": 0.003,
+       "note": "facing animals",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ],
+   "target": "minecraft:cow"
+  },
+  "hunting": {
+   "name": "Hunting",
+   "icon": "minecraft:porkchop",
+   "category": "Farming",
+   "help": "Find and kill animals for food.",
+   "setup": "none",
+   "manager": "hunting",
+   "locks": [
+    "inventory",
+    "drop"
+   ],
+   "rules": [
+    {
+     "event": "kill",
+     "value": 5,
+     "note": "kill",
+     "tier": 1
+    },
+    {
+     "event": "damage_dealt",
+     "value": 0.2,
+     "note": "hit",
+     "per": "amount",
+     "cap": 4,
+     "tier": 2
+    },
+    {
+     "event": "death",
+     "value": -3,
+     "note": "died",
+     "tier": 1
+    },
+    {
+     "event": "second",
+     "value": -0.001,
+     "note": "time passing",
+     "tier": 4
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:face_target",
+       "value": 0.004,
+       "note": "facing the target",
+       "per": "units"
+      },
+      {
+       "event": "b:approach_target",
+       "value": 0.05,
+       "note": "closing in",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ],
+   "target": "minecraft:pig"
+  },
+  "fishing": {
+   "name": "Fishing",
+   "icon": "minecraft:fishing_rod",
+   "category": "Farming",
+   "help": "Cast, wait for the bite, reel in.",
+   "setup": "none",
+   "manager": "general",
+   "locks": [
+    "move",
+    "attack",
+    "inventory",
+    "drop",
+    "jump"
+   ],
+   "rules": [
+    {
+     "event": "item_gained",
+     "value": 1,
+     "note": "caught something",
+     "where": {
+      "item": {
+       "contains": "cod"
+      }
+     },
+     "tier": 1
+    },
+    {
+     "event": "item_gained",
+     "value": 0.5,
+     "note": "any catch",
+     "tier": 2
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "eating": {
+   "name": "Eating",
+   "icon": "minecraft:cooked_beef",
+   "category": "Survival",
+   "help": "Eat when hungry, not when full.",
+   "setup": "none",
+   "manager": "survival",
+   "locks": [
+    "attack",
+    "drop",
+    "move"
+   ],
+   "rules": [
+    {
+     "event": "b:ate",
+     "value": 0.5,
+     "note": "ate something",
+     "per": "units",
+     "tier": 1
+    },
+    {
+     "event": "b:eat_when_hungry",
+     "value": 0.01,
+     "note": "eating while hungry",
+     "per": "units",
+     "tier": 1
+    },
+    {
+     "event": "b:starving",
+     "value": -0.02,
+     "note": "starving",
+     "per": "units",
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "surviving": {
+   "name": "Surviving",
+   "icon": "minecraft:golden_apple",
+   "category": "Survival",
+   "help": "Stay alive; some damage is fine but not too much.",
+   "setup": "none",
+   "manager": "survival",
+   "locks": [],
+   "rules": [
+    {
+     "event": "second",
+     "value": 0.02,
+     "note": "alive",
+     "where": {
+      "dead": false
+     },
+     "cap": 6,
+     "tier": 2
+    },
+    {
+     "event": "death",
+     "value": -10,
+     "note": "died",
+     "tier": 1
+    },
+    {
+     "event": "damage_taken",
+     "value": 0.1,
+     "note": "damage over budget",
+     "per": "amount",
+     "budget": {
+      "limit": 10
+     },
+     "tier": 2
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "fleeing": {
+   "name": "Running away",
+   "icon": "minecraft:feather",
+   "category": "Survival",
+   "help": "Escape when losing: break line of sight, get distance.",
+   "setup": "none",
+   "manager": "flee",
+   "locks": [
+    "attack",
+    "inventory",
+    "drop"
+   ],
+   "rules": [
+    {
+     "event": "b:escape",
+     "value": 0.05,
+     "note": "distance from the danger",
+     "per": "units",
+     "tier": 1
+    },
+    {
+     "event": "damage_taken",
+     "value": -0.2,
+     "note": "hurt while fleeing",
+     "per": "amount",
+     "tier": 1
+    },
+    {
+     "event": "death",
+     "value": -3,
+     "note": "died",
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:sprinting",
+       "value": 0.003,
+       "note": "sprinting",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "night": {
+   "name": "Surviving the night",
+   "icon": "minecraft:clock",
+   "category": "Survival",
+   "help": "Last the night: shelter, light, fight what comes.",
+   "setup": "none",
+   "manager": "survival",
+   "locks": [],
+   "rules": [
+    {
+     "event": "second",
+     "value": 0.01,
+     "note": "alive",
+     "where": {
+      "dead": false
+     },
+     "tier": 2
+    },
+    {
+     "event": "kill",
+     "value": 1,
+     "note": "mob killed",
+     "tier": 2
+    },
+    {
+     "event": "death",
+     "value": -10,
+     "note": "died",
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "inventory": {
+   "name": "Inventory management",
+   "icon": "minecraft:chest",
+   "category": "Inventory",
+   "help": "Keep the hotbar useful: weapon, food, blocks and tools in reach; junk out.",
+   "setup": "none",
+   "manager": "general",
+   "locks": [
+    "move",
+    "attack",
+    "jump"
+   ],
+   "rules": [
+    {
+     "event": "b:hotbar_tidy",
+     "value": 0.01,
+     "note": "useful hotbar",
+     "per": "units",
+     "tier": 1
+    },
+    {
+     "event": "b:menu_time",
+     "value": -0.002,
+     "note": "time spent in menus",
+     "per": "units",
+     "tier": 3
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:inventory_open",
+       "value": 0.002,
+       "note": "opening the inventory",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "hotbar_setup": {
+   "name": "Hotbar setup",
+   "icon": "minecraft:item_frame",
+   "category": "Inventory",
+   "help": "Sword in slot 1, then axe, blocks, food...",
+   "setup": "none",
+   "manager": "general",
+   "locks": [
+    "move",
+    "attack",
+    "jump"
+   ],
+   "rules": [
+    {
+     "event": "b:hotbar_tidy",
+     "value": 0.02,
+     "note": "useful hotbar",
+     "per": "units",
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "crafting": {
+   "name": "Crafting",
+   "icon": "minecraft:crafting_table",
+   "category": "Inventory",
+   "help": "Craft tools and blocks from what it has.",
+   "setup": "none",
+   "manager": "general",
+   "locks": [
+    "move",
+    "attack"
+   ],
+   "rules": [
+    {
+     "event": "item_gained",
+     "value": 1,
+     "note": "crafted a tool",
+     "where": {
+      "item": {
+       "contains": "pickaxe"
+      }
+     },
+     "tier": 1
+    },
+    {
+     "event": "item_gained",
+     "value": 0.2,
+     "note": "crafted planks/sticks",
+     "where": {
+      "item": {
+       "contains": "planks"
+      }
+     },
+     "tier": 2
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:inventory_open",
+       "value": 0.002,
+       "note": "opening the inventory",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "looting": {
+   "name": "Looting",
+   "icon": "minecraft:barrel",
+   "category": "Inventory",
+   "help": "Grab the useful things from chests and drops.",
+   "setup": "none",
+   "manager": "general",
+   "locks": [],
+   "rules": [
+    {
+     "event": "item_gained",
+     "value": 0.2,
+     "note": "item gained",
+     "per": "count",
+     "tier": 1
+    },
+    {
+     "event": "item_gained",
+     "value": 2,
+     "note": "diamonds",
+     "where": {
+      "item": {
+       "contains": "diamond"
+      }
+     },
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  },
+  "ender_stash": {
+   "name": "Ender chest stashing",
+   "icon": "minecraft:ender_chest",
+   "category": "Inventory",
+   "help": "Keep valuables safe in the ender chest.",
+   "setup": "none",
+   "manager": "general",
+   "locks": [
+    "attack"
+   ],
+   "rules": [
+    {
+     "event": "item_lost",
+     "value": 0.5,
+     "note": "valuables stored",
+     "where": {
+      "item": {
+       "contains": "diamond"
+      }
+     },
+     "tier": 1
+    }
+   ],
+   "stages": [
+    {
+     "name": "Basics",
+     "speed": "copy",
+     "shaping": [
+      {
+       "event": "b:inventory_open",
+       "value": 0.002,
+       "note": "opening containers",
+       "per": "units"
+      }
+     ],
+     "advance": {
+      "episodes": 15
+     },
+     "help": "Strong hints, learns fast from everything"
+    },
+    {
+     "name": "Practice",
+     "speed": "normal",
+     "shaping": [],
+     "advance": {
+      "episodes": 60
+     },
+     "help": "Fewer hints, steady learning"
+    },
+    {
+     "name": "Mastery",
+     "speed": "slow",
+     "shaping": [],
+     "advance": {
+      "episodes": 0
+     },
+     "discover": true,
+     "help": "Tries its own ideas: no hints, careful changes"
+    }
+   ]
+  }
+ }
+}

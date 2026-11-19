@@ -32,6 +32,8 @@ public final class Objective {
 		public @Nullable Forgive forgive;
 		public @Nullable Budget budget;
 		public String note = "";
+		/** Switched off in a skill (kept so it can be switched back on). */
+		public boolean off;
 	}
 
 	public String name = "";

@@ -76,8 +76,100 @@ public final class Coach {
 	private Coach() {
 	}
 
+	private static @Nullable String skillId;
+	private static @Nullable String skillName;
+
 	public static boolean running() {
-		return goal != null;
+		return goal != null || skillId != null;
+	}
+
+	/** The skill being coached (from the Skills screen), or null. */
+	public static @Nullable String skillId() {
+		return skillId;
+	}
+
+	public static @Nullable String skillName() {
+		return skillName;
+	}
+
+	private static String xpKey() {
+		return goal != null ? goal.key() : skillId != null ? skillId : "general";
+	}
+
+	/**
+	 * Coaches one skill: sets up where it practises (arena, dummy, duel or aim trainer), records
+	 * teacher demos and trains first if it has a teacher and nothing learned yet, then practises
+	 * with the skill's rewards, hints and locks until the time is up.
+	 */
+	public static @Nullable String startSkill(String id, io.github.mudklip.minigamebots.client.skills.SkillDef def, int budgetMinutes) {
+		var mgb = MinigameBotsClient.instance();
+		ProfileManifest p = mgb.profiles().active();
+		Minecraft mc = Minecraft.getInstance();
+		if (p == null) {
+			return "Pick an AI first (AI Profiles > Use this AI)";
+		}
+		if (!mgb.brain().runtime().installed()) {
+			return "Set up the brain first (Brain > Install)";
+		}
+		if (mc.player == null) {
+			return "Join a world first";
+		}
+		if (!lite(p)) {
+			return "Skill practice needs a Lite-based AI (this one is built on a VPT foundation)";
+		}
+		String setup = def.setup == null ? "none" : def.setup;
+		if (!setup.equals("none") && io.github.mudklip.minigamebots.client.TrainingLink.get().isEmpty()) {
+			return "This skill practises in Training Grounds (the training mod): add it to this world, or set Where to \"Nothing\"";
+		}
+		stop("");
+		skillId = id;
+		skillName = def.name;
+		minutes = budgetMinutes;
+		endAt = System.currentTimeMillis() + budgetMinutes * 60_000L;
+		index = 0;
+		cycles = 0;
+		log.clear();
+		steps.clear();
+		int chunk = Math.max(5, Math.min(30, budgetMinutes / 3));
+		if (setup.equals("dummy")) {
+			arena();
+			steps.add(new Step("Spawn a practice dummy", false, () -> cmd("tg dummy spawn L3"), () -> elapsed() > 1500));
+		} else if (setup.startsWith("duel:")) {
+			arena();
+			match(setup.substring(5));
+		}
+		String network = io.github.mudklip.minigamebots.client.skills.SkillStore.network(id, def);
+		boolean trained = io.github.mudklip.minigamebots.client.profile.Skills.trained(mgb.profiles().store().dir(p.id), network);
+		if (!trained && "pvp".equals(def.teacher)) {
+			teacher(TeacherDemos.TEACHERS.get(0), Math.max(3, Math.min(10, budgetMinutes / 6)));
+			train(p, TrainingManager.Plan.QUICK, network, true, "teacher", "human", "player");
+		} else if (!trained && def.teacher.startsWith("baritone:") && BaritoneTeacher.installed()) {
+			String task = def.teacher.substring(9);
+			TeacherDemos.available().stream().filter(x -> x.policy().equals("baritone:" + task)).findFirst().ifPresent(t -> {
+				teacher(t, Math.max(3, Math.min(10, budgetMinutes / 6)));
+				train(p, TrainingManager.Plan.QUICK, network, false, "teacher", "human");
+			});
+		}
+		String aimMode = setup.startsWith("aim:") ? setup.substring(4) : null;
+		if (aimMode != null) {
+			arena();
+		}
+		long[] lastAim = {0};
+		steps.add(new Step("Practise " + def.name + " (" + chunk + " min)", true, () -> {
+			if (aimMode != null) {
+				cmd("tg aim " + aimMode + " 300");
+				lastAim[0] = System.currentTimeMillis();
+			}
+			mgb.brain().practiceSkill(Minecraft.getInstance(), p, id, def, true);
+		}, () -> {
+			if (aimMode != null && System.currentTimeMillis() - lastAim[0] > 302_000) {
+				cmd("tg aim " + aimMode + " 300");
+				lastAim[0] = System.currentTimeMillis();
+			}
+			return elapsed() > chunk * 60_000L;
+		}));
+		note("Plan for " + def.name + ", " + budgetMinutes + " min: " + steps.size() + " steps");
+		return null;
 	}
 
 	public static @Nullable Goal goal() {
@@ -305,7 +397,7 @@ public final class Coach {
 	}
 
 	public static void stop(String why) {
-		if (goal == null) {
+		if (!running()) {
 			return;
 		}
 		stopAi();
@@ -318,11 +410,13 @@ public final class Coach {
 			note(why);
 		}
 		goal = null;
+		skillId = null;
+		skillName = null;
 	}
 
 	/** Every client tick. */
 	public static void tick(Minecraft mc) {
-		if (goal == null || steps.isEmpty()) {
+		if (!running() || steps.isEmpty()) {
 			return;
 		}
 		if (mc.player == null) {
@@ -335,7 +429,7 @@ public final class Coach {
 		if (index >= steps.size()) {
 			// One full pass done: repeat the repeatable part while time is left.
 			cycles++;
-			Progress.addXp(goal.key(), 10 + minutes / 6, "Coach cycle " + cycles);
+			Progress.addXp(xpKey(), 10 + minutes / 6, "Coach cycle " + cycles);
 			if (System.currentTimeMillis() >= endAt || steps.stream().noneMatch(s -> s.repeat)) {
 				Progress.unlock("coach_plan");
 				if (minutes >= 360) {

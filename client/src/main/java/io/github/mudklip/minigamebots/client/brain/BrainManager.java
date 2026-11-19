@@ -165,6 +165,10 @@ public final class BrainManager {
 
 	/** Starts the brain (if needed) and hands it control with a policy and its arguments. */
 	public void play(Minecraft client, String policyName, JsonObject args) {
+		play(client, policyName, args, () -> { });
+	}
+
+	private void play(Minecraft client, String policyName, JsonObject args, Runnable afterStart) {
 		policy = policyName;
 		control.execute(() -> {
 			if (status != Status.RUNNING && !startBlocking()) {
@@ -173,7 +177,10 @@ public final class BrainManager {
 			sendSetPolicy(policyName, args);
 			BrainSource s = new BrainSource(policyName);
 			source = s;
-			client.execute(() -> AgentControl.get().start(client, s));
+			client.execute(() -> {
+				AgentControl.get().start(client, s);
+				afterStart.run();
+			});
 		});
 	}
 
@@ -470,6 +477,7 @@ public final class BrainManager {
 		if (mw != null) {
 			m.getAsJsonObject("obs").add("multiworld", mw);
 		}
+		m.getAsJsonObject("obs").add("look", look());
 		JsonObject puppet = SelfPlayLink.describe();
 		if (puppet != null) {
 			m.getAsJsonObject("obs").add("puppet", puppet);
@@ -486,6 +494,64 @@ public final class BrainManager {
 		m.add("events", events);
 		s.sent(agentTick);
 		sendAsync(m);
+	}
+
+	/** What's in the crosshair, as the outline and the cracks show it (for skill hints such as "keep mining"). */
+	private static JsonObject look() {
+		JsonObject o = new JsonObject();
+		Minecraft mc = Minecraft.getInstance();
+		o.addProperty("breaking", mc.gameMode != null && mc.gameMode.isDestroying());
+		if (mc.hitResult instanceof net.minecraft.world.phys.BlockHitResult b && b.getType() == net.minecraft.world.phys.HitResult.Type.BLOCK
+				&& mc.level != null) {
+			o.addProperty("block", net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(mc.level.getBlockState(b.getBlockPos()).getBlock()).toString());
+		} else if (mc.hitResult instanceof net.minecraft.world.phys.EntityHitResult e) {
+			o.addProperty("entity", net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(e.getEntity().getType()).toString());
+		}
+		return o;
+	}
+
+	/** Practises one skill: its rules, hints and locks; trains the network it belongs to. */
+	public void practiceSkill(Minecraft client, io.github.mudklip.minigamebots.client.profile.ProfileManifest profile, String id,
+			io.github.mudklip.minigamebots.client.skills.SkillDef def, boolean learn) {
+		var profileDir = MinigameBotsClient.instance().profiles().store().dir(profile.id);
+		String network = io.github.mudklip.minigamebots.client.skills.SkillStore.network(id, def);
+		var dir = io.github.mudklip.minigamebots.client.profile.Skills.dir(profileDir, network);
+		if (!io.github.mudklip.minigamebots.client.profile.Skills.trained(profileDir, network)
+				&& io.github.mudklip.minigamebots.client.profile.Skills.trained(profileDir, "general")) {
+			// A skill's first practice starts from what the AI already knows, not from nothing.
+			try {
+				java.nio.file.Files.createDirectories(dir.resolve("core"));
+				for (String f : new String[] {"model.json", "model.safetensors", "latest.safetensors"}) {
+					var from = profileDir.resolve("core").resolve(f);
+					if (java.nio.file.Files.isRegularFile(from)) {
+						java.nio.file.Files.copy(from, dir.resolve("core").resolve(f), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+					}
+				}
+			} catch (java.io.IOException e) {
+				MinigameBotsClient.LOGGER.warn("Couldn't start {} from the general network", network, e);
+			}
+		}
+		if (learn) {
+			io.github.mudklip.minigamebots.client.profile.VersionHistory.before(profileDir, dir.resolve("core"),
+					"Before practising the skill " + def.name);
+		}
+		JsonObject args = new JsonObject();
+		args.addProperty("profile", dir.toString());
+		args.addProperty("stage_dir", io.github.mudklip.minigamebots.client.skills.SkillStore.dir(profileDir, id).toString());
+		args.add("skill_def", io.github.mudklip.minigamebots.client.skills.SkillLibrary.GSON.toJsonTree(def));
+		args.addProperty("objective", "skill");
+		args.addProperty("learn", learn);
+		args.addProperty("resources", "balanced");
+		java.util.List<String> keys = new java.util.ArrayList<>();
+		var lib = io.github.mudklip.minigamebots.client.skills.SkillLibrary.get();
+		for (String g : def.locks) {
+			var l = lib.locks.get(g);
+			if (l != null) {
+				keys.addAll(l.keys);
+			}
+		}
+		play(client, "practice", args, () -> io.github.mudklip.minigamebots.client.control.ActionLocks.set(keys,
+				def.locks.contains("camera")));
 	}
 
 	private void sendAsync(JsonObject m) {

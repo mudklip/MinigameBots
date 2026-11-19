@@ -57,6 +57,9 @@ public final class HubScreen extends Screen {
 		}).pos(width - 240, 6).width(96).tooltip(Tooltip.create(Component.literal("While you play or spectate, records "
 				+ "other players' fights and turns them into demos every 10 minutes (from their point of view, good moments "
 				+ "count more). The Coach's PvP plan trains on them. Only where you're allowed to record others."))).build());
+		addRenderableWidget(Button.builder(Component.literal("§b✦ Skills..."), b -> minecraft.gui.setScreen(new SkillsScreen(this)))
+				.pos(width - 310, 6).width(66).tooltip(Tooltip.create(Component.literal("Every skill, one by one: rewards, hints, "
+						+ "locked actions, stages, and your own skills"))).build());
 		addRenderableWidget(Button.builder(Component.literal("Advanced..."), b -> {
 			ProfileManifest p = MinigameBotsClient.instance().profiles().active();
 			if (p != null) {
@@ -113,7 +116,7 @@ public final class HubScreen extends Screen {
 			return;
 		}
 		// Goal cards.
-		Coach.Goal active = Coach.running() ? Coach.goal() : selected;
+		Coach.Goal active = Coach.goal() != null ? Coach.goal() : selected;
 		for (int i = 0; i < Coach.Goal.values().length; i++) {
 			Coach.Goal goal = Coach.Goal.values()[i];
 			int y = cardsY + i * (CARD_H + 4);
@@ -135,8 +138,10 @@ public final class HubScreen extends Screen {
 		// Right panel: the goal and its plan.
 		int rx = cardsX + cardW + 8;
 		int rw = width - rx - 8;
-		Ui.header(g, font, active.label, rx + 6, cardsY + 6);
-		g.text(font, font.plainSubstrByWidth(active.help, rw - 12), rx + 6, cardsY + 22, Ui.MUTED, false);
+		boolean skill = Coach.skillName() != null;
+		Ui.header(g, font, skill ? "Skill: " + Coach.skillName() : active.label, rx + 6, cardsY + 6);
+		g.text(font, font.plainSubstrByWidth(skill ? "Practising one skill (started from the Skills screen)" : active.help, rw - 12),
+				rx + 6, cardsY + 22, Ui.MUTED, false);
 		int y = cardsY + 90;
 		if (Coach.running()) {
 			g.text(font, Component.literal("§aCoaching§r: " + Coach.minutesLeft() + " min left, cycle " + (Coach.cycles() + 1)

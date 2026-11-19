@@ -193,6 +193,31 @@ Hold a key, say what you want, let go. It works like typing [/ai].
 > Free-form sentences need the mind too ([Mind (3 GB)] in Brain); simple ones work without it.
 ! Only your own microphone is used: nobody else can talk to your AI this way.
 
+=== skills | Skills (one by one)
+Every skill your AI can learn has its own card: [F10] > [Skills], or [Skills...] in the Training Hub. The tabs along the top sort them by kind: Combat, Movement, Mining, Building, Farming, Survival, Inventory and your own.
+
+# Practise a skill
+1. Click its card.
+2. Pick how long (e.g. [30 min]) and press [Practise].
+3. It sets up what it needs (arena, dummy, duel or aim trainer) and practises by itself. Open the Training Hub to watch progress, [F9] to stop.
+! Skill practice needs a Lite-based AI, and Training Grounds for anything that practises in an arena.
+
+# Change what it learns
+- [Rewarded for]: what counts. [Edit rewards] lets you switch each one on or off, make it stronger [+] or weaker [-], flip a reward into a penalty (click the number), add new ones or remove them.
+- [Not allowed while practising]: click a pill to lock that action, e.g. lock [Walking] and [Inventory & menus] for aim training so it only aims. Locked actions are never pressed, whatever the AI wants.
+- [Stages]: each skill learns in steps. [Basics] gives strong hints and learns fast (it copies anything that works), [Mastery] gives no hints and only polishes. Change each stage's speed, how many tries before it moves on, and its [Hints].
+- Hints are extra rewards for the early stages, like "keep holding break until the block breaks". They switch off by themselves in later stages.
+> ✦ marks a self-discovery stage: it tries its own ideas, e.g. working out which of several swords to use when.
+
+# Your own skills
+1. Press the dashed [+ Add a skill] card at the end of any list.
+2. Start [From scratch], or copy any ready-made skill and change it.
+3. Click the icon to pick any item as its icon, give it a name, then add rewards.
+- Ready-made skills can be edited too. [Reset] puts one back as shipped (what it learned is kept).
+
+# Advanced
+[Advanced...] has the finer settings: its own network or the shared one, learning speed, exploration, how close to stay to its demo behaviour, a teacher for its first lessons, a target creature, adding or removing stages. [Every detail...] on the rewards screen opens the full rule editor (conditions, caps, cooldowns, forgiving).
+
 === goals | Goals
 The Manager decides what to do moment to moment, using the AI's skills.
 
