@@ -100,7 +100,7 @@ Teachers are scripted experts that play AS your AI while it records. Free expert
 3. Stop any time with [F9]; the recording appears in the Train list
 
 # Teachers
-- [Fighter] crits, W-taps, shield timing, axe on shields, strafing
+- [Fighter] crits, W-taps, shield timing, axe on shields, strafing (see "Get really good at PvP")
 - [Aim and chase] steady aim at the nearest target
 - [Baritone] travel, mine ores, go home (only if the optional Baritone jar is in mods)
 
@@ -141,24 +141,108 @@ Practice = it tries things and improves from rewards, on its own.
 ! Practice works with the Lite base.
 
 === grounds | Training Grounds
-A separate mod (in your mods folder) that builds a training area: arenas, dummies and matches. Works in singleplayer.
+The second mod (minigamebots-training). It gives you and the AI things to train against: dummies that fight back, an aim trainer, arenas that reset instantly, and matches.
 
-# Dummies
-- [/tg dummy spawn godly] (or L1-L5, rusher, blocker, critter, w_tapper, kiter)
-- Sneak + right-click a dummy to change it
-- [godly] is a cheating teacher: never misses, perfect crits and W-taps
+# Open it
+1. Join a world (singleplayer works, no cheats needed)
+2. Type [/tg] in chat and press Enter
+3. A menu opens: click [Arenas], [Matches], [Training dummies] or [Aim trainer]
 
-# Matches
-1. Build an arena, then [/tg arena create <name>]
-2. [/tg minigame duel <arena> <match>] (or sumo, ffa, team_deathmatch, survival, random)
-3. [/tg match join <match> red], then [/tg match start <match>]
+> Everything in the menu also has a command: type [/tg ] and press [Tab] to see them.
+! On a server, it must be installed on the server too, and only operators can manage it.
 
-# Smart opponents
-- [/tg match opponent <match> blue league]: each round picks the style it loses to most
-- [... blue self]: a past version of your AI plays against it (self-play)
-- [random] minigames change their rules every round: great with Figure It Out
+=== pvp | Get really good at PvP
+The route to a strong fighter, with no PvP skill needed from you. Each step builds on the last.
 
-> Type [/tg] and use Tab to see every command.
+# Step 1: copy an expert
+1. Make an arena and a duel: [/tg minigame duel duel1 m1]
+2. Make the opponent the cheating teacher: [/tg match opponent m1 blue godly]
+3. [/tg match join m1 red], [/tg match start m1]
+4. [Train] > [Teacher demos] > [Fighter (mixed)], 10-30 minutes > [Start recording]
+5. Optional: tick [Aim drill] for extra aiming practice
+
+# Step 2: train on it
+1. [Train]: tick the "Teacher: Fighter" recordings, [Plan: Overnight], [Start]
+2. It now fights like the teacher: crits, W-taps, shield timing
+
+# Step 3: get better than the teacher
+1. Set the opponent to the league: [/tg match opponent m1 blue league]
+2. [Practice...] > [Duel] > [Start practicing], leave it running
+3. Later, switch to self-play: [/tg match opponent m1 blue self]
+
+# Step 4: check progress
+- [Exams...] scores it over a few rounds; compare over time
+- Worse after a session? [Versions...] > [Go back]
+
+> The league keeps picking the opponent styles it loses to, so practice always targets its weak spots.
+! Baritone is not part of this: it's a walking/mining bot. The fighting teacher is built in.
+
+=== dummies | Fight a dummy
+Dummies are fake players that stand, move, block and fight back. Use them to practise yourself, or to record and train the AI.
+
+# Spawn one
+1. Type [/tg dummy spawn godly] (it appears where you stand)
+2. Hit it! Its health and your DPS show above its head
+
+# Styles (the word after spawn)
+- [L1] punching bag (never moves) ... [L5] sweaty
+- [rusher] runs at you and spam-clicks
+- [blocker] holds a shield up between hits
+- [critter] jump-crits, [w_tapper] sprint-resets for knockback
+- [kiter] backs off, [godly] perfect teacher (it cheats!)
+
+# Change or remove
+- Sneak + right-click a dummy: its settings menu (style, shield, armour, health...)
+- [/tg dummy remove] removes dummies near you
+
+> Want your AI to fight it? Spawn one that fights back ([L3] and up, or [godly]) and press [F8]: the AI fights whatever attacks it. [F8] again to take back control.
+
+=== aim | Aim trainer
+Targets appear around you; hit them as fast as you can. Scores and personal bests are kept.
+
+# Start
+- [/tg aim flick] targets pop up, hit each one quickly
+- [/tg aim track] keep your crosshair on a moving target
+- [/tg aim switch] three targets, swap between them
+- Add a length: [/tg aim flick 60] (5 to 300 seconds, default 30)
+- [/tg aim stop] ends it early
+
+> Also in the menu: [/tg] > [Aim trainer].
+> For the AI: [Train] > [Practice...] > pick [Aim trainer], start a session, then press [Start practicing].
+
+=== matches | Arenas and matches
+# 1. Save an arena
+1. Build (or pick) a fighting area
+2. Stand at one corner: [/tg arena pos1], at the opposite corner: [/tg arena pos2]
+3. [/tg arena create duel1] saves it. It resets to this state every round
+4. Optional: stand where players should start and type [/tg arena spawn duel1]
+
+# 2. Make a match
+- [/tg minigame duel duel1 m1] a ready-made match named m1
+- Other templates: [sumo], [ffa], [team_deathmatch], [survival], [random]
+
+# 3. Play it
+1. [/tg match join m1 red]
+2. [/tg match start m1]
+3. Rounds repeat by themselves; [/tg match stop] ends it
+
+# Choose the opponents
+- [/tg match opponent m1 blue godly] (any dummy style)
+- [... blue league] picks the style it loses to most, every round
+- [... blue self] a past version of your AI fights it (self-play)
+
+> Matches are where practice, exams and teacher demos work best: rounds reset automatically.
+
+=== baritone | Baritone (what it does)
+Baritone is NOT a fighter: it's a pathfinding bot (it walks, digs and mines by itself). It can't summon anything.
+
+# What it's for here
+- A teacher for movement: it plays as your AI while recording, so the AI learns to travel and mine
+- Use it: put the optional Baritone jar in mods, then [Train] > [Teacher demos] > pick a [Baritone] teacher
+
+# Looking for a fighting bot?
+- That's a Training Grounds dummy: [/tg dummy spawn godly] (see "Fight a dummy")
+- Or a teacher demo with the [Fighter] teacher, against a dummy
 
 === memory | Memory, allies and zones
 # Places

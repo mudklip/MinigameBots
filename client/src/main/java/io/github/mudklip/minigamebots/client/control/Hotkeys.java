@@ -31,6 +31,23 @@ public final class Hotkeys {
 	public static final KeyMapping MARK_MISTAKE = register("mark_mistake", InputConstants.UNKNOWN.getValue());
 	public static final KeyMapping MARK_BASE = register("mark_base", InputConstants.UNKNOWN.getValue());
 
+	/**
+	 * F8 with nothing to resume: let the selected AI play in free play (it fights what attacks
+	 * it, eats, explores, follows its goals). Returns false (and says why) if it can't.
+	 */
+	private static boolean playSelectedAi(net.minecraft.client.Minecraft client) {
+		var mgb = io.github.mudklip.minigamebots.client.MinigameBotsClient.instance();
+		var profile = mgb.profiles().active();
+		String problem = !mgb.brain().runtime().installed() ? "Set up the brain first: F10 > Brain > Install"
+				: profile == null ? "Pick an AI first: F10 > AI Profiles > Use this AI" : null;
+		if (problem != null) {
+			client.gui.hud.setOverlayMessage(Component.literal(problem), false);
+			return true;
+		}
+		mgb.brain().playManager(client, profile, new com.google.gson.JsonArray(), true, new com.google.gson.JsonObject());
+		return true;
+	}
+
 	private static KeyMapping register(String name, int key) {
 		return KeyMappingHelper.registerKeyMapping(
 				new KeyMapping("key.minigamebots." + name, InputConstants.Type.KEYBOARD, key, CATEGORY));
@@ -56,6 +73,9 @@ public final class Hotkeys {
 			return false;
 		}
 		if (TOGGLE_CONTROL.matches(event)) {
+			if (!control.active() && control.source() == ActionSource.IDLE && playSelectedAi(client)) {
+				return true;
+			}
 			control.toggle(client);
 			return true;
 		}
