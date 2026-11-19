@@ -25,9 +25,9 @@ public final class TeacherScreen extends Screen {
 	@Override
 	protected void init() {
 		int x = width / 2 - 100;
-		TeacherDemos.Teacher t = TeacherDemos.TEACHERS.get(teacher);
+		TeacherDemos.Teacher t = TeacherDemos.available().get(teacher);
 		addRenderableWidget(Button.builder(Component.literal("Teacher: " + t.label()), b -> {
-			teacher = (teacher + 1) % TeacherDemos.TEACHERS.size();
+			teacher = (teacher + 1) % TeacherDemos.available().size();
 			rebuildWidgets();
 		}).pos(x, 60).width(200).tooltip(Tooltip.create(Component.literal(t.help()))).build());
 		addRenderableWidget(Button.builder(Component.literal("Length: " + label(MINUTES[minutes])), b -> {

@@ -765,9 +765,21 @@ while training, as a teacher; the AI that plays always uses virtual keyboard and
   navigation and building get unlimited free demos; practice then pushes past the teacher.
 - **Baritone:** permission given to use it. It's LGPL-3.0: we use it as a separate library
   (optional dependency, loaded only in teacher mode), not copied into our code, so the
-  licence is respected and the main mod doesn't need it. Baritone is a client-side mod; it
-  needs a build for the running Minecraft version (26.3 support to be checked at M11). Server
-  dummies use our own simple pathfinding.
+  licence is respected and the main mod doesn't need it. Baritone is a client-side mod. For
+  26.3 there is no published release, so the optional jar is built unchanged from Baritone's
+  `26.3` branch (version 1.20.0, commit 728a755) and shipped next to our two jars with its
+  licence and a link to that source. MinigameBots calls only Baritone's public API, by
+  reflection, so it compiles and runs without it; with it installed the Teacher demos screen
+  offers "Baritone: travel", "mine ores" and "go home", and the recorder takes Baritone's
+  movement, clicks, camera and hotbar changes as the demo's input. Server dummies use our own
+  simple movement.
+- **How M11 fits together:** Training screen > Teacher demos records a teacher (scripted
+  fighter with crits / W-taps / shield / axe-on-shield, aim-and-chase, or Baritone); Aim drill
+  adds the fast simulator (`learn/aimsim.py`) to training; Practice has crit, W-tap and
+  shield-break drill objectives (scored from the new damage-event fields); matches can field
+  any opponent style, a "league" that picks the style it loses to most, or "self": a past
+  version of the AI (or the teacher, about 30% of rounds) playing a dummy it steers, both
+  decided in the same brain, so self-play needs one Minecraft client.
 - **Mirrored recordings (M10):** every recording also trains flipped left-to-right (image,
   strafing, turning, block cube and crowd radar), doubling the data for almost no code.
 - **Hindsight relabelling (M10, `learn/hindsight.py`):** recordings don't say what the player
@@ -1053,7 +1065,7 @@ Each milestone ends with tests, a working jar, and a short demo you can try.
 | M8 | **Objectives and RL** | Objective editor, escrow/priority/budget rewards with warnings, PPO practice in the background with KL-to-prior ("stay human"), exams over Training Grounds rounds (done for the Lite base; VPT-base practice, realism critic and curiosity bonus come later) |
 | M9 | **Memory** | Waypoints per AI per world, coarse map, Memory screen with mini-map, friend/enemy memory with insignia factions (3.3.1), "mark" meta-action learned from recordings and practice (done) |
 | M10 | **Skills and Manager** | Skill modules, interrupts, goals with built-in reflexes, merge by skills (section 3.9), built-in Minecraft knowledge and calculators (section 4.6.1), hindsight relabelling of goals, mirrored recordings (section 4.10), automatic version history with one-click revert (section 3.8) (done; whole-AI distillation "polish" left for later) |
-| M11 | **Combat league** | Self-play matchmaking, scripted opponents, fast-sim aim, drills for the advanced techniques (section 4.6.1), godly teacher opponents and client teacher mode with Baritone, teacher demos, practice weighted toward exam weaknesses (section 4.10) |
+| M11 | **Combat league** | Self-play against past versions (a dummy steered by the AI's own client), league matchmaking toward weak spots, opponent styles incl. a cheating "godly" teacher, fast-sim aim pre-training, crit / W-tap / shield-break drills, teacher demos (scripted fighter, aim, and Baritone travel / mining / go home) (done) |
 | M12 | **Realism** | Realism critic, humanizer tuning from your data, "which was better?" clip comparisons training a style reward model (section 4.10) |
 | M13 | **Video Lab** | Pipeline, IDM labeling, reference atlas, Question Queue, Knowledge Book |
 | M14 | **Flashback** | Replay import, POV capture, re-render variety, learning from other players' and enemies' good play as seen from the AI's own client on any server (no server mod), exact server-wide recording where Training Grounds is installed (section 4.10) |

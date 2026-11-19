@@ -22,6 +22,19 @@ public final class TeacherDemos {
 			new Teacher("Fighter (W-tap)", "Sprint hits with a W-tap after each one", "teacher", args("style", "wtap")),
 			new Teacher("Aim and chase", "Walks to the nearest target and hits it with steady aim", "follow", args("target", "any")));
 
+	/** The teachers to offer: the scripted ones, plus Baritone's when it's installed. */
+	public static List<Teacher> available() {
+		List<Teacher> out = new java.util.ArrayList<>(TEACHERS);
+		if (BaritoneTeacher.installed()) {
+			for (BaritoneTeacher.Task t : BaritoneTeacher.Task.values()) {
+				out.add(new Teacher(t.label, t.help, "baritone:" + t.name(), new JsonObject()));
+			}
+		}
+		return out;
+	}
+
+	private static final net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId TOAST =
+			new net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId();
 	private static boolean active;
 	private static long endTick;
 	private static long ticks;
@@ -42,11 +55,21 @@ public final class TeacherDemos {
 	/** Starts recording and hands control to the teacher for {@code minutes} (0 = until stopped). */
 	public static void start(Minecraft client, Teacher t, int minutes) {
 		var mgb = MinigameBotsClient.instance();
+		if (t.policy().startsWith("baritone:")) {
+			String err = BaritoneTeacher.start(client, BaritoneTeacher.Task.valueOf(t.policy().substring(9)));
+			if (err != null) {
+				net.minecraft.client.gui.components.toasts.SystemToast.addOrUpdate(client.gui.toastManager(), TOAST,
+						net.minecraft.network.chat.Component.literal("Teacher"), net.minecraft.network.chat.Component.literal(err));
+				return;
+			}
+		}
 		if (!mgb.recorder().recording()) {
 			mgb.recorder().start(client);
 		}
 		mgb.recorder().label("Teacher: " + t.label(), "teacher");
-		mgb.brain().play(client, t.policy(), t.args().deepCopy());
+		if (!t.policy().startsWith("baritone:")) {
+			mgb.brain().play(client, t.policy(), t.args().deepCopy());
+		}
 		active = true;
 		ticks = 0;
 		endTick = minutes <= 0 ? Long.MAX_VALUE : minutes * 60L * 20L;
@@ -59,8 +82,10 @@ public final class TeacherDemos {
 		}
 		ticks++;
 		// Give the brain a few seconds to take control before checking it still has it.
-		if (ticks > 100 && !AgentControl.aiActive() || ticks >= endTick) {
+		boolean running = BaritoneTeacher.active() ? BaritoneTeacher.busy() : AgentControl.aiActive();
+		if (ticks > 100 && !running || ticks >= endTick) {
 			active = false;
+			BaritoneTeacher.stop();
 			if (AgentControl.aiActive()) {
 				AgentControl.get().stop(client, net.minecraft.network.chat.Component.literal("Teacher demo finished"));
 			}

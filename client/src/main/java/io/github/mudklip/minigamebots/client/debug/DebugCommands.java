@@ -87,6 +87,25 @@ public final class DebugCommands {
 							c.schedule(() -> c.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.RecorderScreen(null)));
 							return 1;
 						})))
+				.then(literal("teacher").executes(ctx -> {
+							var all = io.github.mudklip.minigamebots.client.train.TeacherDemos.available();
+							for (int i = 0; i < all.size(); i++) {
+								ctx.getSource().sendFeedback(Component.literal(i + ": " + all.get(i).label()));
+							}
+							return 1;
+						}).then(argument("index", IntegerArgumentType.integer(0)).then(argument("minutes", IntegerArgumentType.integer(0, 120))
+								.executes(ctx -> {
+									var all = io.github.mudklip.minigamebots.client.train.TeacherDemos.available();
+									int i = IntegerArgumentType.getInteger(ctx, "index");
+									if (i >= all.size()) {
+										ctx.getSource().sendError(Component.literal("No teacher " + i));
+										return 0;
+									}
+									Minecraft c = Minecraft.getInstance();
+									c.schedule(() -> io.github.mudklip.minigamebots.client.train.TeacherDemos.start(c, all.get(i),
+											IntegerArgumentType.getInteger(ctx, "minutes")));
+									return 1;
+								}))))
 				.then(literal("brain")
 						.then(literal("open").executes(ctx -> {
 							Minecraft c = Minecraft.getInstance();

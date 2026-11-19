@@ -193,7 +193,9 @@ public final class Recorder {
 			return;
 		}
 
-		GameInput input = AgentControl.aiActive() ? AgentControl.get().lastInput() : humanInput.snapshot(client);
+		GameInput teacher = io.github.mudklip.minigamebots.client.train.BaritoneTeacher.snapshot(client);
+		GameInput input = teacher != null ? teacher
+				: AgentControl.aiActive() ? AgentControl.get().lastInput() : humanInput.snapshot(client);
 		boolean jump = !AgentControl.aiActive() && humanInput.lastWasCameraJump();
 
 		Frame frame = FrameCapture.get().latest();
