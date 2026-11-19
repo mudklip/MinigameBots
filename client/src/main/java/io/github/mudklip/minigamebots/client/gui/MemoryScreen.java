@@ -95,8 +95,8 @@ public final class MemoryScreen extends Screen {
 		listX = mapX + mapSize + 12;
 		listY = 32;
 		listW = width - listX - 10;
-		addRenderableWidget(Button.builder(Component.literal("+"), b -> scale = Math.min(16, scale * 2)).pos(mapX, mapY + mapSize + 4).width(20).build());
-		addRenderableWidget(Button.builder(Component.literal("-"), b -> scale = Math.max(1, scale / 2)).pos(mapX + 24, mapY + mapSize + 4).width(20).build());
+		addRenderableWidget(Button.builder(Component.literal("+"), b -> scale = Math.min(16, scale * 2)).pos(mapX + mapSize - 42, mapY + 2).width(20).tooltip(Tooltip.create(Component.literal("Zoom in"))).build());
+		addRenderableWidget(Button.builder(Component.literal("-"), b -> scale = Math.max(1, scale / 2)).pos(mapX + mapSize - 21, mapY + 2).width(20).tooltip(Tooltip.create(Component.literal("Zoom out"))).build());
 		int by = height - 26;
 		addRenderableWidget(Button.builder(Component.literal("Mark: " + markType), b -> {
 			markType = Waypoint.TYPES.get((Waypoint.TYPES.indexOf(markType) + 1) % Waypoint.TYPES.size());
