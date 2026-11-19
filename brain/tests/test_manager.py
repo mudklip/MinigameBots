@@ -60,6 +60,17 @@ class ManagerTest(unittest.TestCase):
         self.assertIn("forward", a.keys)
         self.assertGreater(abs(a.yaw), 45.0)  # Turning away from it.
 
+    def test_watchdog_and_idle(self):
+        m = create("manager", {"profile": self.profile, "goals": [{"type": "explore"}]})
+        for i in range(3):
+            a = m.act(obs(10 * i, [], [{"type": "stuck", "data": {}}]), None)
+            self.assertIn("jump", a.keys)  # Tries another way.
+        m.act(obs(100), None)
+        self.assertIn("explore", " ".join(m.status()["completed"]))  # Gave the goal up after 3.
+        a = m.act(obs(205), None)  # Goals used up, free play off: idle, not frozen.
+        self.assertEqual(m.status()["skill"], "idle")
+        self.assertNotEqual(a.yaw, 0.0)  # Looks around.
+
     def test_eats_when_hungry(self):
         m = create("manager", {"profile": self.profile, "goals": [{"type": "explore"}]})
         o = obs(0, food=10)

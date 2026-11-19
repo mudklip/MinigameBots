@@ -302,5 +302,174 @@
         "note": "stalling"
       }
     ]
+  },
+  "figure_it_out": {
+    "name": "Figure It Out",
+    "description": "Any minigame, even an unknown one: chase what most games reward (score going up, kills, staying alive, victory titles) and try things (menus, NPCs, pads).",
+    "rules": [
+      {
+        "event": "tg_episode_end",
+        "where": {
+          "result": "win"
+        },
+        "value": 10,
+        "tier": 1,
+        "note": "round won"
+      },
+      {
+        "event": "tg_episode_end",
+        "where": {
+          "result": "loss"
+        },
+        "value": -5,
+        "tier": 1,
+        "note": "round lost"
+      },
+      {
+        "event": "title",
+        "where": {
+          "text": {
+            "contains": "victory"
+          }
+        },
+        "value": 8,
+        "cooldown": 10,
+        "tier": 1,
+        "note": "victory title"
+      },
+      {
+        "event": "title",
+        "where": {
+          "text": {
+            "contains": "you win"
+          }
+        },
+        "value": 8,
+        "cooldown": 10,
+        "tier": 1,
+        "note": "win title"
+      },
+      {
+        "event": "title",
+        "where": {
+          "text": {
+            "contains": "winner"
+          }
+        },
+        "value": 4,
+        "cooldown": 10,
+        "tier": 1,
+        "note": "winner title"
+      },
+      {
+        "event": "title",
+        "where": {
+          "text": {
+            "contains": "defeat"
+          }
+        },
+        "value": -4,
+        "cooldown": 10,
+        "tier": 1,
+        "note": "defeat title"
+      },
+      {
+        "event": "title",
+        "where": {
+          "text": {
+            "contains": "game over"
+          }
+        },
+        "value": -4,
+        "cooldown": 10,
+        "tier": 1,
+        "note": "game over"
+      },
+      {
+        "event": "kill",
+        "value": 3,
+        "tier": 1,
+        "note": "kill"
+      },
+      {
+        "event": "death",
+        "value": -3,
+        "tier": 1,
+        "note": "died"
+      },
+      {
+        "event": "scoreboard_changed",
+        "where": {
+          "delta": {
+            "min": 0.5
+          }
+        },
+        "value": 0.5,
+        "per": "delta",
+        "cap": 5,
+        "tier": 2,
+        "note": "score up"
+      },
+      {
+        "event": "scoreboard_changed",
+        "where": {
+          "delta": {
+            "max": -0.5
+          }
+        },
+        "value": -0.3,
+        "tier": 2,
+        "note": "score down"
+      },
+      {
+        "event": "damage_dealt",
+        "value": 0.05,
+        "per": "amount",
+        "cap": 3,
+        "tier": 2,
+        "note": "hit"
+      },
+      {
+        "event": "damage_taken",
+        "value": -0.03,
+        "per": "amount",
+        "tier": 3,
+        "note": "hurt",
+        "forgive": {
+          "by": [
+            "kill",
+            {
+              "event": "tg_episode_end",
+              "where": {
+                "result": "win"
+              }
+            }
+          ],
+          "within": 20
+        }
+      },
+      {
+        "event": "second",
+        "value": 0.002,
+        "tier": 4,
+        "note": "still in the game",
+        "cap": 1.2
+      },
+      {
+        "event": "screen_opened",
+        "value": 0.1,
+        "cooldown": 15,
+        "cap": 1,
+        "tier": 4,
+        "note": "tried a menu or NPC"
+      },
+      {
+        "event": "item_gained",
+        "value": 0.05,
+        "cap": 1,
+        "tier": 4,
+        "note": "picked something up"
+      }
+    ]
   }
 }

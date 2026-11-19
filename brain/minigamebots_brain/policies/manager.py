@@ -102,6 +102,8 @@ class ManagerPolicy(Policy):
         self.skill = None
         self.why = ""
         self.eating = 0
+        self.unstick_until = -1  # Tick until which it makes a "try something else" move (watchdog).
+        self.stuck_count = 0
         self.completed = []
         self.sub = None  # Goal picked by free play
         self.rng = random.Random()
@@ -130,6 +132,27 @@ class ManagerPolicy(Policy):
         return None, None
 
     # --- deciding ---
+
+    def _on_stuck(self) -> None:
+        """Watchdog said no progress for a while: try another way; after 3 tries, give the goal up."""
+        self.stuck_count += 1
+        self.unstick_until = self.tick + 40
+        goal = self.queue[0] if self.queue else self.sub
+        if self.stuck_count >= 3 and goal is not None:
+            goal.done = True
+            goal.spec["why"] = "gave up: stuck"
+            self.stuck_count = 0
+
+    def _idle(self) -> Action:
+        """No goal: act like a player waiting around: look about, sometimes take a few steps."""
+        phase = self.tick % 200
+        if phase < 30:
+            return Action(yaw=2.0 if (self.tick // 200) % 2 else -2.0, pitch=0.3 if phase < 15 else -0.3)
+        if 100 <= phase < 112 and (self.tick // 200) % 3 == 0:
+            return Action(keys={"forward"})
+        if phase == 150 and (self.tick // 200) % 4 == 1:
+            return Action(keys={"sneak"})
+        return Action()
 
     def current(self) -> Goal | None:
         while self.queue and self.queue[0].done:
@@ -218,6 +241,8 @@ class ManagerPolicy(Policy):
         for ev in obs.get("_events") or []:
             for g in self.queue[:1] + ([self.sub] if self.sub else []):
                 g.on_event(ev)
+            if ev.get("type") == "stuck":
+                self._on_stuck()
         goal = self.current()
         if goal is not None:
             goal.check_time(self.tick)
@@ -227,10 +252,14 @@ class ManagerPolicy(Policy):
             self.mode, self.why = self._decide(goal)
         if self.mode == "eat":
             return self._eat()
+        if self.tick < self.unstick_until:
+            # Watchdog: it hasn't got anywhere for a while: turn away, jump and walk, then retry.
+            self.skill = "unstick"
+            return Action(keys={"forward", "jump"}, yaw=9.0 if self.unstick_until - self.tick > 30 else 0.0)
         gtype = self.mode if self.mode in ("fight", "flee") else (goal.type if goal else None)
         if gtype is None:
-            self.skill = None
-            return Action()
+            self.skill = "idle"
+            return self._idle()
         obs = dict(obs)
         obs["goal"] = self._goal_input(gtype, goal)
         name, policy = self._skill(SKILLS_FOR.get(gtype, ("general",)))

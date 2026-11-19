@@ -107,6 +107,41 @@ public final class MgbConfig {
 	@SerialEntry
 	public boolean showRecordingIndicator = true;
 
+	@AutoGen(category = "autonomy")
+	@Boolean(colored = true)
+	@SerialEntry
+	public boolean autoRespawn = true;
+
+	@AutoGen(category = "autonomy")
+	@IntSlider(min = 0, max = 24, step = 1, format = "%d h")
+	@SerialEntry
+	public int sessionHours = 0;
+
+	@AutoGen(category = "autonomy")
+	@IntSlider(min = 0, max = 50, step = 1, format = "%d")
+	@SerialEntry
+	public int maxDeaths = 0;
+
+	@AutoGen(category = "autonomy")
+	@Boolean(colored = true)
+	@SerialEntry
+	public boolean stopWhenHealthCritical = false;
+
+	@AutoGen(category = "autonomy")
+	@Boolean(colored = true)
+	@SerialEntry
+	public boolean chatReplies = false;
+
+	@AutoGen(category = "autonomy")
+	@Boolean(colored = true)
+	@SerialEntry
+	public boolean tagChatAsAi = true;
+
+	@AutoGen(category = "autonomy")
+	@IntSlider(min = 4, max = 64, step = 4, format = "%d blocks")
+	@SerialEntry
+	public int protectRadius = 16;
+
 	// Brain (set from the Brain screen, not shown in this settings screen)
 	/** Your own Python to build the brain's environment from; empty = download a standalone Python. */
 	@SerialEntry

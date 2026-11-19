@@ -271,6 +271,7 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		events.addListener(recorder::onEvent);
 		events.addListener(brain::onEvent);
 		events.addListener(exams::onEvent);
+		events.addListener(io.github.mudklip.minigamebots.client.control.Autonomy::onEvent);
 		events.addListener(io.github.mudklip.minigamebots.client.brain.SelfPlayLink::onEvent);
 		events.addListener(event -> {
 			if (watching) {
@@ -297,6 +298,7 @@ public final class MinigameBotsClient implements ClientModInitializer {
 			sendStatus();
 		}
 		io.github.mudklip.minigamebots.client.train.TeacherDemos.tick(client);
+		io.github.mudklip.minigamebots.client.control.Autonomy.tick(client);
 		memory.tick(client);
 		// Perception costs CPU, so it only runs while something needs it.
 		if (AgentControl.aiActive() || watching || recorder.recording()) {

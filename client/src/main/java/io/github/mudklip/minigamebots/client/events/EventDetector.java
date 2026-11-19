@@ -194,7 +194,8 @@ public final class EventDetector {
 		for (var e : after.entrySet()) {
 			Integer old = before.get(e.getKey());
 			if (!Objects.equals(old, e.getValue())) {
-				emit(SCOREBOARD_CHANGED, Map.of("name", e.getKey(), "from", old == null ? 0 : old, "to", e.getValue()));
+				int from = old == null ? 0 : old;
+				emit(SCOREBOARD_CHANGED, Map.of("name", e.getKey(), "from", from, "to", e.getValue(), "delta", e.getValue() - from));
 			}
 		}
 	}

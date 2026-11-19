@@ -190,6 +190,24 @@ public final class ScenarioManager {
 		return s;
 	}
 
+	/** A match from a minigame template, or a random one ("random"). Re-rolls a random one each call. */
+	public Scenario createMinigame(String template, String name, Arena arena) throws ArenaManager.ArenaException {
+		if (!Arena.validName(name)) {
+			throw new ArenaManager.ArenaException("Names use letters, digits, - and _ (up to 32)");
+		}
+		Scenario s = Minigames.make(template, name, arena.name, new java.util.Random());
+		for (int i = 0; i < arena.spawns.size(); i++) {
+			s.teams.get(i % s.teams.size()).spawns.add(arena.spawns.get(i).clone());
+		}
+		Scenario old = scenarios.get(name);
+		if (old != null) {
+			s.episodes = old.episodes;
+		}
+		scenarios.put(name, s);
+		save(s);
+		return s;
+	}
+
 	public void delete(String name) throws ArenaManager.ArenaException {
 		if (episode != null && episode.sc.name.equals(name)) {
 			throw new ArenaManager.ArenaException("Stop it first");
@@ -288,6 +306,16 @@ public final class ScenarioManager {
 		}
 		ServerLevel level = arenas.level(arena);
 		MinecraftServer srv = server();
+		if (s.randomize && s.episodes > 0) {
+			// Keep everyone on their team slot if it still exists; otherwise the first team.
+			Minigames.reroll(s, new java.util.Random());
+			for (var en : joined.getOrDefault(s.name, java.util.Map.of()).entrySet()) {
+				if (en.getValue() >= s.teams.size()) {
+					en.setValue(0);
+				}
+			}
+			save(s);
+		}
 		Episode e = new Episode(s);
 		for (Map.Entry<UUID, Integer> en : joined.getOrDefault(s.name, Map.of()).entrySet()) {
 			ServerPlayer p = srv.getPlayerList().getPlayer(en.getKey());

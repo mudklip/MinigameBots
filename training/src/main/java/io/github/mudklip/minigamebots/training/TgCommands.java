@@ -100,6 +100,34 @@ final class TgCommands {
 							ok(ctx, "Your inputs may be recorded while recording is on");
 							return 1;
 						})))
+				.then(Commands.literal("minigame").requires(tg::canManage)
+						.then(Commands.argument("template", StringArgumentType.word())
+								.suggests((c, sb) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
+										io.github.mudklip.minigamebots.training.scenario.Minigames.TEMPLATES, sb))
+								.then(Commands.argument("arena", StringArgumentType.word()).suggests(arenaNames)
+										.then(Commands.argument("name", StringArgumentType.word()).executes(ctx -> {
+											String template = StringArgumentType.getString(ctx, "template");
+											if (!io.github.mudklip.minigamebots.training.scenario.Minigames.TEMPLATES.contains(template)) {
+												fail(ctx, "Templates: " + String.join(", ",
+														io.github.mudklip.minigamebots.training.scenario.Minigames.TEMPLATES));
+												return 0;
+											}
+											Arena a = tg.arenas().get(StringArgumentType.getString(ctx, "arena"));
+											if (a == null) {
+												fail(ctx, "No such arena");
+												return 0;
+											}
+											try {
+												var sc = tg.scenarios().createMinigame(template, StringArgumentType.getString(ctx, "name"), a);
+												ok(ctx, "Made " + template + " match " + sc.name + ": " + sc.teams.size() + " teams, "
+														+ sc.rule.label + ", " + sc.timeLimit + " s. Join a team and start it from the menu"
+														+ " (or /tg match join + /tg match start).");
+											} catch (ArenaManager.ArenaException e) {
+												fail(ctx, e.getMessage());
+												return 0;
+											}
+											return 1;
+										})))))
 				.then(Commands.literal("match").requires(tg::canManage)
 						.then(Commands.literal("list").executes(ctx -> {
 							var list = tg.scenarios().list();

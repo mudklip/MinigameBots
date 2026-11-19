@@ -9,7 +9,7 @@ def hit(**data):
 
 class DrillTest(unittest.TestCase):
     def test_templates_are_clean(self):
-        for name in ("crit_drill", "wtap_drill", "shield_drill"):
+        for name in ("crit_drill", "wtap_drill", "shield_drill", "figure_it_out"):
             self.assertEqual(obj.analyze(templates.build(name)), [], name)
 
     def test_crit_drill_prefers_crits_over_spam(self):

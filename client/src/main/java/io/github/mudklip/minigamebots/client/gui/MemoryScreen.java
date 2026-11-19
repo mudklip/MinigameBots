@@ -61,6 +61,20 @@ public final class MemoryScreen extends Screen {
 			rebuildWidgets();
 		}).pos(width - 140, 6).width(130).build()).active = !factions;
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(width - 70, height - 26).width(60).build());
+		var wm = io.github.mudklip.minigamebots.client.MinigameBotsClient.instance().memory().memory();
+		int zones = wm == null ? 0 : wm.zones.size();
+		addRenderableWidget(Button.builder(Component.literal("Protect area here (" + zones + " zones)"), b -> {
+			io.github.mudklip.minigamebots.client.control.Autonomy.protectHere(minecraft);
+			rebuildWidgets();
+		}).pos(10, height - 26).width(150).tooltip(net.minecraft.client.gui.components.Tooltip.create(
+				Component.translatable("minigamebots.memory.protect_help"))).build());
+		addRenderableWidget(Button.builder(Component.literal("Clear zones"), b -> {
+			if (wm != null) {
+				wm.zones.clear();
+				io.github.mudklip.minigamebots.client.MinigameBotsClient.instance().memory().changed();
+			}
+			rebuildWidgets();
+		}).pos(164, height - 26).width(70).build()).active = zones > 0;
 		WorldMemory m = mm().memory();
 		if (m == null) {
 			return;

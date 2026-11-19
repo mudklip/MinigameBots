@@ -25,6 +25,21 @@ public final class WorldMemory {
 
 	public String world = "";
 	public List<Waypoint> waypoints = new ArrayList<>();
+	/** Places the AI must never break blocks in or open/use things in (friends' bases). */
+	public List<Zone> zones = new ArrayList<>();
+
+	public static final class Zone {
+		public String name = "";
+		public String dimension = "";
+		public int x;
+		public int y;
+		public int z;
+		public int radius = 16;
+
+		public boolean contains(String dim, double px, double py, double pz) {
+			return dimension.equals(dim) && Math.abs(px - x) <= radius && Math.abs(pz - z) <= radius && Math.abs(py - y) <= radius;
+		}
+	}
 	/** Player name -> relation. */
 	public Map<String, Relation> players = new LinkedHashMap<>();
 	/** Insignia id -> relation. */

@@ -51,6 +51,8 @@ public final class Scenario {
 	/** Slow the game down to the speed of the slowest AI playing, so it can decide every tick. */
 	public boolean matchAiSpeed;
 	public int episodes;
+	/** Random minigame: teams, opponents, kits, rule and time are re-rolled every round. */
+	public boolean randomize;
 	public Map<String, Integer> wins = new LinkedHashMap<>();
 	public int draws;
 

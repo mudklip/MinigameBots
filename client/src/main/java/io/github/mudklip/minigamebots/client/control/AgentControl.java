@@ -127,7 +127,7 @@ public final class AgentControl {
 		}
 		AgentAction action = source.next(client);
 		humanizer.submit(action, source.decisionTick(tick));
-		lastInput = humanizer.tick(tick);
+		lastInput = Autonomy.filter(client, humanizer.tick(tick));
 		input.apply(client, lastInput);
 		camera.beginTick(client, lastInput.yaw(), lastInput.pitch());
 		tick++;

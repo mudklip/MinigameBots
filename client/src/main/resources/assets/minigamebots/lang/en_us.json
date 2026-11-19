@@ -266,5 +266,21 @@
 	"minigamebots.question.save": "Save as custom item",
 	"minigamebots.question.ignore": "Ignore",
 	"minigamebots.video.players": "Learn from other players in recordings",
-	"minigamebots.video.players_help": "Every other player seen in your recordings (any server, or a Flashback replay you recorded while watching) becomes a demo from their point of view, weighted by how well it went for them. Only on servers where you're allowed to record."
+	"minigamebots.video.players_help": "Every other player seen in your recordings (any server, or a Flashback replay you recorded while watching) becomes a demo from their point of view, weighted by how well it went for them. Only on servers where you're allowed to record.",
+	"yacl3.config.minigamebots:config.category.autonomy": "Autonomy and safety",
+	"yacl3.config.minigamebots:config.autoRespawn": "Respawn by itself",
+	"yacl3.config.minigamebots:config.autoRespawn.desc": "When the AI dies while in control, it presses Respawn.",
+	"yacl3.config.minigamebots:config.sessionHours": "Stop after",
+	"yacl3.config.minigamebots:config.sessionHours.desc": "Hand control back after this many hours (0 = no limit).",
+	"yacl3.config.minigamebots:config.maxDeaths": "Stop after deaths",
+	"yacl3.config.minigamebots:config.maxDeaths.desc": "Hand control back after dying this many times in one session (0 = no limit).",
+	"yacl3.config.minigamebots:config.stopWhenHealthCritical": "Stop if health stays critical",
+	"yacl3.config.minigamebots:config.stopWhenHealthCritical.desc": "Hand control back if health stays at 2 hearts or less for 30 seconds.",
+	"yacl3.config.minigamebots:config.chatReplies": "Canned chat replies",
+	"yacl3.config.minigamebots:config.chatReplies.desc": "Off by default. Says 'gg' after a match round or when others do, and 'hi' back when greeted by name. At most one message every 10 seconds.",
+	"yacl3.config.minigamebots:config.tagChatAsAi": "Mark replies as AI",
+	"yacl3.config.minigamebots:config.tagChatAsAi.desc": "Starts each reply with [AI], so friends know it isn't you typing.",
+	"yacl3.config.minigamebots:config.protectRadius": "Protected zone size",
+	"yacl3.config.minigamebots:config.protectRadius.desc": "How far a protected zone reaches from where you add it (Memory screen).",
+	"minigamebots.memory.protect_help": "The AI will never break blocks or open/use anything within this distance of where you stand (set in Settings). A hard rule, not a preference."
 }
