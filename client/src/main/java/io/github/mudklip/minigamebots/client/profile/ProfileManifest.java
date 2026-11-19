@@ -83,6 +83,10 @@ public final class ProfileManifest {
 			if (!enabled) {
 				return HumanizerSettings.OFF;
 			}
+			if (reactionMs == 180 && reactionJitterMs == 35 && maxTurnSpeed == 1000f && maxTurnAccel == 15000f
+					&& Math.abs(aimNoise - 0.12f) < 1e-4 && maxCps == 12) {
+				return HumanizerSettings.DEFAULT; // Never customised: use the new top-level default.
+			}
 			try {
 				return new HumanizerSettings(true, reactionMs, reactionJitterMs, maxTurnSpeed, maxTurnAccel, aimNoise, maxCps);
 			} catch (IllegalArgumentException e) {

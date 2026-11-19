@@ -64,7 +64,13 @@ public final class AgentControl {
 		}
 		source = newSource;
 		var profiles = io.github.mudklip.minigamebots.client.MinigameBotsClient.instance().profiles();
-		humanizer.setSettings(profiles.humanizer());
+		var limits = profiles.humanizer();
+		if (newSource instanceof io.github.mudklip.minigamebots.client.brain.BrainSource b && b.scripted()
+				&& limits.enabled() && limits.aimNoise() == 0f) {
+			limits = new HumanizerSettings(true, limits.reactionMs(), limits.reactionJitterMs(), limits.maxTurnSpeed(),
+					limits.maxTurnAccel(), HumanizerSettings.SCRIPTED_WOBBLE, limits.maxCps());
+		}
+		humanizer.setSettings(limits);
 		humanizer.reset();
 		camera.reset();
 		KeyMapping.releaseAll();

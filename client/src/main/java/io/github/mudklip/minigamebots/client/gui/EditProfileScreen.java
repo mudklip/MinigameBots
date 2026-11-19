@@ -85,11 +85,30 @@ public final class EditProfileScreen extends Screen {
 		ProfileManifest.Humanizer h = working.humanizer;
 		addRenderableWidget(Checkbox.builder(Component.translatable("minigamebots.profiles.humanizer_on"), font)
 				.pos(x, sy).selected(h.enabled).onValueChange((c, on) -> h.enabled = on).build());
+		String current = !h.enabled ? "off" : h.reactionMs == 140 && h.maxTurnSpeed == 3500f && h.maxCps == 20 ? "top-level"
+				: h.reactionMs == 220 && h.maxTurnSpeed == 900f && h.maxCps == 10 ? "average" : "custom";
+		addRenderableWidget(Button.builder(Component.literal("Preset: " + current), b -> {
+			var presets = java.util.List.of(io.github.mudklip.minigamebots.client.control.HumanizerSettings.DEFAULT,
+					io.github.mudklip.minigamebots.client.control.HumanizerSettings.AVERAGE);
+			var names = java.util.List.of("top-level", "average");
+			int next = (names.indexOf(current) + 1) % presets.size();
+			var p = presets.get(next);
+			h.enabled = true;
+			h.reactionMs = p.reactionMs();
+			h.reactionJitterMs = p.reactionJitterMs();
+			h.maxTurnSpeed = p.maxTurnSpeed();
+			h.maxTurnAccel = p.maxTurnAccel();
+			h.aimNoise = p.aimNoise();
+			h.maxCps = p.maxCps();
+			rebuildWidgets();
+		}).pos(x + half + 4, sy).width(half).tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(
+				"Top-level: the limits of the best human players (default). Average: a typical player. "
+						+ "Turning the limits off is for singleplayer experiments only."))).build());
 		addRenderableWidget(new ValueSlider(half, "Reaction", 0, 500, 10, h.reactionMs, v -> (int) v + " ms",
 				v -> h.reactionMs = (int) v)).setPosition(x, sy + 24);
 		addRenderableWidget(new ValueSlider(half, "Max CPS", 1, 20, 1, h.maxCps, v -> String.valueOf((int) v),
 				v -> h.maxCps = (int) v)).setPosition(x + half + 4, sy + 24);
-		addRenderableWidget(new ValueSlider(half, "Turn speed", 100, 3000, 50, h.maxTurnSpeed, v -> (int) v + "°/s",
+		addRenderableWidget(new ValueSlider(half, "Turn speed", 100, 4000, 50, h.maxTurnSpeed, v -> (int) v + "°/s",
 				v -> h.maxTurnSpeed = (float) v)).setPosition(x, sy + 48);
 		addRenderableWidget(new ValueSlider(half, "Aim wobble", 0, 1, 0.01, h.aimNoise, v -> String.format("%.2f°", v),
 				v -> h.aimNoise = (float) v)).setPosition(x + half + 4, sy + 48);

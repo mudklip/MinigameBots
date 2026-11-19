@@ -45,6 +45,11 @@ public final class BrainSource implements ActionSource {
 	private long answered;
 	private long late;
 
+	/** A hand-written player (teacher, follow, idle...), not a trained network. */
+	public boolean scripted() {
+		return java.util.Set.of("teacher", "follow", "idle", "random").contains(policy);
+	}
+
 	public BrainSource(String policy) {
 		this.policy = policy;
 	}
