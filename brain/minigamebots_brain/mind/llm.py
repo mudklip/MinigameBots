@@ -41,6 +41,8 @@ def installed(root: str) -> bool:
 
 
 def install(root: str, log=print) -> str:
+    # Plain downloads (not the "Xet" storage), which pass through firewalls and proxies more easily.
+    os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
     from huggingface_hub import snapshot_download
 
     d = model_dir(root)
