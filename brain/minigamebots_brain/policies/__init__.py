@@ -31,6 +31,12 @@ def _multiworld(**kwargs) -> Policy:
     return MultiWorldPolicy(**kwargs)
 
 
+def _core(**kwargs) -> Policy:
+    from ..core.game import CoreGamePolicy  # Imported on use: it needs torch.
+
+    return CoreGamePolicy(**kwargs)
+
+
 def _practice(**kwargs) -> Policy:
     from .practice import PracticePolicy  # Imported on use: it needs torch.
 
@@ -48,6 +54,7 @@ POLICIES = {
     "learned": create_learned,
     "vpt": _vpt,
     "practice": _practice,
+    "core": _core,
     "manager": _manager,
 }
 

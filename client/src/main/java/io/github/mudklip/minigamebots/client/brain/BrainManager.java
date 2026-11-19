@@ -530,6 +530,19 @@ public final class BrainManager {
 		return keys;
 	}
 
+	/** The Core learns the game being played: finds its rules, rewards itself by them, remembers the game. */
+	public void playCore(Minecraft client, io.github.mudklip.minigamebots.client.profile.ProfileManifest profile) {
+		var profileDir = MinigameBotsClient.instance().profiles().store().dir(profile.id);
+		io.github.mudklip.minigamebots.client.profile.VersionHistory.before(profileDir, profileDir.resolve("core"), "Before the Core learned a game");
+		JsonObject args = new JsonObject();
+		args.addProperty("profile", profileDir.toString());
+		args.addProperty("stage_dir", profileDir.resolve("core-games").toString());
+		args.addProperty("me", client.getUser().getName());
+		args.addProperty("learn", true);
+		args.addProperty("resources", "balanced");
+		play(client, "core", args);
+	}
+
 	/** Practices one skill: its rules, hints and locks; trains the network it belongs to. */
 	public void practiceSkill(Minecraft client, io.github.mudklip.minigamebots.client.profile.ProfileManifest profile, String id,
 			io.github.mudklip.minigamebots.client.skills.SkillDef def, boolean learn) {

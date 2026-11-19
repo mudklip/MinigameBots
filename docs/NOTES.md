@@ -14,7 +14,8 @@
    applied to everything the AI does). Was: Locks only apply while a skill is practiced or
    coached. Free play, Goals and Let it play ignore them. Add a global "never do" list (per AI)
    that applies to everything the AI does.
-5. **Flicker/stutter when the brain starts** (Python + PyTorch loading onto the GPU). Measure on
+5. **Flicker/stutter when the brain starts** (partly fixed in 1.6.1; the brain process start
+   itself still to measure) (Python + PyTorch loading onto the GPU). Measure on
    an RTX 2060 6 GB, with the mind loaded too; load in the background at lower priority, and
    warm up the GPU before the AI takes control.
 6. **Mind download (WinError 10054).** Retries and resume shipped in 1.1.1; not yet confirmed
@@ -41,9 +42,15 @@
 
 ## Planned features (agreed)
 
-- **#1 priority: the Core** (docs/MIND_DESIGN.md section 11): common sense first, shared by
-  all skills; a rule finder that learns new minigames from a few rounds; first card in the Skills
-  list with the light block icon.
+- **#1 priority: the Core** (docs/MIND_DESIGN.md section 11). Done in 1.9.0: rule finder (counts
+  cause -> effect with a coincidence check; win/lose titles, kills, deaths, scores, projectile
+  hits), automatic rewards from rules, skill borrowing suggestions, per-game memory by sidebar
+  title, "Learn this game" mode, Core card (light block) first in Skills. Next for the Core:
+  (a) actually switch to borrowed skills inside a game (the Manager picks them by the rules),
+  (b) self-taught pretraining heads (predict next seconds, events, deaths) on the shared network,
+  needs a model change and retraining, (c) the minigame generator in Training Grounds (instant
+  random rule sets: one-hit snowballs, sumo, spleef, TNT run, king of the hill, last alive...),
+  (d) exam: rounds needed to play an unseen generated game well.
 
 - **Teams of the same AI:** several bodies running the same AI, no special channel between
   them: they only see what a player in their place would see; with the mind on they may use

@@ -64,6 +64,11 @@ public final class SkillsScreen extends Screen {
 		return out;
 	}
 
+	/** The Core card is cell 0 in the "All" list, before every skill. */
+	private int offset() {
+		return category.equals("All") ? 1 : 0;
+	}
+
 	private List<SkillStore.Entry> shown() {
 		return entries.stream().filter(e -> matches(e, category)).toList();
 	}
@@ -134,8 +139,16 @@ public final class SkillsScreen extends Screen {
 		Path dir = profileDir();
 		if (dir != null) {
 			List<SkillStore.Entry> list = shown();
+			int off = offset();
+			if (off == 1) {
+				int[] r0 = cell(0);
+				if (r0 != null && Ui.inside(mx, my, r0[0], r0[1], CARD_W, CARD_H)) {
+					minecraft.gui.setScreen(new CoreScreen(this));
+					return true;
+				}
+			}
 			for (int i = 0; i <= list.size(); i++) {
-				int[] r = cell(i);
+				int[] r = cell(i + off);
 				if (r != null && Ui.inside(mx, my, r[0], r[1], CARD_W, CARD_H)) {
 					if (i == list.size()) {
 						minecraft.gui.setScreen(new AddSkillScreen(this, category.equals("All") ? "Custom" : category));
@@ -180,8 +193,19 @@ public final class SkillsScreen extends Screen {
 		Progress pr = Progress.active();
 		List<SkillStore.Entry> list = shown();
 		String hoverHelp = null;
+		int off = offset();
+		if (off == 1) {
+			int[] r0 = cell(0);
+			if (r0 != null) {
+				boolean h0 = Ui.inside(mouseX, mouseY, r0[0], r0[1], CARD_W, CARD_H);
+				Ui.itemCard(g, font, r0[0], r0[1], CARD_W, CARD_H, "minecraft:light", "§e§lCore", "§7common sense", -1, h0, true);
+				if (h0) {
+					hoverHelp = "The Core: common sense shared by every skill; learns new minigames' rules by itself";
+				}
+			}
+		}
 		for (int i = 0; i <= list.size(); i++) {
-			int[] r = cell(i);
+			int[] r = cell(i + off);
 			if (r == null) {
 				continue;
 			}
@@ -207,7 +231,7 @@ public final class SkillsScreen extends Screen {
 				hoverHelp = d.help;
 			}
 		}
-		int rows = (list.size() + 1 + cols() - 1) / cols();
+		int rows = (list.size() + 1 + off + cols() - 1) / cols();
 		int visible = Math.max(1, (height - gridTop() - 22) / (CARD_H + 4));
 		int room = width - 16;
 		if (scroll + visible < rows) {

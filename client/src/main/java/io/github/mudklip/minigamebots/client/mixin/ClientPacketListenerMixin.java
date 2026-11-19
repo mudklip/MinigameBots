@@ -21,6 +21,29 @@ public abstract class ClientPacketListenerMixin {
 			if (player.level().getEntity(packet.entityId()) instanceof net.minecraft.world.entity.LivingEntity victim) {
 				io.github.mudklip.minigamebots.client.observe.Observer.healthMemory.onDamage(player, victim, packet.sourceCauseId());
 			}
+			// Exactly what hurt whom (the projectile too), for the Core's rule finder.
+			var level = player.level();
+			var direct = level.getEntity(packet.sourceDirectId());
+			var cause = level.getEntity(packet.sourceCauseId());
+			String with = direct != null ? net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(direct.getType()).toString()
+					: cause != null ? "melee" : "environment";
+			if (direct == cause && cause instanceof net.minecraft.world.entity.LivingEntity le) {
+				with = "melee:" + net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(le.getMainHandItem().getItem()).toString();
+			}
+			var data = new java.util.HashMap<String, Object>();
+			data.put("with", with);
+			if (packet.entityId() == player.getId()) {
+				if (cause != null) {
+					data.put("by", net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(cause.getType()).toString());
+				}
+				MinigameBotsClient.events().emit("hurt_by", data);
+			} else if (packet.sourceCauseId() == player.getId()) {
+				var victim = level.getEntity(packet.entityId());
+				if (victim != null) {
+					data.put("target", net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(victim.getType()).toString());
+				}
+				MinigameBotsClient.events().emit("i_hit", data);
+			}
 		}
 	}
 
