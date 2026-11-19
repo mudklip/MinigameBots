@@ -54,6 +54,23 @@ def installed(root: str) -> bool:
         f.endswith(".safetensors") for f in (os.listdir(d) if os.path.isdir(d) else []))
 
 
+def download(fn, log=print, tries: int = 6):
+    """Runs a Hugging Face download, retrying after dropped connections (it resumes partial files).
+    One connection at a time: firewalls, antivirus and flaky Wi-Fi often reset parallel ones."""
+    import time
+
+    for attempt in range(1, tries + 1):
+        try:
+            return fn()
+        except Exception as e:  # Connection reset, timeouts, "LocalEntryNotFound" after a failed request...
+            if attempt == tries:
+                raise RuntimeError(f"download kept failing ({e}). Check your internet connection, or allow Python "
+                                   "through your firewall/antivirus, then press the button again: it resumes.") from e
+            wait = 5 * attempt
+            log(f"Connection dropped ({type(e).__name__}); retrying in {wait} s (try {attempt + 1} of {tries})...")
+            time.sleep(wait)
+
+
 def install(root: str, log=print, size: str = "standard") -> str:
     # Plain downloads (not the "Xet" storage), which pass through firewalls and proxies more easily.
     os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
@@ -62,7 +79,8 @@ def install(root: str, log=print, size: str = "standard") -> str:
     name = MODELS.get(size, DEFAULT_MODEL)
     d = model_dir(root, name)
     log(f"Downloading {name} ({'about 1 GB' if size == 'lite' else 'about 3 GB'})...")
-    snapshot_download(name, local_dir=d, allow_patterns=["*.json", "*.safetensors", "*.txt", "*.model", "merges.txt"])
+    download(lambda: snapshot_download(name, local_dir=d, max_workers=1, etag_timeout=60,
+                                       allow_patterns=["*.json", "*.safetensors", "*.txt", "*.model", "merges.txt"]), log)
     os.makedirs(root, exist_ok=True)
     with open(os.path.join(root, "selected.txt"), "w", encoding="utf-8") as f:
         f.write(name)

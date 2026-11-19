@@ -179,12 +179,16 @@ public final class Coach {
 			case AIM -> {
 				train(p, TrainingManager.Plan.QUICK, g.skill, lite, "teacher");
 				arena();
+				long[] lastAim = {0};
 				steps.add(new Step("Aim trainer practice (" + chunk + " min)", true, () -> {
 					cmd("tg aim flick 300");
+					lastAim[0] = System.currentTimeMillis();
 					practice(p, "aim", g.skill);
 				}, () -> {
-					if (elapsed() % 300_000 < 1000) {
+					// A new 5-minute aim session when the last one has ended (once, not every tick).
+					if (System.currentTimeMillis() - lastAim[0] > 302_000) {
 						cmd("tg aim flick 300");
+						lastAim[0] = System.currentTimeMillis();
 					}
 					return elapsed() > chunk * 60_000L;
 				}));

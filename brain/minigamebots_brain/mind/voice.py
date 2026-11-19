@@ -40,11 +40,13 @@ def install(mind_root: str, log=print) -> None:
 
     d = root_dir(mind_root)
     log("Downloading speech recognition (about 290 MB)...")
-    snapshot_download(WHISPER, local_dir=os.path.join(d, "whisper"),
-                      allow_patterns=["*.json", "*.safetensors", "*.txt"])
+    from .llm import download
+
+    download(lambda: snapshot_download(WHISPER, local_dir=os.path.join(d, "whisper"), max_workers=1, etag_timeout=60,
+                                       allow_patterns=["*.json", "*.safetensors", "*.txt"]), log)
     log("Downloading a voice (about 60 MB)...")
     for ext in (".onnx", ".onnx.json"):
-        p = hf_hub_download(PIPER_REPO, PIPER_VOICE + ext, local_dir=d)
+        p = download(lambda ext=ext: hf_hub_download(PIPER_REPO, PIPER_VOICE + ext, local_dir=d, etag_timeout=60), log)
         os.replace(p, os.path.join(d, os.path.basename(PIPER_VOICE) + ext))
 
 
