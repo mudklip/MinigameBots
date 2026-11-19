@@ -106,6 +106,28 @@ Teachers are scripted experts that play AS your AI while it records. Free expert
 
 > Start a Training Grounds match first (e.g. against a "godly" dummy) so every round is recorded.
 
+=== commands | Talk to your AI (/ai)
+Tell your AI what to do in plain words. Only you can: it's a command on your own PC, it never reaches the server.
+
+# Examples
+- [/ai mine 10 iron then go home]
+- [/ai hunt 3 cows], [/ai kill a zombie]
+- [/ai follow me], [/ai protect Alex], [/ai come back]
+- [/ai explore for 5 minutes], [/ai do whatever you want]
+- [/ai stop]
+
+# What happens
+1. It turns your words into goals (the same ones as the Goals screen)
+2. It answers in your chat, e.g. "Okay: mine iron x10, then go home"
+3. Your selected AI takes control and does them in order
+
+# Free-form commands (optional)
+- Common phrasings work straight away
+- For anything else, install the mind: [F10] > [Brain...] > [Install mind (3 GB)]
+- It runs on your PC only, and can only choose goals: never anything you couldn't do yourself
+
+> Chain with "then", "and" or commas: [/ai get food, then go home, then explore].
+
 === goals | Goals
 The Manager decides what to do moment to moment, using the AI's skills.
 

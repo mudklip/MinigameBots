@@ -34,6 +34,12 @@ public final class DebugCommands {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 
 	public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
+		// /ai <what you want>: a command to your AI. Client-side: it never reaches the server.
+		dispatcher.register(literal("ai").then(argument("text", StringArgumentType.greedyString()).executes(ctx -> {
+			Minecraft c = Minecraft.getInstance();
+			MinigameBotsClient.instance().brain().command(c, StringArgumentType.getString(ctx, "text"));
+			return 1;
+		})));
 		dispatcher.register(literal("mgb")
 				.then(literal("run").then(argument("script", StringArgumentType.greedyString()).executes(DebugCommands::run)))
 				.then(literal("ai")

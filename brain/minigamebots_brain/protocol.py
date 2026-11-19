@@ -2,6 +2,7 @@
 
 import json
 import socket
+import threading
 import struct
 
 MAX_MESSAGE = 16 * 1024 * 1024
@@ -22,9 +23,12 @@ class Channel:
     def __init__(self, sock: socket.socket):
         self.sock = sock
         self._buffer = bytearray()
+        self._send_lock = threading.Lock()  # The mind answers commands from its own thread.
 
     def send(self, message: dict) -> None:
-        self.sock.sendall(encode(message))
+        data = encode(message)
+        with self._send_lock:
+            self.sock.sendall(data)
 
     def _read_exact(self, n: int) -> bytes:
         while len(self._buffer) < n:

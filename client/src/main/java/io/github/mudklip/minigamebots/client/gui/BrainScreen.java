@@ -103,6 +103,11 @@ public final class BrainScreen extends Screen {
 				b -> minecraft.gui.setScreen(new FoundationsScreen(this))).pos(width - 90, 4).width(80)
 				.tooltip(net.minecraft.client.gui.components.Tooltip.create(
 						Component.translatable("minigamebots.foundations.button_help"))).build());
+		boolean mindInstalled = java.nio.file.Files.isDirectory(brain.runtime().root().resolve("mind"));
+		addRenderableWidget(Button.builder(Component.literal(mindBusy ? "Mind: installing..." : mindInstalled ? "Mind: installed"
+				: "Install mind (3 GB)"), b -> installMind()).pos(width - 174, 4).width(80)
+				.tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable("minigamebots.mind.help"))).build())
+				.active = !mindBusy && !mindInstalled && brain.runtime().installed();
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose())
 				.pos(width - 70, y2).width(60).build());
 		updateButtons();
@@ -155,6 +160,40 @@ public final class BrainScreen extends Screen {
 	@Override
 	public void tick() {
 		updateButtons();
+	}
+
+	private static volatile boolean mindBusy;
+
+	/** Downloads the optional language model for free-form /ai commands (one time, about 3 GB). */
+	private void installMind() {
+		mindBusy = true;
+		rebuildWidgets();
+		var toast = new net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId();
+		var mc = minecraft;
+		Thread t = new Thread(() -> {
+			String end;
+			try {
+				var r = io.github.mudklip.minigamebots.client.video.VideoLab.run(java.util.List.of("mind", "install", "--root",
+						brain.runtime().root().resolve("mind").toString()), m -> mc.execute(() ->
+						net.minecraft.client.gui.components.toasts.SystemToast.addOrUpdate(mc.gui.toastManager(), toast,
+								Component.literal("Mind"), Component.literal(m))));
+				end = "error".equals(r.has("type") ? r.get("type").getAsString() : "") ? "Failed: " + r.get("message").getAsString()
+						: "Installed. Try /ai with anything.";
+			} catch (Exception e) {
+				end = "Failed: " + e.getMessage();
+			}
+			String msg = end;
+			mindBusy = false;
+			mc.execute(() -> {
+				net.minecraft.client.gui.components.toasts.SystemToast.addOrUpdate(mc.gui.toastManager(), toast,
+						Component.literal("Mind"), Component.literal(msg));
+				if (mc.gui.screen() == this) {
+					rebuildWidgets();
+				}
+			});
+		}, "MinigameBots mind install");
+		t.setDaemon(true);
+		t.start();
 	}
 
 	private void updateButtons() {

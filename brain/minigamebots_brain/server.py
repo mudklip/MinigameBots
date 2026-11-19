@@ -3,6 +3,8 @@ the mod over localhost, then answers each observation with an action until told 
 
 import argparse
 import json
+import threading
+import os
 import socket
 import sys
 import time
@@ -37,6 +39,8 @@ class Brain:
             self.on_obs(message)
         elif kind == "set_policy":
             self.set_policy(message.get("name", "idle"), message.get("args") or {})
+        elif kind == "command":
+            threading.Thread(target=self.on_command, args=(message,), daemon=True).start()
         elif kind == "ping":
             self.channel.send({"type": "pong", "id": message.get("id")})
         elif kind == "status":
@@ -90,6 +94,23 @@ class Brain:
         self.think_ms = self.think_ms[-200:]
         self.send_status()
 
+    def on_command(self, message: dict) -> None:
+        """A command you typed (/ai ...): understood off the play loop, answered with goals."""
+        from .mind import commands, llm as llm_mod
+
+        root = os.path.join(os.getcwd(), "mind")
+        model = getattr(self, "llm", None)
+        try:
+            if model is None and llm_mod.installed(root):
+                self.channel.send({"type": "command_result", "id": message.get("id"), "progress": True,
+                                   "reply": "Loading the mind model (first time only)..."})
+                model = self.llm = llm_mod.LLM(root)
+            result = commands.understand(str(message.get("text", "")), str(message.get("me", "")), model)
+        except Exception as e:
+            log("Mind error:\n" + traceback.format_exc())
+            result = {"goals": [], "stop": False, "via": "none", "reply": f"My mind had a problem: {e}"}
+        self.channel.send({"type": "command_result", "id": message.get("id"), **result})
+
     def _selfplay(self, profile: str):
         """The self-play opponent for this AI (made on first use)."""
         sp = getattr(self, "selfplay", None)
@@ -130,6 +151,10 @@ def main(argv=None) -> int:
         from .learn import train
 
         return train.main(argv[1:])
+    if argv and argv[0] == "mind":
+        from .mind import cli
+
+        return cli.main(argv[1:])
     if argv and argv[0] == "players":
         from . import players
 

@@ -274,6 +274,64 @@ public final class BrainManager {
 		});
 	}
 
+	private int commandId;
+
+	/**
+	 * A command you typed with /ai: the brain turns it into goals (rule parser, or the optional
+	 * mind model). Only this client's own player can give commands.
+	 */
+	public void command(Minecraft client, String text) {
+		int id = ++commandId;
+		String me = client.player == null ? "" : client.player.getGameProfile().name();
+		say(client, "§7Thinking...");
+		control.execute(() -> {
+			if (status != Status.RUNNING && !startBlocking()) {
+				client.execute(() -> say(client, "§cThe brain isn't set up or didn't start (F10 > Brain)."));
+				return;
+			}
+			JsonObject m = new JsonObject();
+			m.addProperty("type", "command");
+			m.addProperty("id", id);
+			m.addProperty("text", text);
+			m.addProperty("me", me);
+			sendAsync(m);
+		});
+	}
+
+	private static void say(Minecraft client, String text) {
+		if (client.player != null) {
+			client.player.sendSystemMessage(Component.literal("§b[AI]§r " + text));
+		}
+	}
+
+	private void onCommandResult(JsonObject m) {
+		Minecraft client = Minecraft.getInstance();
+		String reply = m.has("reply") ? m.get("reply").getAsString() : "";
+		client.execute(() -> {
+			say(client, reply);
+			if (m.has("progress")) {
+				return;
+			}
+			if (m.has("stop") && m.get("stop").getAsBoolean()) {
+				if (io.github.mudklip.minigamebots.client.control.AgentControl.aiActive()) {
+					io.github.mudklip.minigamebots.client.control.AgentControl.get().stop(client,
+							Component.literal("Stopped by your command"));
+				}
+				return;
+			}
+			var goals = m.has("goals") ? m.getAsJsonArray("goals") : new com.google.gson.JsonArray();
+			var profile = MinigameBotsClient.instance().profiles().active();
+			if (goals.isEmpty()) {
+				return;
+			}
+			if (profile == null) {
+				say(client, "§cPick an AI first: F10 > AI Profiles > Use this AI.");
+				return;
+			}
+			playManager(client, profile, goals, false, new JsonObject());
+		});
+	}
+
 	private void onMessage(JsonObject m) {
 		String type = m.has("type") ? m.get("type").getAsString() : "";
 		switch (type) {
@@ -284,6 +342,7 @@ public final class BrainManager {
 				}
 			}
 			case "status" -> lastStatus = m;
+			case "command_result" -> onCommandResult(m);
 			case "policy" -> {
 				if (m.has("ok") && !m.get("ok").getAsBoolean()) {
 					String error = m.has("error") ? m.get("error").getAsString() : "unknown error";

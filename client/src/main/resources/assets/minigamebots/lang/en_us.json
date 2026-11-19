@@ -287,5 +287,6 @@
 	"minigamebots.menu.guide_help": "Getting started checklist and how everything works. Tip: press F1 on any MinigameBots screen for its page.",
 	"minigamebots.guide.screen": "Guide",
 	"minigamebots.guide.hint_title": "New to MinigameBots?",
-	"minigamebots.guide.hint": "Open Guide in this menu, or press F1 on any MinigameBots screen."
+	"minigamebots.guide.hint": "Open Guide in this menu, or press F1 on any MinigameBots screen.",
+	"minigamebots.mind.help": "Optional. A small language model (runs on your PC, never online) so /ai understands anything you type, not just common phrasings. One-time ~3 GB download."
 }
