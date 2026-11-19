@@ -66,13 +66,20 @@ processResources {
 }
 
 // Python unit tests for the brain. Skipped (with a warning) if python3 isn't installed.
+// The brain's tests need numpy and PyTorch: use BRAIN_PYTHON, else the dev run's brain environment, else python3.
+def devVenv = rootProject.file('run/minigamebots/brain/runtime/venv/bin/python')
+def brainPython = System.getenv('BRAIN_PYTHON') ?: (devVenv.exists() ? devVenv.path : 'python3')
 tasks.register('brainTest', Exec) {
 	workingDir brainDir
-	commandLine 'python3', '-m', 'unittest', 'discover', '-s', 'tests'
+	commandLine brainPython, '-m', 'unittest', 'discover', '-s', 'tests'
 	ignoreExitValue false
 	onlyIf {
-		def ok = ['python3', '--version'].execute().waitFor() == 0
-		if (!ok) logger.warn('python3 not found: skipping brain tests')
+		def ok = false
+		try {
+			ok = [brainPython, '-c', 'import numpy, torch'].execute().waitFor() == 0
+		} catch (Exception ignored) {
+		}
+		if (!ok) logger.warn("${brainPython} lacks numpy/PyTorch: skipping brain tests (set BRAIN_PYTHON)")
 		ok
 	}
 }
