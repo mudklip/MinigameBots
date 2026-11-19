@@ -51,6 +51,9 @@ public final class HubScreen extends Screen {
 		int rx = cardsX + cardW + 8;
 		int rw = width - rx - 8;
 
+		addRenderableWidget(Button.builder(Component.literal("§cNever..."), b -> minecraft.gui.setScreen(new NeverScreen(this)))
+				.pos(width - 194, 6).width(50).tooltip(Tooltip.create(Component.literal("Actions this AI never uses, whatever it's "
+						+ "doing (e.g. never open its inventory, never drop items)"))).build());
 		addRenderableWidget(Button.builder(Component.literal("Advanced..."), b -> {
 			ProfileManifest p = MinigameBotsClient.instance().profiles().active();
 			if (p != null) {
@@ -114,7 +117,7 @@ public final class HubScreen extends Screen {
 		super.extractRenderState(g, mouseX, mouseY, a);
 		ProfileManifest p = MinigameBotsClient.instance().profiles().active();
 		Progress pr = Progress.active();
-		HubTabs.draw(g, font, HubTabs.PLANS, mouseX, mouseY, width - 146);
+		HubTabs.draw(g, font, HubTabs.PLANS, mouseX, mouseY, width - 200);
 		if (p == null || pr == null) {
 			g.text(font, "Pick an AI first: F10 > AI Profiles > Use this AI.", 8, 40, Ui.WARN, false);
 			return;
@@ -128,7 +131,7 @@ public final class HubScreen extends Screen {
 			Ui.card(g, cardsX, y, cardW, CARD_H, goal == active ? Ui.CARD_SELECTED : hover ? Ui.CARD_HOVER : Ui.CARD,
 					goal == active ? Ui.ACCENT : Ui.BORDER);
 			g.item(new ItemStack(goal.icon), cardsX + 6, y + 7);
-			int xp = pr.xp.getOrDefault(goal.key(), 0);
+			int xp = pr.xp.getOrDefault(goal.key(), 0) + relatedSkillXp(pr, goal);
 			g.text(font, goal.label, cardsX + 28, y + 4, Ui.TEXT, false);
 			String lv = "Lv " + Progress.level(xp);
 			g.text(font, lv, cardsX + cardW - 6 - font.width(lv), y + 4, Ui.GOOD, false);
@@ -221,6 +224,26 @@ public final class HubScreen extends Screen {
 		if (hovered != null) {
 			g.text(font, Component.literal(hovered), ax + i * 22 + 6, ay + 6, Ui.TEXT, false);
 		}
+	}
+
+	/** XP of the skills in this plan's area (practising a skill counts towards its plan too). */
+	private static int relatedSkillXp(Progress pr, Coach.Goal goal) {
+		String cat = switch (goal) {
+			case PVP -> "Combat";
+			case MOVEMENT -> "Movement";
+			case MINING -> "Mining";
+			case SURVIVAL -> "Survival";
+			case AIM -> "";
+		};
+		int sum = 0;
+		for (var e : io.github.mudklip.minigamebots.client.skills.SkillLibrary.get().skills.entrySet()) {
+			boolean related = goal == Coach.Goal.AIM ? e.getKey().startsWith("aim_") || e.getKey().equals("bow")
+					: e.getValue().category.equals(cat) && !(goal == Coach.Goal.PVP && e.getKey().startsWith("aim_"));
+			if (related) {
+				sum += pr.xp.getOrDefault(e.getKey(), 0);
+			}
+		}
+		return sum;
 	}
 
 	@Override

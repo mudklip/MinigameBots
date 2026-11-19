@@ -108,10 +108,16 @@ public final class VersionsScreen extends Screen {
 		for (int i = 0; i < Math.min(rows, list.size()); i++) {
 			VersionHistory.Snapshot s = list.get(i);
 			int y = 34 + i * ROW;
-			g.text(font, font.plainSubstrByWidth(s.date + "  step " + s.step + (s.phase.startsWith("practice") ? " +RL" : "")
-					+ (s.exam.isEmpty() ? "" : "  " + s.exam), w), 10, y + 1, 0xFFFFFFFF, false);
-			g.text(font, font.plainSubstrByWidth(s.label + String.format("  (%.0f MB)", s.bytes / 1e6), w), 10, y + 11, 0xFF909090, false);
+			String exam = s.exam.replaceAll(" in .*", "");
+			g.text(font, fit(s.date.substring(Math.min(5, s.date.length())) + "  step " + s.step + (s.phase.startsWith("practice") ? " +RL" : "")
+					+ (exam.isEmpty() ? "" : "  " + exam), w), 10, y + 1, 0xFFFFFFFF, false);
+			g.text(font, fit(s.label + String.format("  (%.0f MB)", s.bytes / 1e6), w), 10, y + 11, 0xFF909090, false);
 		}
+	}
+
+	/** Shortened with "…" if it doesn't fit (hover tooltips aren't needed for these short notes). */
+	private String fit(String text, int w) {
+		return font.width(text) <= w ? text : font.plainSubstrByWidth(text, w - font.width("…")) + "…";
 	}
 
 	@Override

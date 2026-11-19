@@ -29,16 +29,16 @@ public final class TeacherScreen extends Screen {
 		addRenderableWidget(Button.builder(Component.literal("Teacher: " + t.label()), b -> {
 			teacher = (teacher + 1) % TeacherDemos.available().size();
 			rebuildWidgets();
-		}).pos(x, 60).width(200).tooltip(Tooltip.create(Component.literal(t.help()))).build());
+		}).pos(x, 72).width(200).tooltip(Tooltip.create(Component.literal(t.help()))).build());
 		addRenderableWidget(Button.builder(Component.literal("Length: " + label(MINUTES[minutes])), b -> {
 			minutes = (minutes + 1) % MINUTES.length;
 			b.setMessage(Component.literal("Length: " + label(MINUTES[minutes])));
-		}).pos(x, 84).width(200).build());
+		}).pos(x, 96).width(200).build());
 		addRenderableWidget(Button.builder(Component.translatable("minigamebots.teacher.start"), b -> {
 			minecraft.gui.setScreen(null);
 			TeacherDemos.start(minecraft, t, MINUTES[minutes]);
-		}).pos(x, 112).width(98).build());
-		addRenderableWidget(Button.builder(Component.translatable("gui.back"), b -> onClose()).pos(x + 102, 112).width(98).build());
+		}).pos(x, 124).width(98).build());
+		addRenderableWidget(Button.builder(Component.translatable("gui.back"), b -> onClose()).pos(x + 102, 124).width(98).build());
 	}
 
 	private static String label(int m) {
@@ -52,7 +52,7 @@ public final class TeacherScreen extends Screen {
 		g.textWithWordWrap(font, Component.translatable("minigamebots.teacher.help"), width / 2 - 150, 28, 300, 0xFFB0B0B0);
 		boolean grounds = TrainingLink.get().map(l -> true).orElse(false);
 		g.textWithWordWrap(font, Component.translatable(grounds ? "minigamebots.teacher.tip_grounds" : "minigamebots.teacher.tip_alone"),
-				width / 2 - 150, 142, 300, 0xFF909090);
+				width / 2 - 150, 152, 300, 0xFF909090);
 	}
 
 	@Override

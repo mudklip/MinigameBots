@@ -89,6 +89,18 @@ final class TgCommands {
 							tg.arenas().clearSpawns(a);
 							ok(ctx, "Removed all spawns of " + a.name);
 						})))
+				.then(Commands.literal("area").requires(tg::canManage)
+						.then(Commands.literal("clear").executes(ctx -> {
+							tg.areas().clear();
+							ok(ctx, "Practice area removed (the ground is as it was)");
+							return 1;
+						}))
+						.then(Commands.argument("kind", StringArgumentType.word())
+								.suggests((c, sb) -> net.minecraft.commands.SharedSuggestionProvider.suggest(PracticeAreas.KINDS, sb))
+								.executes(ctx -> {
+									ok(ctx, tg.areas().setup(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "kind")));
+									return 1;
+								})))
 				.then(Commands.literal("multitrain").requires(tg::canManage)
 						.then(Commands.literal("watch")
 								.then(Commands.literal("off").executes(ctx -> {

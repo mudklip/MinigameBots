@@ -140,6 +140,9 @@ public final class Coach {
 		} else if (setup.startsWith("duel:")) {
 			arena();
 			match(setup.substring(5));
+		} else if (setup.startsWith("area:")) {
+			String kind = setup.substring(5);
+			steps.add(new Step("Build the practice area (" + kind + ")", false, () -> cmd("tg area " + kind), () -> elapsed() > 2000));
 		}
 		String network = io.github.mudklip.minigamebots.client.skills.SkillStore.network(id, def);
 		boolean trained = io.github.mudklip.minigamebots.client.profile.Skills.trained(mgb.profiles().store().dir(p.id), network);
@@ -410,6 +413,9 @@ public final class Coach {
 		}
 		cmd("tg multitrain stop");
 		cmd("tg match stop");
+		if (skillId != null) {
+			cmd("tg area clear");
+		}
 		if (!why.isEmpty()) {
 			note(why);
 		}

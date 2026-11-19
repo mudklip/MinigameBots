@@ -515,9 +515,13 @@ public final class BrainManager {
 
 	/** The key names a skill's locks block. */
 	public static java.util.List<String> lockedKeys(io.github.mudklip.minigamebots.client.skills.SkillDef def) {
+		return lockedKeys(def.locks);
+	}
+
+	public static java.util.List<String> lockedKeys(java.util.List<String> groups) {
 		java.util.List<String> keys = new java.util.ArrayList<>();
 		var lib = io.github.mudklip.minigamebots.client.skills.SkillLibrary.get();
-		for (String g : def.locks) {
+		for (String g : groups) {
 			var l = lib.locks.get(g);
 			if (l != null) {
 				keys.addAll(l.keys);
@@ -554,7 +558,13 @@ public final class BrainManager {
 		JsonObject args = new JsonObject();
 		args.addProperty("profile", dir.toString());
 		args.addProperty("stage_dir", io.github.mudklip.minigamebots.client.skills.SkillStore.dir(profileDir, id).toString());
-		args.add("skill_def", io.github.mudklip.minigamebots.client.skills.SkillLibrary.GSON.toJsonTree(def));
+		var withNever = def.copy();
+		for (String g : profile.never) {
+			if (!withNever.locks.contains(g)) {
+				withNever.locks.add(g);
+			}
+		}
+		args.add("skill_def", io.github.mudklip.minigamebots.client.skills.SkillLibrary.GSON.toJsonTree(withNever));
 		args.addProperty("objective", "skill");
 		args.addProperty("learn", learn);
 		args.addProperty("resources", "balanced");

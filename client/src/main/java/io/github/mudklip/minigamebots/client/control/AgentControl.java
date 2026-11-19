@@ -78,6 +78,9 @@ public final class AgentControl {
 		}
 		source = newSource;
 		var profiles = io.github.mudklip.minigamebots.client.MinigameBotsClient.instance().profiles();
+		var me = profiles.active();
+		java.util.List<String> never = me == null ? java.util.List.of() : me.never;
+		ActionLocks.global(io.github.mudklip.minigamebots.client.brain.BrainManager.lockedKeys(never), never.contains("camera"));
 		var limits = profiles.humanizer();
 		if (newSource instanceof io.github.mudklip.minigamebots.client.brain.BrainSource b && b.scripted()
 				&& limits.enabled() && limits.aimNoise() == 0f) {

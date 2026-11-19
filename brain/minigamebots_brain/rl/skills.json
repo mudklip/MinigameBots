@@ -127,7 +127,17 @@
   "duel:godly": "Duel: best bot",
   "duel:league": "Duel: league",
   "aim:flick": "Aim: flicks",
-  "aim:track": "Aim: tracking"
+  "aim:track": "Aim: tracking",
+  "area:mining": "Mining block",
+  "area:trees": "Tree grove",
+  "area:farm": "Wheat field",
+  "area:animals": "Animal pen",
+  "area:mobs": "Monster pen",
+  "area:bridge": "Bridge gap",
+  "area:parkour": "Parkour course",
+  "area:build": "Build pad",
+  "area:pool": "Pool",
+  "area:inventory": "Messy inventory"
  },
  "behaviours": {
   "hold_break": "Keeps holding break on a block",
@@ -974,7 +984,7 @@
    "icon": "minecraft:zombie_head",
    "category": "Combat",
    "help": "Clear hostile mobs without dying.",
-   "setup": "none",
+   "setup": "area:mobs",
    "manager": "combat",
    "locks": [
     "inventory",
@@ -1238,7 +1248,7 @@
    "icon": "minecraft:slime_block",
    "category": "Movement",
    "help": "Jump gaps and climb without falling.",
-   "setup": "none",
+   "setup": "area:parkour",
    "manager": "travel",
    "locks": [
     "attack",
@@ -1312,7 +1322,7 @@
    "icon": "minecraft:water_bucket",
    "category": "Movement",
    "help": "Swim fast, come up for air, get out of water.",
-   "setup": "none",
+   "setup": "area:pool",
    "manager": "travel",
    "locks": [
     "attack",
@@ -1456,7 +1466,7 @@
    "icon": "minecraft:oak_planks",
    "category": "Building",
    "help": "Place blocks under yourself to cross gaps.",
-   "setup": "none",
+   "setup": "area:bridge",
    "manager": "building",
    "locks": [
     "attack",
@@ -1527,7 +1537,7 @@
    "icon": "minecraft:wooden_pickaxe",
    "category": "Mining",
    "help": "Hold break on a block until it breaks. The first thing to learn for mining.",
-   "setup": "none",
+   "setup": "area:mining",
    "manager": "mining",
    "locks": [
     "inventory",
@@ -1595,7 +1605,7 @@
    "icon": "minecraft:iron_pickaxe",
    "category": "Mining",
    "help": "Find and mine ores; diamonds count most.",
-   "setup": "none",
+   "setup": "area:mining",
    "manager": "mining",
    "locks": [
     "inventory",
@@ -1699,7 +1709,7 @@
    "icon": "minecraft:oak_log",
    "category": "Mining",
    "help": "Cut down trees for logs.",
-   "setup": "none",
+   "setup": "area:trees",
    "manager": "mining",
    "locks": [
     "inventory",
@@ -1767,7 +1777,7 @@
    "icon": "minecraft:stone_pickaxe",
    "category": "Mining",
    "help": "Dig down and through stone without falling into lava.",
-   "setup": "none",
+   "setup": "area:mining",
    "manager": "mining",
    "locks": [
     "inventory",
@@ -1844,7 +1854,7 @@
    "icon": "minecraft:bricks",
    "category": "Building",
    "help": "Place blocks where they're aimed.",
-   "setup": "none",
+   "setup": "area:build",
    "manager": "building",
    "locks": [
     "attack",
@@ -1895,7 +1905,7 @@
    "icon": "minecraft:scaffolding",
    "category": "Building",
    "help": "Jump and place blocks under yourself to go up.",
-   "setup": "none",
+   "setup": "area:build",
    "manager": "building",
    "locks": [
     "attack",
@@ -1961,7 +1971,7 @@
    "icon": "minecraft:oak_door",
    "category": "Building",
    "help": "Wall yourself in before night falls.",
-   "setup": "none",
+   "setup": "area:build",
    "manager": "building",
    "locks": [
     "inventory",
@@ -2018,7 +2028,7 @@
    "icon": "minecraft:wheat",
    "category": "Farming",
    "help": "Harvest grown crops and replant them.",
-   "setup": "none",
+   "setup": "area:farm",
    "manager": "general",
    "locks": [
     "inventory",
@@ -2090,7 +2100,7 @@
    "icon": "minecraft:wheat_seeds",
    "category": "Farming",
    "help": "Breed animals and collect food from them.",
-   "setup": "none",
+   "setup": "area:animals",
    "manager": "hunting",
    "locks": [
     "inventory",
@@ -2159,7 +2169,7 @@
    "icon": "minecraft:porkchop",
    "category": "Farming",
    "help": "Find and kill animals for food.",
-   "setup": "none",
+   "setup": "area:animals",
    "manager": "hunting",
    "locks": [
     "inventory",
@@ -2243,7 +2253,7 @@
    "icon": "minecraft:fishing_rod",
    "category": "Farming",
    "help": "Cast, wait for the bite, reel in.",
-   "setup": "none",
+   "setup": "area:pool",
    "manager": "general",
    "locks": [
     "move",
@@ -2512,7 +2522,7 @@
    "icon": "minecraft:clock",
    "category": "Survival",
    "help": "Last the night: shelter, light, fight what comes.",
-   "setup": "none",
+   "setup": "area:mobs",
    "manager": "survival",
    "locks": [],
    "rules": [
@@ -2574,7 +2584,7 @@
    "icon": "minecraft:chest",
    "category": "Inventory",
    "help": "Keep the hotbar useful: weapon, food, blocks and tools in reach; junk out.",
-   "setup": "none",
+   "setup": "area:inventory",
    "manager": "general",
    "locks": [
     "move",
@@ -2640,7 +2650,7 @@
    "icon": "minecraft:item_frame",
    "category": "Inventory",
    "help": "Sword in slot 1, then axe, blocks, food...",
-   "setup": "none",
+   "setup": "area:inventory",
    "manager": "general",
    "locks": [
     "move",
@@ -2692,7 +2702,7 @@
    "icon": "minecraft:crafting_table",
    "category": "Inventory",
    "help": "Craft tools and blocks from what it has.",
-   "setup": "none",
+   "setup": "area:inventory",
    "manager": "general",
    "locks": [
     "move",
@@ -2765,7 +2775,7 @@
    "icon": "minecraft:barrel",
    "category": "Inventory",
    "help": "Grab the useful things from chests and drops.",
-   "setup": "none",
+   "setup": "area:inventory",
    "manager": "general",
    "locks": [],
    "rules": [

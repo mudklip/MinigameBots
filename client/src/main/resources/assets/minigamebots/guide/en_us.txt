@@ -202,12 +202,18 @@ Every skill your AI can learn has its own card: [F10] > [Skills], or [Skills...]
 3. It sets up what it needs (arena, dummy, duel or aim trainer) and practices by itself. Open the Training Hub to watch progress, [F9] to stop.
 ! Skill practice needs a Lite-based AI, and Training Grounds for anything that practices in an arena.
 
+# Practice areas (no setup)
+Most skills build their own practice area around you when you press [Practice], and remove it again (the ground put back exactly) when the plan ends: a mining block with ores, a tree grove, a wheat field, an animal pen, a monster pen, a bridge gap, a parkour course, a build pad, a pool, a messy inventory. Tools it needs are handed over. Command: /tg area <kind>, /tg area clear.
+
 # Change what it learns
 - [Rewarded for]: what counts. [Edit rewards] lets you switch each one on or off, make it stronger [+] or weaker [-], flip a reward into a penalty (click the number), add new ones or remove them.
 - [Not allowed while practicing]: click a pill to lock that action, e.g. lock [Walking] and [Inventory & menus] for aim training so it only aims. Locked actions are never pressed, whatever the AI wants.
 - [Stages]: each skill learns in steps. [Basics] gives strong hints and learns fast (it copies anything that works), [Mastery] gives no hints and only polishes. Change each stage's speed, how many tries before it moves on, and its [Hints].
 - Hints are extra rewards for the early stages, like "keep holding break until the block breaks". They switch off by themselves in later stages.
 > ✦ marks a self-discovery stage: it tries its own ideas, e.g. working out which of several swords to use when.
+
+# Never do (for everything)
+Training Hub > [Never do...]: actions this AI never uses, whatever it's doing: free play, goals, plans, practice, training worlds. A skill's own list can block more, never less.
 
 # Your own skills
 1. Press the dashed [+ Add a skill] card at the end of any list.

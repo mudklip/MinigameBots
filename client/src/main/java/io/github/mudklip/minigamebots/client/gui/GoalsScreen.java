@@ -88,9 +88,9 @@ public final class GoalsScreen extends Screen {
 		}).pos(x, by).width(110).tooltip(Tooltip.create(Component.translatable("minigamebots.goals.free_help"))).build());
 		// Three sliders share whatever room is right of the button, so narrow windows don't clip them.
 		int sw = Math.max(60, Math.min(100, (width - x - 114 - 10) / 3 - 4));
-		addRenderableWidget(slider(x + 114, by, sw, "Likes exploring", likeExplore, v -> likeExplore = v));
-		addRenderableWidget(slider(x + 118 + sw, by, sw, "Likes mining", likeMine, v -> likeMine = v));
-		addRenderableWidget(slider(x + 122 + 2 * sw, by, sw, "Likes hunting", likeHunt, v -> likeHunt = v));
+		addRenderableWidget(slider(x + 114, by, sw, "Explore", likeExplore, v -> likeExplore = v));
+		addRenderableWidget(slider(x + 118 + sw, by, sw, "Mine", likeMine, v -> likeMine = v));
+		addRenderableWidget(slider(x + 122 + 2 * sw, by, sw, "Hunt", likeHunt, v -> likeHunt = v));
 		addRenderableWidget(Button.builder(Component.translatable("minigamebots.goals.start"), b -> start())
 				.pos(x, height - 28).width(110).build());
 		addRenderableWidget(Button.builder(Component.translatable("minigamebots.practice.stop"), b -> {

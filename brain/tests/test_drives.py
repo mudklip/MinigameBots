@@ -106,3 +106,25 @@ class PersonalityTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BehaviourTest(unittest.TestCase):
+    def test_guard_goes_back_when_too_far(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            m = ManagerPolicy(tmp, free_play=True, mode="guard")
+            o = obs(10, [])
+            o["waypoints"] = [{"type": "base", "name": "base", "dx": 40.0, "dz": 0.0}]
+            m.act(o, None)
+            self.assertEqual(m.current().type, "go_to")
+
+    def test_farm_reflex_harvests_and_replants(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            m = ManagerPolicy(tmp, goals=[{"type": "farm", "minutes": 1}], mode="neutral")
+            o = obs(1, [])
+            o["look"] = {"block": "minecraft:wheat"}
+            self.assertIn("attack", m.act(o, None).keys)
+            o = obs(2, [])
+            o["look"] = {"block": "minecraft:farmland"}
+            o["inventory"] = [{"slot": 2, "id": "minecraft:wheat_seeds"}]
+            o["selectedSlot"] = 2
+            self.assertIn("use", m.act(o, None).keys)

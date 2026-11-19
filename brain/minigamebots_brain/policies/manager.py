@@ -270,6 +270,13 @@ class ManagerPolicy(Policy):
         goal = self.current()
         if goal is not None:
             goal.check_time(self.tick)
+        guard = self.drives.cfg.get("guard_radius")
+        if guard and self.tick % DECIDE_EVERY == 0 and (goal is None or goal.type != "go_to"):
+            for w in obs.get("waypoints") or []:
+                if w.get("type") == "base" and math.hypot(w.get("dx", 0.0), w.get("dz", 0.0)) > guard:
+                    self.sub = Goal({"type": "go_to", "waypoint": "base", "why": "too far from what it guards"}, self.tick)
+                    goal = self.current()
+                    break
         if obs.get("self", {}).get("dead"):
             return Action()
         if self.tick % DECIDE_EVERY == 0 or self.mode == "goal" and goal is None:
@@ -332,6 +339,10 @@ class ManagerPolicy(Policy):
             for e in self._obs.get("entities") or []:
                 if e.get("name") == name:
                     return e.get("dx", 0.0), e.get("dz", 0.0)
+        if gtype == "stash":
+            for w in self._obs.get("waypoints") or []:
+                if w.get("type") == "base":
+                    return w.get("dx", 0.0), w.get("dz", 0.0)
         if gtype == "go_to":
             want = goal.spec.get("waypoint")
             for w in self._obs.get("waypoints") or []:
@@ -357,8 +368,28 @@ class ManagerPolicy(Policy):
         self.eating -= 1
         return Action(keys={f"hotbar_{slot + 1}", "use"})
 
+    def _farm(self, obs: dict) -> Action:
+        """Built-in farming: break ripe-looking crops in the crosshair, replant, wander the field."""
+        look = (obs.get("look") or {}).get("block", "")
+        crops = ("wheat", "carrots", "potatoes", "beetroots")
+        seeds = None
+        for it in obs.get("inventory") or []:
+            if it.get("slot", 99) < 9 and any(s in it.get("id", "") for s in ("seeds", "carrot", "potato")):
+                seeds = it["slot"]
+        if any(c in look for c in crops):
+            return Action(keys={"attack"}, pitch=0.0)
+        if "farmland" in look and seeds is not None:
+            if obs.get("selectedSlot") != seeds:
+                return Action(keys={f"hotbar_{seeds + 1}"})
+            return Action(keys={"use"})
+        phase = self.tick % 80
+        return Action(keys={"forward"} if phase < 30 else set(), yaw=6.0 if phase in (30, 31, 32) else 0.0,
+                      pitch=(40.0 - float((obs.get("self") or {}).get("pitch", 0.0))) * 0.2)
+
     def _reflex(self, gtype: str, goal: Goal | None, obs: dict) -> Action:
         me = obs.get("self") or {}
+        if gtype == "farm":
+            return self._farm(obs)
         target = self._target(gtype, goal)
         if target is None:
             if gtype == "explore":
@@ -378,7 +409,7 @@ class ManagerPolicy(Policy):
             # Aim at the body (dy is measured from the eyes to the feet), not over its head.
             want_pitch = -math.degrees(math.atan2(float(self._tdy) + 0.5, max(dist, 1e-3)))
             pitch_err = want_pitch - float(me.get("pitch", 0.0))
-        elif gtype in ("flee", "go_to", "follow", "protect", "explore"):
+        elif gtype in ("flee", "go_to", "follow", "protect", "explore", "stash"):
             pitch_err = -float(me.get("pitch", 0.0))  # Look ahead while travelling.
         keys = set()
         if gtype in ("fight", "hunt", "hunt_players"):

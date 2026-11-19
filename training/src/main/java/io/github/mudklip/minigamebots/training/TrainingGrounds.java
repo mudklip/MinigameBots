@@ -44,6 +44,11 @@ public final class TrainingGrounds implements ModInitializer {
 	private final GroundTruth truth = new GroundTruth(linkedClients);
 	private final InputRecorder inputs = new InputRecorder(truth);
 	private MultiTrainer multi;
+	private final PracticeAreas areas = new PracticeAreas();
+
+	public PracticeAreas areas() {
+		return areas;
+	}
 
 	public MultiTrainer multi() {
 		return multi;

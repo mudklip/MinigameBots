@@ -14,6 +14,9 @@ public final class ActionLocks {
 	private static volatile boolean camera;
 	/** Locks of the skill being coached: they hold for the whole session (restarts, F8, teacher demos), until it ends. */
 	private static volatile Set<VirtualKey> sessionKeys = Set.of();
+	/** The AI's own "never do" list: applies to everything it does. */
+	private static volatile Set<VirtualKey> globalKeys = Set.of();
+	private static volatile boolean globalCamera;
 	private static volatile boolean sessionCamera;
 
 	private ActionLocks() {
@@ -29,6 +32,11 @@ public final class ActionLocks {
 	public static void session(Iterable<String> names, boolean lockCamera) {
 		sessionKeys = parse(names);
 		sessionCamera = lockCamera;
+	}
+
+	public static void global(Iterable<String> names, boolean lockCamera) {
+		globalKeys = parse(names);
+		globalCamera = lockCamera;
 	}
 
 	public static void endSession() {
@@ -54,18 +62,20 @@ public final class ActionLocks {
 	}
 
 	public static boolean any() {
-		return !keys.isEmpty() || camera || !sessionKeys.isEmpty() || sessionCamera;
+		return !keys.isEmpty() || camera || !sessionKeys.isEmpty() || sessionCamera || !globalKeys.isEmpty() || globalCamera;
 	}
 
 	public static GameInput filter(GameInput in) {
 		Set<VirtualKey> k = keys;
 		Set<VirtualKey> sk = sessionKeys;
-		boolean camera = ActionLocks.camera || sessionCamera;
-		if (!sk.isEmpty()) {
-			EnumSet<VirtualKey> both = EnumSet.noneOf(VirtualKey.class);
-			both.addAll(k);
-			both.addAll(sk);
-			k = both;
+		Set<VirtualKey> gk = globalKeys;
+		boolean camera = ActionLocks.camera || sessionCamera || globalCamera;
+		if (!sk.isEmpty() || !gk.isEmpty()) {
+			EnumSet<VirtualKey> all = EnumSet.noneOf(VirtualKey.class);
+			all.addAll(k);
+			all.addAll(sk);
+			all.addAll(gk);
+			k = all;
 		}
 		if (k.isEmpty() && !camera) {
 			return in;

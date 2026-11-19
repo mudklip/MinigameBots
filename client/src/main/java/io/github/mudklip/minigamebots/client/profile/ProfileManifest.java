@@ -21,6 +21,9 @@ public final class ProfileManifest {
 	public Skin skin = new Skin();
 	public Stats stats = new Stats();
 	public Humanizer humanizer = Humanizer.from(HumanizerSettings.DEFAULT);
+	/** Actions this AI never uses, whatever it's doing (lock groups from the skill library, e.g. "inventory"). */
+	public java.util.List<String> never = new java.util.ArrayList<>();
+
 	/** Attitude when it plays on its own: neutral, hunter, guard, peaceful, or personality (from its character). */
 	public String attitude = "neutral";
 

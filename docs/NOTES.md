@@ -5,11 +5,13 @@
 1. ~~Training worlds pile up arenas in the terrain~~ and 2. ~~far worlds go "dumb"~~: fixed in
    1.7.0 (compact grid around the player, terrain put back on stop). Leftover arenas from older
    versions stay where they are; a "clean up old arenas" button would help.
-3. **UI clipping, rest of the pass.** Still to check and fix at GUI scale 3 (427x240): Practice,
+3. ~~UI clipping, rest of the pass~~ (done in 1.8.0: Versions, Teacher demos, Goals sliders,
+   Hub buttons fixed; the other screens checked and fine). Was: Still to check and fix at GUI scale 3 (427x240): Practice,
    Exams, Versions, Realism, Teacher demos, Recordings, Recording viewer, Edit recording,
    Character, Brain, Foundations, Video Lab question queue, Goals (slider labels clip:
    "ikes exploring"), Profiles editor, Merge, Guide.
-4. **Disabled actions outside skill practice.** Locks only apply while a skill is practiced or
+4. ~~Disabled actions outside skill practice~~ (done in 1.8.0: Training Hub > Never... list,
+   applied to everything the AI does). Was: Locks only apply while a skill is practiced or
    coached. Free play, Goals and Let it play ignore them. Add a global "never do" list (per AI)
    that applies to everything the AI does.
 5. **Flicker/stutter when the brain starts** (Python + PyTorch loading onto the GPU). Measure on
@@ -17,14 +19,16 @@
    warm up the GPU before the AI takes control.
 6. **Mind download (WinError 10054).** Retries and resume shipped in 1.1.1; not yet confirmed
    on a real Windows PC.
-7. **Training is thin outside PvP and aim.** Most skills have rewards and hints but no teacher
+7. ~~Training is thin outside PvP and aim~~ (done in 1.8.0: instant practice areas built around
+   you for 20 skills; scripted teachers for them still to come). Was: Most skills have rewards and hints but no teacher
    demos or Training Grounds setups (mining course, farm plot, bridge lane, parkour course,
    build area, inventory drill). Add setups and scripted teachers for them.
-8. **Neutral/guard attitudes need real behaviours.** Farm, build and stash goals only run their
+8. ~~Neutral/guard attitudes need real behaviours~~ (1.8.0: guard radius, farm reflex, stash ->
+   base; building still needs a trained skill). Was: Farm, build and stash goals only run their
    skills if trained; give them built-in reflexes. Guard should stay within a radius.
 9. **Trained networks only see best-guess health** of other players, not the range, certainty,
    totems or golden apples. Add as inputs (needs retraining).
-10. **Plans and skills keep separate levels.** The Plans tab's PvP/Aim levels and the skill
+10. ~~Plans and skills keep separate levels~~ (1.8.0: plan levels include their skills' XP). Was: The Plans tab's PvP/Aim levels and the skill
     levels don't add up into each other; show one progress picture.
 
 ## Requirements for everything new (from the user)
