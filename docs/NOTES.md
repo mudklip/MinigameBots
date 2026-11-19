@@ -21,6 +21,13 @@ Things noticed but not fixed yet, in rough order of importance.
   certainty, totems or golden apples (the Manager and its reflexes use those). Adding them
   needs a feature change and retraining.
 
+- **Short freezes / screen flicker** when starting things: fixed the main causes in 1.6.1
+  (backups and version snapshots copied tens of MB on the game thread; skill screens re-read
+  files every frame). Starting the brain (Python + PyTorch loading, GPU memory) can still
+  stutter briefly; worth measuring on an RTX 2060 with the mind loaded.
+- Skill locks apply while that skill is practiced or coached (whole session). Free play and
+  Goals don't use per-skill locks; a global "never do" list could be added.
+
 ## Ideas
 
 - Spectate a training world: done (Training Hub > Worlds, click a world; F10 returns to the

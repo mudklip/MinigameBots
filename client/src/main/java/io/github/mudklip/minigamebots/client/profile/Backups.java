@@ -45,6 +45,18 @@ public final class Backups {
 	private Backups() {
 	}
 
+	private static final java.util.concurrent.ExecutorService IO = java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+		Thread t = new Thread(r, "MinigameBots backups");
+		t.setDaemon(true);
+		t.setPriority(Thread.MIN_PRIORITY);
+		return t;
+	});
+
+	/** Runs file copying off the game thread (no freeze); jobs run one after another, in order. */
+	public static void background(Runnable job) {
+		IO.execute(job);
+	}
+
 	/** This mod's version, stored with each backup. */
 	public static String modVersion() {
 		return net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("minigamebots")
@@ -52,7 +64,8 @@ public final class Backups {
 	}
 
 	public static void auto(Path profileDir, String label) {
-		auto(profileDir, label, modVersion());
+		String v = modVersion();
+		background(() -> auto(profileDir, label, v));
 	}
 
 	public static Path root(Path profileDir) {

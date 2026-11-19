@@ -45,6 +45,7 @@ public final class SkillEditorScreen extends Screen {
 	private int lx;
 	private int rx;
 	private int colW;
+	private int[] prog = {0, 0};
 
 	public SkillEditorScreen(Screen parent, @Nullable String id, SkillDef def, boolean preset, boolean edited, boolean fresh) {
 		super(Component.literal("Skill"));
@@ -69,6 +70,7 @@ public final class SkillEditorScreen extends Screen {
 	@Override
 	protected void init() {
 		SkillLibrary lib = SkillLibrary.get();
+		prog = profileDir() == null || id == null ? new int[] {0, 0} : SkillStore.progress(profileDir(), id);
 		colW = Math.min(230, (width - 24) / 2);
 		lx = 8;
 		rx = width - 8 - colW;
@@ -341,7 +343,7 @@ public final class SkillEditorScreen extends Screen {
 		}
 		// Stages.
 		Ui.header(g, font, "Stages", rx + 6, sy);
-		int[] prog = profileDir() == null || id == null ? new int[] {0, 0} : SkillStore.progress(profileDir(), id);
+		int[] prog = this.prog;
 		for (int k = 0; k < def.stages.size(); k++) {
 			SkillDef.Stage st = def.stages.get(k);
 			int yy = sy + 16 + k * 18;

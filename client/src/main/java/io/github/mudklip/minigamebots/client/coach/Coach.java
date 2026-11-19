@@ -125,6 +125,8 @@ public final class Coach {
 		io.github.mudklip.minigamebots.client.profile.Backups.auto(mgb.profiles().store().dir(p.id), "Before practicing " + def.name);
 		skillId = id;
 		skillName = def.name;
+		io.github.mudklip.minigamebots.client.control.ActionLocks.session(
+				io.github.mudklip.minigamebots.client.brain.BrainManager.lockedKeys(def), def.locks.contains("camera"));
 		minutes = budgetMinutes;
 		endAt = System.currentTimeMillis() + budgetMinutes * 60_000L;
 		index = 0;
@@ -413,6 +415,7 @@ public final class Coach {
 		}
 		goal = null;
 		skillId = null;
+		io.github.mudklip.minigamebots.client.control.ActionLocks.endSession();
 		skillName = null;
 	}
 

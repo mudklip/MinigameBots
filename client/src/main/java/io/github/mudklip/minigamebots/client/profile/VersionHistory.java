@@ -86,6 +86,10 @@ public final class VersionHistory {
 
 	/** Snapshot before a session; never fails the session itself. */
 	public static void before(Path profileDir, Path coreDir, String label) {
+		Backups.background(() -> beforeNow(profileDir, coreDir, label));
+	}
+
+	private static void beforeNow(Path profileDir, Path coreDir, String label) {
 		try {
 			var exams = io.github.mudklip.minigamebots.client.practice.ExamManager.load(profileDir);
 			String exam = "";

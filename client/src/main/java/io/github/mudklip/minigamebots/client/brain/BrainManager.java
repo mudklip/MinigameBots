@@ -513,6 +513,19 @@ public final class BrainManager {
 		return o;
 	}
 
+	/** The key names a skill's locks block. */
+	public static java.util.List<String> lockedKeys(io.github.mudklip.minigamebots.client.skills.SkillDef def) {
+		java.util.List<String> keys = new java.util.ArrayList<>();
+		var lib = io.github.mudklip.minigamebots.client.skills.SkillLibrary.get();
+		for (String g : def.locks) {
+			var l = lib.locks.get(g);
+			if (l != null) {
+				keys.addAll(l.keys);
+			}
+		}
+		return keys;
+	}
+
 	/** Practices one skill: its rules, hints and locks; trains the network it belongs to. */
 	public void practiceSkill(Minecraft client, io.github.mudklip.minigamebots.client.profile.ProfileManifest profile, String id,
 			io.github.mudklip.minigamebots.client.skills.SkillDef def, boolean learn) {
@@ -545,14 +558,7 @@ public final class BrainManager {
 		args.addProperty("objective", "skill");
 		args.addProperty("learn", learn);
 		args.addProperty("resources", "balanced");
-		java.util.List<String> keys = new java.util.ArrayList<>();
-		var lib = io.github.mudklip.minigamebots.client.skills.SkillLibrary.get();
-		for (String g : def.locks) {
-			var l = lib.locks.get(g);
-			if (l != null) {
-				keys.addAll(l.keys);
-			}
-		}
+		java.util.List<String> keys = lockedKeys(def);
 		play(client, "practice", args, () -> io.github.mudklip.minigamebots.client.control.ActionLocks.set(keys,
 				def.locks.contains("camera")));
 	}

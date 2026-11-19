@@ -30,6 +30,8 @@ public final class SkillsScreen extends Screen {
 	private List<SkillStore.Entry> entries = List.of();
 	private int scroll;
 	private final List<int[]> tabs = new ArrayList<>();
+	/** Stage reached per skill, read once when the screen opens (not every frame). */
+	private final java.util.Map<String, int[]> progress = new java.util.HashMap<>();
 
 	public SkillsScreen(@Nullable Screen parent) {
 		super(Component.literal("Skills"));
@@ -45,6 +47,12 @@ public final class SkillsScreen extends Screen {
 	protected void init() {
 		Path dir = profileDir();
 		entries = dir == null ? List.of() : SkillStore.list(dir);
+		progress.clear();
+		if (dir != null) {
+			for (SkillStore.Entry e : entries) {
+				progress.put(e.id(), SkillStore.progress(dir, e.id()));
+			}
+		}
 
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(width - 60, 6).width(52).build());
 	}
@@ -184,7 +192,7 @@ public final class SkillsScreen extends Screen {
 			}
 			SkillStore.Entry e = list.get(i);
 			SkillDef d = e.def();
-			int[] prog = SkillStore.progress(dir, e.id());
+			int[] prog = progress.getOrDefault(e.id(), new int[] {0, 0});
 			String stage = d.stages.isEmpty() ? "" : d.stages.get(Math.min(prog[0], d.stages.size() - 1)).name;
 			String sub = (prog[0] == 0 && prog[1] == 0 ? "§8new" : "§7" + stage) + (e.preset() ? e.edited() ? " §e✎" : "" : " §b★ yours");
 			int xp = pr == null ? 0 : pr.xp.getOrDefault(e.id(), 0);

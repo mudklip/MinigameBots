@@ -12,12 +12,31 @@ import java.util.Set;
 public final class ActionLocks {
 	private static volatile Set<VirtualKey> keys = Set.of();
 	private static volatile boolean camera;
+	/** Locks of the skill being coached: they hold for the whole session (restarts, F8, teacher demos), until it ends. */
+	private static volatile Set<VirtualKey> sessionKeys = Set.of();
+	private static volatile boolean sessionCamera;
 
 	private ActionLocks() {
 	}
 
 	/** Sets the locks from key names as the brain spells them ("forward", "hotbar_1", ...). */
 	public static void set(Iterable<String> names, boolean lockCamera) {
+		keys = parse(names);
+		camera = lockCamera;
+	}
+
+	/** Locks for a whole coached session; cleared only by {@link #endSession()}. */
+	public static void session(Iterable<String> names, boolean lockCamera) {
+		sessionKeys = parse(names);
+		sessionCamera = lockCamera;
+	}
+
+	public static void endSession() {
+		sessionKeys = Set.of();
+		sessionCamera = false;
+	}
+
+	private static Set<VirtualKey> parse(Iterable<String> names) {
 		EnumSet<VirtualKey> out = EnumSet.noneOf(VirtualKey.class);
 		for (String n : names) {
 			try {
@@ -26,8 +45,7 @@ public final class ActionLocks {
 				// Not a key.
 			}
 		}
-		keys = out;
-		camera = lockCamera;
+		return out;
 	}
 
 	public static void clear() {
@@ -36,11 +54,19 @@ public final class ActionLocks {
 	}
 
 	public static boolean any() {
-		return !keys.isEmpty() || camera;
+		return !keys.isEmpty() || camera || !sessionKeys.isEmpty() || sessionCamera;
 	}
 
 	public static GameInput filter(GameInput in) {
 		Set<VirtualKey> k = keys;
+		Set<VirtualKey> sk = sessionKeys;
+		boolean camera = ActionLocks.camera || sessionCamera;
+		if (!sk.isEmpty()) {
+			EnumSet<VirtualKey> both = EnumSet.noneOf(VirtualKey.class);
+			both.addAll(k);
+			both.addAll(sk);
+			k = both;
+		}
 		if (k.isEmpty() && !camera) {
 			return in;
 		}

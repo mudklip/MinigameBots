@@ -33,6 +33,7 @@ public final class BackupsScreen extends Screen {
 	private final List<int[]> partChips = new ArrayList<>();
 	private int listW;
 	private int partScroll;
+	private @Nullable List<io.github.mudklip.minigamebots.client.skills.SkillStore.Entry> skillList;
 
 	public BackupsScreen(@Nullable Screen parent) {
 		super(Component.literal("Backups"));
@@ -64,15 +65,26 @@ public final class BackupsScreen extends Screen {
 			if (dir == null) {
 				return;
 			}
-			try {
-				Backups.create(dir, "Made by you", false, Backups.modVersion());
-				message = "§aBacked up";
-				selected = 0;
-				chosenFor = null;
-			} catch (Exception e) {
-				message = "Couldn't: " + e.getMessage();
-			}
-			rebuildWidgets();
+			message = "§7Backing up...";
+			String v = Backups.modVersion();
+			Backups.background(() -> {
+				String result;
+				try {
+					Backups.create(dir, "Made by you", false, v);
+					result = "§aBacked up";
+				} catch (Exception e) {
+					result = "Couldn't: " + e.getMessage();
+				}
+				String r = result;
+				minecraft.execute(() -> {
+					message = r;
+					selected = 0;
+					chosenFor = null;
+					if (minecraft.gui.screen() == this) {
+						rebuildWidgets();
+					}
+				});
+			});
 		}).pos(width - 166, 6).width(100).build()).active = dir != null;
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), x -> onClose()).pos(width - 60, 6).width(52).build());
 		if (b == null || dir == null) {
@@ -188,8 +200,11 @@ public final class BackupsScreen extends Screen {
 		if (dir == null) {
 			return null;
 		}
+		if (skillList == null) {
+			skillList = io.github.mudklip.minigamebots.client.skills.SkillStore.list(dir);
+		}
 		List<String> users = new ArrayList<>();
-		for (var e : io.github.mudklip.minigamebots.client.skills.SkillStore.list(dir)) {
+		for (var e : skillList) {
 			if (io.github.mudklip.minigamebots.client.skills.SkillStore.network(e.id(), e.def()).equals(n) && !e.id().equals(n)) {
 				users.add(e.def().name);
 			}
