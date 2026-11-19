@@ -261,7 +261,7 @@ public final class Coach {
 				if (lite) {
 					steps.add(new Step("Practice in 6 worlds at once (" + chunk + " min)", true, () -> {
 						cmd("tg match stop");
-						cmd("tg multitrain start coach 6 L4");
+						cmd("tg multitrain here 6 L4");
 					}, () -> elapsed() > chunk * 60_000L));
 					steps.add(new Step("Stop multi-world practice", true, () -> cmd("tg multitrain stop"), () -> elapsed() > 3000));
 				} else {

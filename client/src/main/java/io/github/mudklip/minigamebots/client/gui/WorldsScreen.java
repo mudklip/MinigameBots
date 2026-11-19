@@ -61,8 +61,7 @@ public final class WorldsScreen extends Screen {
 					Coach.stop("Stopped for training worlds");
 				}
 				io.github.mudklip.minigamebots.client.profile.Backups.auto(mgb.profiles().store().dir(p.id), "Before training worlds");
-				cmd("tg arena quick mw");
-				cmd("tg multitrain start mw " + COUNTS[count] + " " + OPPONENTS[opponent]);
+				cmd("tg multitrain here " + COUNTS[count] + " " + OPPONENTS[opponent]);
 				message = "Starting... (the AI takes control; F9 stops it)";
 				rebuildWidgets();
 			}).pos(width / 2 - 70, 112).width(140).build()).active = grounds && minecraft.player != null;
@@ -241,7 +240,7 @@ public final class WorldsScreen extends Screen {
 				x += w + 3;
 			}
 		}
-		g.text(font, Component.literal("§7Tip: 4-6 worlds suit most PCs. It builds an arena where you stand."),
+		g.text(font, Component.literal("§7Tip: 4-6 worlds suit most PCs. Arenas are built around you and removed when you stop."),
 				8, 136, Ui.MUTED, false);
 		if (message != null) {
 			g.text(font, Component.literal(font.plainSubstrByWidth(message, width - 16)), 8, 150, Ui.WARN, false);

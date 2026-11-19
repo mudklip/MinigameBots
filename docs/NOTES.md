@@ -2,12 +2,9 @@
 
 ## To fix (reported, not done yet)
 
-1. **Training worlds pile up arenas in the terrain.** Every start builds a fresh row of arena
-   copies through whatever terrain is there, and old ones are never removed. Build them once in
-   a cleared, reserved area (or a flat/void training dimension), reuse them, remove them on stop.
-2. **Far training worlds go "dumb".** Copies out of the client's tracking range stop being
-   simulated/observed, so their fighters stand still. Lay copies out in a compact grid, cap the
-   count by view/simulation distance, keep their chunks loaded while training runs.
+1. ~~Training worlds pile up arenas in the terrain~~ and 2. ~~far worlds go "dumb"~~: fixed in
+   1.7.0 (compact grid around the player, terrain put back on stop). Leftover arenas from older
+   versions stay where they are; a "clean up old arenas" button would help.
 3. **UI clipping, rest of the pass.** Still to check and fix at GUI scale 3 (427x240): Practice,
    Exams, Versions, Realism, Teacher demos, Recordings, Recording viewer, Edit recording,
    Character, Brain, Foundations, Video Lab question queue, Goals (slider labels clip:
@@ -29,6 +26,34 @@
    totems or golden apples. Add as inputs (needs retraining).
 10. **Plans and skills keep separate levels.** The Plans tab's PvP/Aim levels and the skill
     levels don't add up into each other; show one progress picture.
+
+## Requirements for everything new (from the user)
+
+- **No setup, ever:** any new game, arena or training mode must work instantly from a button.
+- **Fixes first,** then features.
+- **More customization** for training options and training worlds (kits, arena size/type,
+  opponent mix, round length, speed, which skill each world practices...), still simple by
+  default.
+
+## Planned features (agreed)
+
+- **Teams of the same AI:** several bodies running the same AI, no special channel between
+  them: they only see what a player in their place would see; with the mind on they may use
+  normal chat like players do, without it they rely on judgement (no friendly fire, focus the
+  same target when it makes sense, spread out).
+- **Spectator learning (separate mode, never while the AI has control):** watch real players
+  around you (e.g. random games of random PvP kits on a server) and learn from them as
+  efficiently as possible. While learning it may use more than the player's eyes (exact
+  positions and actions of everyone nearby, behind walls too), but **not exact health** (some
+  servers spoof it): health is counted like in fair mode. As it advances it should learn
+  anything useful even from bad players but not copy their bad habits: rate each player from
+  what it sees (wins, hits landed vs taken, combos), weight their moments by outcome and by
+  that rating, and keep only what worked. Must be easy to understand: one switch, a live
+  "learned from N fights, M players" readout. Builds on Watch & learn.
+- Auto curriculum, per-skill rating graphs, thought overlay, replay with thoughts, global
+  "never do" list and rules of conduct, server profiles, sharing skills/AIs, performance
+  guard, menu-minigame skill type, more arena types (bridge, void, parkour, mining, farm,
+  build) with kits, AI vs AI tournaments, privileged training critic, restyle older screens.
 
 ## Done from earlier reports (for reference)
 

@@ -326,7 +326,7 @@ The route to a strong fighter, with no PvP skill needed from you. Each step buil
 3. Press [F10] again to see all worlds, click another world to switch, or [Back to my view] to return where you were (your game mode is restored).
 > Command: /tg multitrain watch <number>, and /tg multitrain watch off.
 
-The easy way: Training Hub > [⚡ Training worlds]. Pick how many worlds and the opponent, press [Start]. The screen then shows every world live: a mini-map (green = your AI facing up, red = its opponent), both health bars and the score. Click a world to follow its learner up close; [Back to my view] returns you. Cards flash green on a win, red on a loss.
+The easy way: Training Hub > [⚡ Worlds]. Pick how many worlds and the opponent, press [Start]. The worlds are built in a compact block around you (4 = 2x2, 8 = a ring around you) and removed when you stop, leaving the ground as it was. The screen then shows every world live: a mini-map (green = your AI facing up, red = its opponent), both health bars and the score. Click a world to follow its learner up close; [Back to my view] returns you. Cards flash green on a win, red on a loss.
 
 Practice in many arena copies at once: 8 worlds = about 8x the practice per second.
 

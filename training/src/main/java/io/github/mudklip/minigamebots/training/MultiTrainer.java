@@ -72,6 +72,99 @@ public final class MultiTrainer {
 		return owner != null;
 	}
 
+	/** Blocks replaced by arenas built around the player, put back when training stops. */
+	private final java.util.List<java.util.Map.Entry<BlockPos, net.minecraft.world.level.block.state.BlockState>> replaced =
+			new java.util.ArrayList<>();
+	private static final int HALF = 7; // Arena 15 x 15 inside the walls' outer edge.
+	private static final int STEP = 2 * HALF + 1 + 3;
+
+	/** Grid size for n worlds around the player: {cols, rows, skipCentre}. 8 = a ring of 3 x 3. */
+	static int[] grid(int n) {
+		int cols = (int) Math.ceil(Math.sqrt(n));
+		int rows = (int) Math.ceil(n / (double) cols);
+		boolean odd = cols % 2 == 1 && rows % 2 == 1;
+		if (odd && cols * rows - 1 < n) {
+			rows++; // The centre is the player's spot: one more row instead.
+			odd = false;
+		}
+		if (n == 8) {
+			return new int[] {3, 3, 1}; // A ring around the player.
+		}
+		return new int[] {cols, rows, odd ? 1 : 0};
+	}
+
+	/**
+	 * Training worlds built in a compact block around the player (no arena or setup needed):
+	 * 4 = 2 x 2, 8 = a ring, 12 = 4 x 3. Everything stays near the player, so every world keeps
+	 * running; the blocks they replace are put back exactly when training stops.
+	 */
+	public String startAround(ServerPlayer p, int count, String opponentStyle) {
+		stop(p.level().getServer());
+		if (!truth.supports(p, io.github.mudklip.minigamebots.common.Protocol.Features.PUPPET)) {
+			return "Join with the MinigameBots client mod to steer the learners";
+		}
+		ServerLevel lv = (ServerLevel) p.level();
+		level = lv;
+		style = opponentStyle;
+		owner = p.getUUID();
+		int[] g = grid(count);
+		BlockPos c = p.blockPosition();
+		// Cell (i, j) centre, measured from the player in steps; the grid is centred on the player.
+		double ox = (g[0] - 1) / 2.0;
+		double oz = (g[1] - 1) / 2.0;
+		int made = 0;
+		for (int j = 0; j < g[1] && made < count; j++) {
+			for (int i = 0; i < g[0] && made < count; i++) {
+				if (g[2] == 1 && i == g[0] / 2 && j == g[1] / 2) {
+					continue; // The player's spot.
+				}
+				int cx = c.getX() + (int) Math.round((i - ox) * STEP);
+				int cz = c.getZ() + (int) Math.round((j - oz) * STEP);
+				build(lv, new BlockPos(cx, c.getY(), cz));
+				Vec3 sa = new Vec3(cx - 4 + 0.5, c.getY(), cz + 0.5);
+				Vec3 sb = new Vec3(cx + 4 + 0.5, c.getY(), cz + 0.5);
+				Copy cp = new Copy(made, sa, sb);
+				copies.add(cp);
+				spawn(cp);
+				made++;
+			}
+		}
+		return "Started " + made + " training worlds around you (opponent: " + style + "); they're removed when you stop";
+	}
+
+	/** One small arena centred at c (floor at c.y - 1, glass walls), remembering what was there. */
+	private void build(ServerLevel lv, BlockPos c) {
+		var stone = net.minecraft.world.level.block.Blocks.SMOOTH_STONE.defaultBlockState();
+		var glass = net.minecraft.world.level.block.Blocks.GLASS.defaultBlockState();
+		var air = net.minecraft.world.level.block.Blocks.AIR.defaultBlockState();
+		BlockPos min = c.offset(-HALF, -1, -HALF);
+		BlockPos max = c.offset(HALF, 5, HALF);
+		for (BlockPos p : BlockPos.betweenClosed(min, max)) {
+			if (lv.getBlockEntity(p) != null) {
+				continue; // Never overwrite chests and the like.
+			}
+			boolean floor = p.getY() == min.getY();
+			boolean wall = p.getX() == min.getX() || p.getX() == max.getX() || p.getZ() == min.getZ() || p.getZ() == max.getZ();
+			var want = floor ? stone : wall && p.getY() <= c.getY() + 2 ? glass : air;
+			var had = lv.getBlockState(p);
+			if (had != want) {
+				replaced.add(java.util.Map.entry(p.immutable(), had));
+				lv.setBlock(p, want, net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
+			}
+		}
+	}
+
+	private void restoreTerrain() {
+		ServerLevel lv = level;
+		if (lv != null) {
+			for (int k = replaced.size() - 1; k >= 0; k--) {
+				var e = replaced.get(k);
+				lv.setBlock(e.getKey(), e.getValue(), net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
+			}
+		}
+		replaced.clear();
+	}
+
 	public String start(ServerPlayer p, Arena arena, int count, String opponentStyle) throws ArenaManager.ArenaException {
 		stop(p.level().getServer());
 		if (!truth.supports(p, io.github.mudklip.minigamebots.common.Protocol.Features.PUPPET)) {
@@ -190,6 +283,7 @@ public final class MultiTrainer {
 			}
 		}
 		copies.clear();
+		restoreTerrain();
 		owner = null;
 	}
 
