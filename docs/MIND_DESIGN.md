@@ -105,6 +105,10 @@ When the game is idle, closed, or overnight:
 Budget target: playing uses under 1 GB RAM and under 1 GB VRAM; reflexes about 1 ms per tick;
 memory lookups instant; sleep uses idle time only.
 
+**Rule: Baritone is never part of the AI.** It's only a teacher during training (demos the AI
+learns from). Everything the AI does while playing comes from its own networks, memory and
+rules.
+
 ## 7. What it isn't
 
 It's still machine learning, not a conscious mind. "Never weaker than a human" is enforced by
@@ -131,7 +135,9 @@ remember it.** Designing is kept separate from building, so it's cheap.
 
 1. **Designs, not hand movements.** A design is a small block plan (up to about 16 x 16 x 16)
    plus a short "how it's used" note. Inventing happens on these plans, not by fumbling with
-   blocks; a building skill (its own, or Baritone's schematic builder) puts them in the world.
+   blocks; its own learned building skill puts them in the world. (Baritone's schematic builder may
+   only act as a teacher in training, recording building demos for that skill to learn from; it is
+   never part of the AI itself.)
 2. **A library of parts (motifs).** Pieces it knows: walls, roofs, doors, stairs; pressure plate
    + TNT, piston door, dispenser + lava, trapdoor drop, observer clock, tripwire, hidden pit...
    Seeded from the built-in knowledge (redstone.json), then grown from what it sees: builds and
@@ -165,5 +171,5 @@ ways and fitting them to the situation; inventing big new redstone machines from
 beyond this.
 
 **Build order:** after the mind basics (memory, sleep), add: block-plan format + part library ->
-sandbox tester in Training Grounds -> evolution with a hall of fame -> building skill/Baritone
-builder -> strategist uses inventions.
+sandbox tester in Training Grounds -> evolution with a hall of fame -> its own building skill
+(trained partly on Baritone building demos) -> strategist uses inventions.
