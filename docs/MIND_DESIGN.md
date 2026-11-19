@@ -123,3 +123,47 @@ until the strategist has learned enough.
 6. Fast-weight adaptation per opponent.
 7. Strategist layer on top, using all of the above.
 8. 8-bit playing weights.
+
+## 9. Creativity: its own builds, traps and redstone
+
+Creativity here = **imagine many options cheaply, test them for real, keep what works, and
+remember it.** Designing is kept separate from building, so it's cheap.
+
+1. **Designs, not hand movements.** A design is a small block plan (up to about 16 x 16 x 16)
+   plus a short "how it's used" note. Inventing happens on these plans, not by fumbling with
+   blocks; a building skill (its own, or Baritone's schematic builder) puts them in the world.
+2. **A library of parts (motifs).** Pieces it knows: walls, roofs, doors, stairs; pressure plate
+   + TNT, piston door, dispenser + lava, trapdoor drop, observer clock, tripwire, hidden pit...
+   Seeded from the built-in knowledge (redstone.json), then grown from what it sees: builds and
+   contraptions it watches players use (spectator learning), your recordings, schematics.
+3. **Inventing = combining and mutating.** New designs are made by snapping parts together,
+   changing sizes and materials, moving triggers, hiding things, and small random changes
+   (evolution). This is where genuinely new combinations come from.
+4. **Testing for real, instantly (Training Grounds sandbox).** Each candidate is built in a
+   hidden test arena, the game itself runs it (real redstone, real physics, sped up), and dummies
+   walk in or fight there. It measures what matters:
+   - traps: did it catch/kill, how often, how fast, how hidden (how visible from a few blocks),
+     how cheap, how hard to escape;
+   - builds: shelter (enclosed, lit so no mobs spawn), defence, cost, build time, and looks (scored
+     by your "which is better?" picks, like the realism style model).
+5. **Keep many good ideas, not one** (a "hall of fame" per kind: the cheapest trap, the most
+   hidden, the deadliest, the fastest to build...). Diversity is what makes it look creative.
+6. **Remember inventions.** Good designs go into memory with notes ("worked on Steve twice",
+   "needs 3 TNT", "only on flat ground"); bad ideas are remembered too so it doesn't retry them.
+7. **Using them.** The strategist picks an invention when it fits: memory says enemies keep
+   walking a path -> choose a hidden trap that fits the terrain and what's in the inventory,
+   adapt it (test again if changed), build it, watch what happens, learn from the result.
+8. **Inventing happens in "sleep".** The sandbox search runs when you're idle or overnight, so
+   playing stays fast. Each test is just the game simulating a few blocks: cheap.
+9. **The mind (language model), optional:** can suggest ideas in words ("a pressure plate under
+   gravel above lava"), which become designs and must still pass the sandbox test. A small model
+   is weak at 3D, so it's only a source of seeds.
+
+Rules of conduct apply: traps and builds only where allowed, never on others' bases unless the
+server is for that. Realistic expectations: it will get good at combining known pieces in new
+ways and fitting them to the situation; inventing big new redstone machines from scratch is
+beyond this.
+
+**Build order:** after the mind basics (memory, sleep), add: block-plan format + part library ->
+sandbox tester in Training Grounds -> evolution with a hall of fame -> building skill/Baritone
+builder -> strategist uses inventions.
