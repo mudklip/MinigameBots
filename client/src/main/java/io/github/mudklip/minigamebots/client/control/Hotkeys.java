@@ -30,6 +30,7 @@ public final class Hotkeys {
 	public static final KeyMapping MARK_GOOD = register("mark_good", InputConstants.UNKNOWN.getValue());
 	public static final KeyMapping MARK_MISTAKE = register("mark_mistake", InputConstants.UNKNOWN.getValue());
 	public static final KeyMapping MARK_BASE = register("mark_base", InputConstants.UNKNOWN.getValue());
+	public static final KeyMapping PUSH_TO_TALK = register("push_to_talk", InputConstants.KEY_B);
 
 	/**
 	 * F8 with nothing to resume: let the selected AI play in free play (it fights what attacks

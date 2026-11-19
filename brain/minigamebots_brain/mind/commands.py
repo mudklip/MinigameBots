@@ -156,4 +156,4 @@ def understand(text: str, me: str = "", llm=None) -> dict:
                     "via": "model"}
     return {"goals": [], "stop": False, "via": "none",
             "reply": "I didn't get that. Try: 'mine 10 iron then go home', 'hunt 2 cows', 'follow me', 'explore', "
-                     "'stop'." + ("" if llm else " (Install the mind model in Brain for free-form commands.)")}
+                     "'stop'." + ("" if llm else " (Install the mind in F10 > Brain > Mind for free-form commands.)")}

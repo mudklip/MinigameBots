@@ -78,6 +78,7 @@ public final class ChatMind {
 			}
 			lastReply = System.currentTimeMillis();
 			c.player.connection.sendChat((MgbConfig.get().tagChatAsAi ? "[AI] " : "") + reply);
+			Voice.speak(reply);
 		});
 	}
 }

@@ -41,6 +41,8 @@ class Brain:
             self.set_policy(message.get("name", "idle"), message.get("args") or {})
         elif kind in ("chat", "make_character"):
             threading.Thread(target=self.on_chat, args=(message,), daemon=True).start()
+        elif kind in ("voice", "speak"):
+            threading.Thread(target=self.on_voice, args=(message,), daemon=True).start()
         elif kind == "command":
             threading.Thread(target=self.on_command, args=(message,), daemon=True).start()
         elif kind == "ping":
@@ -111,7 +113,42 @@ class Brain:
         except Exception as e:
             log("Mind error:\n" + traceback.format_exc())
             result = {"goals": [], "stop": False, "via": "none", "reply": f"My mind had a problem: {e}"}
+        if message.get("heard"):
+            result["reply"] = f'Heard "{message["heard"]}". ' + result["reply"]
         self.channel.send({"type": "command_result", "id": message.get("id"), **result})
+
+    def on_voice(self, message: dict) -> None:
+        """Push-to-talk audio -> text -> the same handling as /ai; or a reply -> speech."""
+        from .mind import voice
+
+        root = os.path.join(os.getcwd(), "mind")
+        try:
+            if message.get("type") == "speak":
+                if not voice.installed(root)["speak"]:
+                    return
+                if getattr(self, "mouth", None) is None:
+                    self.mouth = voice.Mouth(root)
+                path = os.path.join(os.getcwd(), "run", "speech.wav")
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                self.channel.send({"type": "speech", "path": self.mouth.say(str(message.get("text", ""))[:200], path)})
+                return
+            if not voice.installed(root)["hear"]:
+                self.channel.send({"type": "command_result", "id": message.get("id"), "goals": [], "stop": False,
+                                   "reply": "Install voice first (F10 > Brain > Voice)."})
+                return
+            if getattr(self, "ears", None) is None:
+                self.ears = voice.Ears(root)
+            text = self.ears.hear(str(message.get("path", "")))
+        except Exception as e:
+            log("Voice error:\n" + traceback.format_exc())
+            self.channel.send({"type": "command_result", "id": message.get("id"), "goals": [], "stop": False,
+                               "reply": f"Voice problem: {e}"})
+            return
+        if not text:
+            self.channel.send({"type": "command_result", "id": message.get("id"), "goals": [], "stop": False,
+                               "reply": "I didn't hear anything."})
+            return
+        self.on_command({"id": message.get("id"), "text": text, "me": message.get("me", ""), "heard": text})
 
     def _mind(self):
         """The language model, loaded on first use; None if it isn't installed."""
@@ -130,7 +167,7 @@ class Brain:
         try:
             model = self._mind()
             if model is None:
-                out["error"] = "Install the mind first (Brain > Install mind)"
+                out["error"] = "Install the mind first (F10 > Brain > Mind)"
             elif message.get("type") == "chat":
                 out["text"] = chat.reply(model, message.get("character") or {}, str(message.get("ai_name", "")),
                                          list(message.get("recent") or []), str(message.get("text", "")))

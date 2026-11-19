@@ -104,11 +104,16 @@ public final class BrainScreen extends Screen {
 				.tooltip(net.minecraft.client.gui.components.Tooltip.create(
 						Component.translatable("minigamebots.foundations.button_help"))).build());
 		boolean mindInstalled = mindReady(brain.runtime().root().resolve("mind"));
-		addRenderableWidget(Button.builder(Component.literal(mindBusy ? "Mind: installing..." : mindInstalled ? "Mind: installed"
-				: "Install mind (3 GB)"), b -> installMind("standard")).pos(width - 174, 4).width(80)
+		addRenderableWidget(Button.builder(Component.literal(mindBusy ? "Installing..." : mindInstalled ? "Mind: ready"
+				: "Mind (3 GB)"), b -> installMind("standard")).pos(width - 90, 28).width(80)
 				.tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable("minigamebots.mind.help"))).build())
 				.active = !mindBusy && !mindInstalled && brain.runtime().installed();
-		addRenderableWidget(Button.builder(Component.literal("Lite mind (1 GB)"), b -> installMind("lite")).pos(width - 258, 4).width(80)
+		boolean voiceReady = java.nio.file.Files.isRegularFile(brain.runtime().root().resolve("mind/voice/whisper/config.json"));
+		addRenderableWidget(Button.builder(Component.literal(voiceReady ? "Voice: ready" : "Voice (350 MB)"),
+				b -> installMind("voice")).pos(width - 174, 4).width(80)
+				.tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable("minigamebots.voice.help"))).build())
+				.active = !mindBusy && !voiceReady && brain.runtime().installed();
+		addRenderableWidget(Button.builder(Component.literal("Lite mind (1 GB)"), b -> installMind("lite")).pos(width - 90, 52).width(80)
 				.tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable("minigamebots.mind.lite_help"))).build())
 				.active = !mindBusy && !mindInstalled && brain.runtime().installed();
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose())
@@ -191,7 +196,8 @@ public final class BrainScreen extends Screen {
 		Thread t = new Thread(() -> {
 			String end;
 			try {
-				var r = io.github.mudklip.minigamebots.client.video.VideoLab.run(java.util.List.of("mind", "install", "--size", size, "--root",
+				var r = io.github.mudklip.minigamebots.client.video.VideoLab.run("voice".equals(size) ? java.util.List.of("mind", "install-voice", "--root",
+						brain.runtime().root().resolve("mind").toString()) : java.util.List.of("mind", "install", "--size", size, "--root",
 						brain.runtime().root().resolve("mind").toString()), m -> mc.execute(() ->
 						net.minecraft.client.gui.components.toasts.SystemToast.addOrUpdate(mc.gui.toastManager(), toast,
 								Component.literal("Mind"), Component.literal(m))));

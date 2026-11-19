@@ -123,7 +123,7 @@ Tell your AI what to do in plain words. Only you can: it's a command on your own
 
 # Free-form commands (optional)
 - Common phrasings work straight away
-- For anything else, install the mind: [F10] > [Brain...] > [Install mind (3 GB)]
+- For anything else, install the mind: [F10] > [Brain...] > [Mind (3 GB)]
 - It runs on your PC only, and can only choose goals: never anything you couldn't do yourself
 
 > Chain with "then", "and" or commas: [/ai get food, then go home, then explore].
@@ -132,7 +132,7 @@ Tell your AI what to do in plain words. Only you can: it's a command on your own
 Give your AI a personality: it chats when people talk to it, while it plays.
 
 # Set it up
-1. Install the mind once: [F10] > [Brain...] > [Install mind (3 GB)] (or [Lite mind (1 GB)])
+1. Install the mind once: [F10] > [Brain...] > [Mind (3 GB)] (or [Lite mind (1 GB)])
 2. [AI Profiles] > select the AI > [Edit...] > [Character...]
 3. Write the character, or press [Make one for me] and edit what it invents
 4. Turn [Chat: on], press [Done], then [Done] again to save
@@ -149,6 +149,21 @@ Give your AI a personality: it chats when people talk to it, while it plays.
 
 > It all runs on your PC. The same mind also understands free-form [/ai] commands.
 ! A small model: fun for banter, not deep conversation. It can be repetitive or odd now and then.
+
+=== voice | Talk with your voice
+Hold a key, say what you want, let go. It works like typing [/ai].
+
+# Set it up (once)
+1. [F10] > [Brain...] > [Voice (350 MB)] (about 350 MB, runs on your PC only)
+2. Optional: [Settings] > Autonomy and safety > [Speak replies aloud]
+
+# Use it
+1. Hold [B] (change it in Options > Controls > MinigameBots)
+2. Say e.g. "mine ten iron then come home"
+3. Let go: it writes what it heard and what it'll do in your chat
+
+> Free-form sentences need the mind too ([Mind (3 GB)] in Brain); simple ones work without it.
+! Only your own microphone is used: nobody else can talk to your AI this way.
 
 === goals | Goals
 The Manager decides what to do moment to moment, using the AI's skills.

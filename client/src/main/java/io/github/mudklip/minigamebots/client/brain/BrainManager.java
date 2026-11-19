@@ -316,6 +316,32 @@ public final class BrainManager {
 		});
 	}
 
+	/** Push-to-talk audio for the brain to hear (then handled like /ai). */
+	public void voice(Minecraft client, String wavPath) {
+		int id = ++commandId;
+		String me = client.player == null ? "" : client.player.getGameProfile().name();
+		say(client, "§7Listening to what you said...");
+		control.execute(() -> {
+			if (status != Status.RUNNING && !startBlocking()) {
+				client.execute(() -> say(client, "§cThe brain isn't set up or didn't start (F10 > Brain)."));
+				return;
+			}
+			JsonObject m = new JsonObject();
+			m.addProperty("type", "voice");
+			m.addProperty("id", id);
+			m.addProperty("path", wavPath);
+			m.addProperty("me", me);
+			sendAsync(m);
+		});
+	}
+
+	/** Sends a message only if the brain is already running (no start-up for optional extras). */
+	public void sendIfRunning(JsonObject m) {
+		if (status == Status.RUNNING) {
+			sendAsync(m);
+		}
+	}
+
 	private static void say(Minecraft client, String text) {
 		if (client.player != null) {
 			client.player.sendSystemMessage(Component.literal("§b[AI]§r " + text));
@@ -330,6 +356,7 @@ public final class BrainManager {
 			if (m.has("progress")) {
 				return;
 			}
+			Voice.speak(reply);
 			if (m.has("stop") && m.get("stop").getAsBoolean()) {
 				if (io.github.mudklip.minigamebots.client.control.AgentControl.aiActive()) {
 					io.github.mudklip.minigamebots.client.control.AgentControl.get().stop(client,
@@ -361,6 +388,7 @@ public final class BrainManager {
 			}
 			case "status" -> lastStatus = m;
 			case "command_result" -> onCommandResult(m);
+			case "speech" -> Voice.play(m.get("path").getAsString());
 			case "chat_reply", "character" -> {
 				var cb = m.has("id") ? asks.remove(m.get("id").getAsInt()) : null;
 				if (cb != null) {

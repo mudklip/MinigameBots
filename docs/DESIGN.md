@@ -1093,6 +1093,14 @@ Everything here is optional and comes after the main mods are finished and usabl
 we decide otherwise. Each will be discussed in detail before any work starts. (Exception
 already scheduled: the built-in Minecraft knowledge, section 4.6.1, is part of M10.)
 
+**Built so far (optional, after M15):** O2 commands (`/ai ...`, client-side only: rule parser,
+plus the optional local mind model; goals validated against the Goals screen), O1 chat in
+character (Edit Profile > Character; replies only when addressed, while playing, filtered,
+tagged [AI]; "Make one for me"), O3 voice (hold B: Whisper speech-to-text into the same /ai
+path; optional spoken replies with Piper). All local: Brain > Mind (3 GB) or Lite mind (1 GB),
+and Voice (350 MB). Defaults chosen: mind on GPU (CPU without one), one character per AI,
+speaks only when spoken to, push-to-talk. Code: `brain/minigamebots_brain/mind/`.
+
 **Multi-world training in one game (your idea, optional, later):** speedrun "multi-instance"
 mods (the kind that keep several worlds loaded at once to reset for a good seed) suggest a
 way to train faster: one Minecraft process runs many small training worlds side by side

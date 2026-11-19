@@ -138,6 +138,11 @@ public final class MgbConfig {
 	public boolean tagChatAsAi = true;
 
 	@AutoGen(category = "autonomy")
+	@Boolean(colored = true)
+	@SerialEntry
+	public boolean speakReplies = false;
+
+	@AutoGen(category = "autonomy")
 	@IntSlider(min = 4, max = 64, step = 4, format = "%d blocks")
 	@SerialEntry
 	public int protectRadius = 16;

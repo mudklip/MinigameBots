@@ -295,5 +295,9 @@
 	"minigamebots.character.chat_help": "Optional (needs the mind). While it plays, the AI answers in chat when someone says its name or yours: one short line at most every 8 seconds, tagged [AI] if that setting is on.",
 	"minigamebots.character.make": "Make one for me",
 	"minigamebots.character.make_help": "The mind invents a character from this AI's name and skills. Edit it, or press again for another.",
-	"minigamebots.character.help": "Everything runs on your PC. Replies are filtered: one short line, no commands, nothing from 'Never talk about', and it never pretends to be human when sincerely asked."
+	"minigamebots.character.help": "Everything runs on your PC. Replies are filtered: one short line, no commands, nothing from 'Never talk about', and it never pretends to be human when sincerely asked.",
+	"key.minigamebots.push_to_talk": "Talk to your AI (hold)",
+	"minigamebots.voice.help": "Optional, about 350 MB, all local: hold B and speak to give your AI commands, and (Settings) hear its replies.",
+	"yacl3.config.minigamebots:config.speakReplies": "Speak replies aloud",
+	"yacl3.config.minigamebots:config.speakReplies.desc": "The AI's replies to you (and its chat lines) are spoken on your PC. Needs Brain > Voice."
 }

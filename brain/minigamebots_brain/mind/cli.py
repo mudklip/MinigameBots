@@ -14,13 +14,19 @@ def emit(kind, **d):
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="minigamebots_brain mind")
-    p.add_argument("action", choices=["install", "check"])
+    p.add_argument("action", choices=["install", "check", "install-voice"])
     p.add_argument("--root", required=True)
     p.add_argument("--size", choices=["standard", "lite"], default="standard")
     args = p.parse_args(argv)
     from . import llm
 
     try:
+        if args.action == "install-voice":
+            from . import voice
+
+            voice.install(args.root, log=lambda m: emit("log", message=m))
+            emit("done", installed=True)
+            return 0
         if args.action == "check":
             emit("done", installed=llm.installed(args.root))
             return 0
