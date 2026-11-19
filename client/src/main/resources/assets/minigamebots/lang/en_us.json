@@ -282,5 +282,10 @@
 	"yacl3.config.minigamebots:config.tagChatAsAi.desc": "Starts each reply with [AI], so friends know it isn't you typing.",
 	"yacl3.config.minigamebots:config.protectRadius": "Protected zone size",
 	"yacl3.config.minigamebots:config.protectRadius.desc": "How far a protected zone reaches from where you add it (Memory screen).",
-	"minigamebots.memory.protect_help": "The AI will never break blocks or open/use anything within this distance of where you stand (set in Settings). A hard rule, not a preference."
+	"minigamebots.memory.protect_help": "The AI will never break blocks or open/use anything within this distance of where you stand (set in Settings). A hard rule, not a preference.",
+	"minigamebots.menu.guide": "Guide",
+	"minigamebots.menu.guide_help": "Getting started checklist and how everything works. Tip: press F1 on any MinigameBots screen for its page.",
+	"minigamebots.guide.screen": "Guide",
+	"minigamebots.guide.hint_title": "New to MinigameBots?",
+	"minigamebots.guide.hint": "Open Guide in this menu, or press F1 on any MinigameBots screen."
 }

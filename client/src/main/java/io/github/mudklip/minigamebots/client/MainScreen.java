@@ -46,8 +46,20 @@ public final class MainScreen extends Screen {
 				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.RecorderScreen(this))).width(100).build());
 		row3.addChild(Button.builder(Component.translatable("minigamebots.menu.settings"),
 				b -> minecraft.gui.setScreen(MgbConfig.screen(this))).width(100).build());
-		body.addChild(Button.builder(Component.translatable("minigamebots.menu.video"),
-				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.VideoLabScreen(this))).width(204).build());
+		LinearLayout row4 = body.addChild(LinearLayout.horizontal().spacing(4));
+		row4.addChild(Button.builder(Component.translatable("minigamebots.menu.video"),
+				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.VideoLabScreen(this))).width(100).build());
+		row4.addChild(Button.builder(Component.translatable("minigamebots.menu.guide"),
+				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.GuideScreen(this, "start"))).width(100)
+				.tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable("minigamebots.menu.guide_help"))).build());
+		if (!MgbConfig.get().guideHintShown) {
+			// Once: point new players at the guide, then never again.
+			MgbConfig.get().guideHintShown = true;
+			MgbConfig.HANDLER.save();
+			net.minecraft.client.gui.components.toasts.SystemToast.addOrUpdate(minecraft.gui.toastManager(),
+					new net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId(),
+					Component.translatable("minigamebots.guide.hint_title"), Component.translatable("minigamebots.guide.hint"));
+		}
 		layout.addToFooter(Button.builder(Component.translatable("gui.done"), b -> onClose()).width(204).build());
 		layout.visitWidgets(this::addRenderableWidget);
 		repositionElements();

@@ -36,6 +36,8 @@ public final class TeacherDemos {
 	private static final net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId TOAST =
 			new net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId();
 	private static boolean active;
+	/** The teacher has really taken control (the brain can take a while to start the first time). */
+	private static boolean tookControl;
 	private static long endTick;
 	private static long ticks;
 
@@ -71,6 +73,7 @@ public final class TeacherDemos {
 			mgb.brain().play(client, t.policy(), t.args().deepCopy());
 		}
 		active = true;
+		tookControl = false;
 		ticks = 0;
 		endTick = minutes <= 0 ? Long.MAX_VALUE : minutes * 60L * 20L;
 	}
@@ -80,10 +83,22 @@ public final class TeacherDemos {
 		if (!active) {
 			return;
 		}
-		ticks++;
-		// Give the brain a few seconds to take control before checking it still has it.
 		boolean running = BaritoneTeacher.active() ? BaritoneTeacher.busy() : AgentControl.aiActive();
-		if (ticks > 100 && !running || ticks >= endTick) {
+		if (!tookControl) {
+			// Wait for the teacher to take over (starting the brain can take a while); the time
+			// limit only counts from then. Give up if it never starts.
+			tookControl = running;
+			if (++ticks > 90 * 20) {
+				running = false;
+			} else {
+				if (tookControl) {
+					ticks = 0;
+				}
+				return;
+			}
+		}
+		ticks++;
+		if (!running || ticks >= endTick) {
 			active = false;
 			BaritoneTeacher.stop();
 			if (AgentControl.aiActive()) {

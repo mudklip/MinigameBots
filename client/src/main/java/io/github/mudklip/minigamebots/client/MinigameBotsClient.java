@@ -224,6 +224,18 @@ public final class MinigameBotsClient implements ClientModInitializer {
 			foundationInstaller.shutdown();
 		});
 		ClientTickEvents.END_CLIENT_TICK.register(this::endTick);
+		// F1 on any MinigameBots screen opens the guide page about it.
+		net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
+			String page = io.github.mudklip.minigamebots.client.gui.GuideScreen.PAGE_FOR.get(screen.getClass().getSimpleName());
+			if (page == null || !screen.getClass().getName().startsWith("io.github.mudklip.minigamebots")) {
+				return;
+			}
+			net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents.afterKeyPress(screen).register((s, key) -> {
+				if (key.key() == com.mojang.blaze3d.platform.InputConstants.KEY_F1 && !(s instanceof io.github.mudklip.minigamebots.client.gui.GuideScreen)) {
+					client.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.GuideScreen(s, page));
+				}
+			});
+		});
 		ClientLifecycleEvents.CLIENT_STARTED.register(client -> client.getSoundManager().addListener(sounds));
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, context) -> DebugCommands.register(dispatcher));
 

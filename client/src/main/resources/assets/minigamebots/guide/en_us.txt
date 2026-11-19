@@ -1,0 +1,250 @@
+=== start | Getting started
+# What this is
+An AI that plays Minecraft as you, with a real (virtual) keyboard and mouse. You teach it by playing, by letting teachers play, or by letting it practise.
+
+# The 3 keys to remember
+- [F10] opens this menu
+- [F8] gives the AI control, or takes it back
+- [F9] emergency stop: the AI lets go of everything at once
+
+> You never need to be good at Minecraft: Teacher demos and practice can train it without you.
+> Press [F1] on any MinigameBots screen to jump to its page here.
+
+=== keys | Keys and controls
+# Hotkeys
+- [F7] start / stop recording yourself
+- [F8] AI takes control / you take it back
+- [F9] emergency stop
+- [F10] MinigameBots menu
+- [F1] (in a MinigameBots screen) help for that screen
+
+# Extra keys (not set by default)
+Set them in Options > Controls > MinigameBots:
+- [Mark good] this moment was good: learn it more
+- [Mark mistake] this moment was bad: never copy it
+- [Mark base] remember this spot as your base
+
+> Marks work while recording. A few "mistake" marks are worth more than a lot of extra footage.
+
+=== brain | The brain (setup)
+The brain is the AI's thinking part. It runs on your PC in the background; nothing is sent online.
+
+# Set it up once
+1. [F10] > [Brain...]
+2. Press [Install (GPU)] (or [Install (CPU)] without an NVIDIA card)
+3. Wait for the download (a few GB, one time)
+
+# Foundations (optional)
+- [Brain...] > [Foundations] installs OpenAI's VPT models: they already know basic Minecraft from watching 70,000 hours of video
+- With one installed, choose [Base: VPT] when training for a smarter start
+
+! VPT needs a GPU and learns from the picture only. [Lite] works on any PC.
+
+=== profiles | AI profiles
+Each AI is a profile with its own name, skin, memories and training.
+
+# Make one
+1. [F10] > [AI Profiles...]
+2. Click [New AI], give it a name (and a skin: any player name)
+3. Select it and press [Use this AI]
+
+# Buttons
+- [Edit...] name, skin, and its human limits (reaction time, turn speed)
+- [Duplicate] copy an AI to experiment safely
+- [Merge] make a new AI that takes each skill from one of two AIs
+- [Export] / [Import] share an AI as a file (exports folder)
+
+> Duplicate before big experiments: the original stays untouched.
+
+=== recording | Recording yourself
+Recordings are the easiest way to teach: it copies what you do.
+
+1. Press [F7] and play normally
+2. Press [F7] again to stop (it saves by itself)
+3. Open [F10] > [Recordings...] to watch, trim, rename and tag them
+
+# Make recordings count
+- Record the thing you want it to learn, a few minutes at a time
+- Use [Mark mistake] on bad moments; they are skipped
+- Variety helps: different places, times of day, situations
+
+> Recordings also teach other players' moves (see "Learning from players").
+
+=== training | Training
+# Train an AI
+1. [AI Profiles...] > select the AI > [Train]
+2. Tick the recordings to learn from (left list)
+3. Pick options (right), press [Start]
+4. Watch the progress; press [Stop] any time (it keeps what it learned)
+
+# Options
+- [Base]: [Lite] (fast, any PC) or [VPT] (smarter start, GPU)
+- [PC]: Quiet / Balanced / Max: how hard your PC works
+- [Plan]: how long. Quick try to test, Overnight for real results
+- [Skill]: train one skill ("combat", "mining"...) instead of the main brain
+- [Start fresh]: forget everything and start over
+- [Aim drill]: also learn aiming in a tiny built-in simulator (very fast, Lite only)
+
+# Buttons on top
+- [Realism...] make it play more like a human (see "Realism")
+- [Versions...] go back to an earlier version if training made it worse
+- [Practice...] / [Exams...] learn by trying, and test it
+
+> A version is saved automatically before every training. Nothing is ever lost.
+
+=== teachers | Teacher demos
+Teachers are scripted experts that play AS your AI while it records. Free expert demos, no skill needed.
+
+1. [Train] screen > [Teacher demos]
+2. Pick a teacher and a length, press [Start recording]
+3. Stop any time with [F9]; the recording appears in the Train list
+
+# Teachers
+- [Fighter] crits, W-taps, shield timing, axe on shields, strafing
+- [Aim and chase] steady aim at the nearest target
+- [Baritone] travel, mine ores, go home (only if the optional Baritone jar is in mods)
+
+> Start a Training Grounds match first (e.g. against a "godly" dummy) so every round is recorded.
+
+=== goals | Goals
+The Manager decides what to do moment to moment, using the AI's skills.
+
+# Give it goals
+1. [F10] > [Goals...]
+2. Pick a goal type (hunt, mine, explore, go to, follow, protect...), fill in details, [Add]
+3. Press [Start]: it works through the list in order
+
+# Free play
+- With [Free play: on], after the list it does what it likes
+- Sliders set what it likes: exploring, mining, hunting
+- It always goes home at night (if it has a base) and finds food when hungry
+
+# It interrupts a goal to
+- fight back when attacked, or run away when it would lose
+- eat when hungry
+
+> An untrained AI can already do simple goals (like hunting a pig) with built-in reflexes.
+
+=== practice | Practice and exams
+Practice = it tries things and improves from rewards, on its own.
+
+# Practice
+1. [Train] screen > [Practice...]
+2. Pick what to practise: Duel, Hunt, Survive, Aim trainer, Crit / W-tap / Shield-break drills, [Figure It Out] (any minigame)
+3. Press [Start practicing] and leave it running
+
+# Exams
+- [Exams...] scores the AI over a few match rounds without learning
+- Compare results over time to see if training helps
+
+> Practice is best inside a Training Grounds match: rounds reset by themselves.
+! Practice works with the Lite base.
+
+=== grounds | Training Grounds
+A separate mod (in your mods folder) that builds a training area: arenas, dummies and matches. Works in singleplayer.
+
+# Dummies
+- [/tg dummy spawn godly] (or L1-L5, rusher, blocker, critter, w_tapper, kiter)
+- Sneak + right-click a dummy to change it
+- [godly] is a cheating teacher: never misses, perfect crits and W-taps
+
+# Matches
+1. Build an arena, then [/tg arena create <name>]
+2. [/tg minigame duel <arena> <match>] (or sumo, ffa, team_deathmatch, survival, random)
+3. [/tg match join <match> red], then [/tg match start <match>]
+
+# Smart opponents
+- [/tg match opponent <match> blue league]: each round picks the style it loses to most
+- [... blue self]: a past version of your AI plays against it (self-play)
+- [random] minigames change their rules every round: great with Figure It Out
+
+> Type [/tg] and use Tab to see every command.
+
+=== memory | Memory, allies and zones
+# Places
+- [F10] > [Memory...] shows a map and remembered places (base, chests, mines, danger)
+- The AI marks places itself, or use the [Mark base] key
+
+# Allies and enemies
+- [Allies & enemies] lists players, teams and shield/banner "insignia" it has seen
+- Mark someone friend or enemy; it treats people with the same insignia the same way
+
+# Protected zones
+- Stand in a friend's base, press [Protect area here]
+- The AI will NEVER break or use anything inside it (size in Settings)
+
+> Zones are a hard rule, not a preference: the AI's clicks there are simply blocked.
+
+=== realism | Realism
+Makes it play like a person, not a robot.
+
+1. [Train] screen > [Realism...]
+2. Press [Analyze]: learns how your play differs from the AI's
+3. Press [Use my turning]: the AI turns and aims as fast and smoothly as you
+4. Press [Which was better?]: watch two short clips, pick the better one. Do 10+
+
+> After picking clips, press [Analyze] again. Practice then rewards your style.
+
+=== video | Video Lab
+Learn from gameplay videos (YouTube downloads, your own clips).
+
+1. [F10] > [Video Lab...] > [Folder]: put videos in it
+2. [Train input guesser] (once, and again after recording more)
+3. [Build atlas] (once per resource pack or modpack)
+4. Add tags (e.g. my-smp), press [Import]
+5. Answer [Questions] about items it didn't recognise
+
+# What happens
+- It keeps first-person gameplay only and blanks out facecams/watermarks
+- It guesses the keys and mouse, and saves each part as a recording
+- Answers are saved per tag, so the next video with that tag doesn't ask again
+
+! Video demos count half as much as your own recordings: guessed inputs are less sure.
+
+=== players | Learning from players
+Every other player you see while recording can become a lesson.
+
+1. Record while others play near you (any server you're allowed to record on)
+2. [Video Lab...] > [Learn from other players in recordings]
+3. New recordings appear, one per player: tick them in [Train]
+
+- It copies what led to hits and kills, and ignores what led to them getting hurt or dying
+- Watching a Flashback replay while recording works too
+
+# Exact mode (Training Grounds)
+- [/tg record on] sends players' exact keys (everyone is told)
+- Players can opt out with [/tg record optout]
+
+! Only record people where that's allowed.
+
+=== autonomy | Settings and safety
+[F10] > [Settings...] > Autonomy and safety:
+- [Respawn by itself] when it dies
+- [Stop after] N hours, or after N deaths
+- [Stop if health stays critical]
+- [Canned chat replies] off by default; replies are tagged [AI]
+- [Protected zone size]
+
+# Built-in safety
+- [F9] always stops it instantly
+- If it gets stuck, it tries another way, then gives the goal up
+- With no goals it idles naturally instead of freezing
+
+=== help | Troubleshooting
+# It does nothing / stands still
+- Is the brain set up? ([Brain...] should say Running)
+- Is it trained? Untrained AIs only follow simple goals
+- Try [F8] again, or give it a goal
+
+# Training is slow
+- Use [Plan: Quick try] to test, [PC: Max] overnight
+- Close other programs; Lite is much faster than VPT
+
+# It got worse after training
+- [Train] > [Versions...] > pick an older version > [Go back]
+
+# Where are my files?
+- .minecraft/minigamebots/ : profiles, recordings, videolab, logs
+- Logs (for bug reports): minigamebots/brain/logs
+
+> Still stuck? Send the log files: they say what went wrong.

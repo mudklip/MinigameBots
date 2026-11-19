@@ -151,6 +151,10 @@ public final class MgbConfig {
 	@SerialEntry
 	public String activeProfile = "";
 
+	/** The one-time "there's a guide" hint was shown. */
+	@SerialEntry
+	public boolean guideHintShown = false;
+
 	public static MgbConfig get() {
 		return HANDLER.instance();
 	}
