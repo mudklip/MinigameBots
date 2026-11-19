@@ -50,9 +50,7 @@ public final class HubScreen extends Screen {
 		cardW = Math.min(160, width / 3);
 		int rx = cardsX + cardW + 8;
 		int rw = width - rx - 8;
-		addRenderableWidget(Button.builder(Component.literal("§b✦ Skills..."), b -> minecraft.gui.setScreen(new SkillsScreen(this)))
-				.pos(width - 210, 6).width(66).tooltip(Tooltip.create(Component.literal("Every skill, one by one: rewards, hints, "
-						+ "locked actions, stages, and your own skills"))).build());
+
 		addRenderableWidget(Button.builder(Component.literal("Advanced..."), b -> {
 			ProfileManifest p = MinigameBotsClient.instance().profiles().active();
 			if (p != null) {
@@ -82,18 +80,13 @@ public final class HubScreen extends Screen {
 			}
 			rebuildWidgets();
 		}).pos(rx + 6, by + 24).width(Math.min(130, rw - 84)).build());
-		addRenderableWidget(Button.builder(Component.literal("Backups..."), b -> minecraft.gui.setScreen(new BackupsScreen(this)))
-				.pos(rx + 10 + Math.min(130, rw - 84), by + 24).width(66).tooltip(Tooltip.create(Component.literal("Back up the whole AI, "
-						+ "or go back to an earlier backup (all of it, or only some parts)"))).build());
-		addRenderableWidget(Button.builder(Component.literal(io.github.mudklip.minigamebots.client.brain.MultiWorldLink.running()
-				? "§b⚡ Watch training worlds" : "§b⚡ Training worlds"), b -> minecraft.gui.setScreen(new WorldsScreen(this)))
-				.pos(rx + 6, by + 48).width(Math.min(130, rw - 84)).tooltip(Tooltip.create(Component.literal("Practise in many worlds at "
-						+ "once, and watch them all live"))).build());
+
+
 		addRenderableWidget(Button.builder(Component.literal("Watch: " + (io.github.mudklip.minigamebots.client.train.WatchLearn.on()
 				? "§aon" : "off")), b -> {
 			io.github.mudklip.minigamebots.client.train.WatchLearn.set(minecraft, !io.github.mudklip.minigamebots.client.train.WatchLearn.on());
 			rebuildWidgets();
-		}).pos(rx + 10 + Math.min(130, rw - 84), by + 48).width(66).tooltip(Tooltip.create(Component.literal("While you play or spectate, records "
+		}).pos(rx + 10 + Math.min(130, rw - 84), by + 24).width(66).tooltip(Tooltip.create(Component.literal("While you play or spectate, records "
 				+ "other players' fights and turns them into demos every 10 minutes (from their point of view, good moments "
 				+ "count more). The Coach's PvP plan trains on them. Only where you're allowed to record others."))).build());
 
@@ -101,6 +94,9 @@ public final class HubScreen extends Screen {
 
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+		if (HubTabs.click(minecraft, HubTabs.PLANS, event.x(), event.y(), parent)) {
+			return true;
+		}
 		for (int i = 0; i < Coach.Goal.values().length; i++) {
 			if (!Coach.running() && Ui.inside(event.x(), event.y(), cardsX, cardsY + i * (CARD_H + 4), cardW, CARD_H)) {
 				selected = Coach.Goal.values()[i];
@@ -118,7 +114,7 @@ public final class HubScreen extends Screen {
 		super.extractRenderState(g, mouseX, mouseY, a);
 		ProfileManifest p = MinigameBotsClient.instance().profiles().active();
 		Progress pr = Progress.active();
-		g.text(font, Component.literal("§lTraining Hub§r  " + (p == null ? "§cno AI selected" : "§7" + p.name)), 8, 10, Ui.TEXT, false);
+		HubTabs.draw(g, font, HubTabs.PLANS, mouseX, mouseY, width - 146);
 		if (p == null || pr == null) {
 			g.text(font, "Pick an AI first: F10 > AI Profiles > Use this AI.", 8, 40, Ui.WARN, false);
 			return;
@@ -148,17 +144,25 @@ public final class HubScreen extends Screen {
 		int rw = width - rx - 8;
 		boolean skill = Coach.skillName() != null;
 		Ui.header(g, font, skill ? "Skill: " + Coach.skillName() : active.label, rx + 6, cardsY + 6);
-		g.text(font, font.plainSubstrByWidth(skill ? "Practising one skill (started from the Skills screen)" : active.help, rw - 12),
-				rx + 6, cardsY + 22, Ui.MUTED, false);
-		int y = cardsY + 114;
+		int hy = cardsY + 20;
+		for (var line : font.split(Component.literal(skill ? "Practicing one skill (started from the Skills tab)" : active.help), rw - 12)) {
+			if (hy > cardsY + 30) {
+				break;
+			}
+			g.text(font, line, rx + 6, hy, Ui.MUTED, false);
+			hy += 9;
+		}
+		int y = cardsY + 90;
 		if (Coach.running()) {
 			g.text(font, Component.literal("§aCoaching§r: " + Coach.minutesLeft() + " min left, cycle " + (Coach.cycles() + 1)
 					+ "  §7(F9 stops the AI; this screen stops the plan)"), rx + 6, y, Ui.TEXT, false);
 			y += 12;
 		} else {
-			g.text(font, font.plainSubstrByWidth("Pick a goal and a time, then Start: it runs everything by itself.", rw - 12),
-					rx + 6, y, Ui.MUTED, false);
-			y += 12;
+			for (var line : font.split(Component.literal("Pick a goal and a time, then Start: it runs everything by itself."), rw - 12)) {
+				g.text(font, line, rx + 6, y, Ui.MUTED, false);
+				y += 10;
+			}
+			y += 2;
 		}
 		// Show from the step before the current one, so what's happening now is always visible.
 		var all = Coach.steps();

@@ -40,6 +40,8 @@ public final class AgentControl {
 		return screen == null || !screen.getClass().getName().startsWith("io.github.mudklip.minigamebots.");
 	}
 
+	private static final boolean DEBUG_INPUT = Boolean.getBoolean("minigamebots.debugInput");
+
 	public static boolean aiActive() {
 		return INSTANCE.active;
 	}
@@ -148,6 +150,10 @@ public final class AgentControl {
 		humanizer.submit(action, source.decisionTick(tick));
 		lastInput = ActionLocks.filter(Autonomy.filter(client, humanizer.tick(tick)));
 		input.apply(client, lastInput);
+		if (DEBUG_INPUT && tick % 10 == 0) {
+			io.github.mudklip.minigamebots.client.MinigameBotsClient.LOGGER.info("[input] {} locks={} brain={}", lastInput.held(),
+					ActionLocks.any(), action.held());
+		}
 		camera.beginTick(client, lastInput.yaw(), lastInput.pitch());
 		tick++;
 	}

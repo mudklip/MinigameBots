@@ -1,6 +1,6 @@
 === start | Getting started
 # What this is
-An AI that plays Minecraft as you, with a real (virtual) keyboard and mouse. You teach it by playing, by letting teachers play, or by letting it practise.
+An AI that plays Minecraft as you, with a real (virtual) keyboard and mouse. You teach it by playing, by letting teachers play, or by letting it practice.
 
 > New: [F10] > [★ Training Hub] trains your AI for you. Start there.
 
@@ -23,7 +23,7 @@ The easiest way to make your AI better: pick a goal and a time, the Coach does t
 # What the Coach does (PvP example)
 - Builds a practice arena where you stand (stand somewhere open!)
 - Starts a duel against the godly teacher and records Fighter demos
-- Trains on them, then practises (in 6 worlds at once for Lite AIs)
+- Trains on them, then practices (in 6 worlds at once for Lite AIs)
 - Takes an exam against the league, then repeats practice + exam until time is up
 
 # Levels, ratings and achievements
@@ -196,15 +196,15 @@ Hold a key, say what you want, let go. It works like typing [/ai].
 === skills | Skills (one by one)
 Every skill your AI can learn has its own card: [F10] > [Skills], or [Skills...] in the Training Hub. The tabs along the top sort them by kind: Combat, Movement, Mining, Building, Farming, Survival, Inventory and your own.
 
-# Practise a skill
+# Practice a skill
 1. Click its card.
-2. Pick how long (e.g. [30 min]) and press [Practise].
-3. It sets up what it needs (arena, dummy, duel or aim trainer) and practises by itself. Open the Training Hub to watch progress, [F9] to stop.
-! Skill practice needs a Lite-based AI, and Training Grounds for anything that practises in an arena.
+2. Pick how long (e.g. [30 min]) and press [Practice].
+3. It sets up what it needs (arena, dummy, duel or aim trainer) and practices by itself. Open the Training Hub to watch progress, [F9] to stop.
+! Skill practice needs a Lite-based AI, and Training Grounds for anything that practices in an arena.
 
 # Change what it learns
 - [Rewarded for]: what counts. [Edit rewards] lets you switch each one on or off, make it stronger [+] or weaker [-], flip a reward into a penalty (click the number), add new ones or remove them.
-- [Not allowed while practising]: click a pill to lock that action, e.g. lock [Walking] and [Inventory & menus] for aim training so it only aims. Locked actions are never pressed, whatever the AI wants.
+- [Not allowed while practicing]: click a pill to lock that action, e.g. lock [Walking] and [Inventory & menus] for aim training so it only aims. Locked actions are never pressed, whatever the AI wants.
 - [Stages]: each skill learns in steps. [Basics] gives strong hints and learns fast (it copies anything that works), [Mastery] gives no hints and only polishes. Change each stage's speed, how many tries before it moves on, and its [Hints].
 - Hints are extra rewards for the early stages, like "keep holding break until the block breaks". They switch off by themselves in later stages.
 > ✦ marks a self-discovery stage: it tries its own ideas, e.g. working out which of several swords to use when.
@@ -223,7 +223,7 @@ A backup is a copy of the whole AI: every network (what it learned), skill setti
 
 # Make one
 - Press [+ Back up now] whenever you like (say, before trying something risky).
-- One is also made by itself before coaching or practising, at most every few hours. The last 5 automatic ones are kept; press [Keep] on any backup to keep it forever.
+- One is also made by itself before coaching or practicing, at most every few hours. The last 5 automatic ones are kept; press [Keep] on any backup to keep it forever.
 
 # Go back
 1. Click a backup on the left.
@@ -272,7 +272,7 @@ Practice = it tries things and improves from rewards, on its own.
 
 # Practice
 1. [Train] screen > [Practice...]
-2. Pick what to practise: Duel, Hunt, Survive, Aim trainer, Crit / W-tap / Shield-break drills, [Figure It Out] (any minigame)
+2. Pick what to practice: Duel, Hunt, Survive, Aim trainer, Crit / W-tap / Shield-break drills, [Figure It Out] (any minigame)
 3. Press [Start practicing] and leave it running
 
 # Exams
@@ -320,9 +320,15 @@ The route to a strong fighter, with no PvP skill needed from you. Each step buil
 ! Baritone is not part of this: it's a walking/mining bot. The fighting teacher is built in.
 
 === multiworld | Multi-world training
+# Spectate a training world
+1. Training Hub > [⚡ Worlds] tab (or [F10] while worlds are running).
+2. Click any world's card: your camera follows that world's AI up close, from its own eyes, even across new rounds.
+3. Press [F10] again to see all worlds, click another world to switch, or [Back to my view] to return where you were (your game mode is restored).
+> Command: /tg multitrain watch <number>, and /tg multitrain watch off.
+
 The easy way: Training Hub > [⚡ Training worlds]. Pick how many worlds and the opponent, press [Start]. The screen then shows every world live: a mini-map (green = your AI facing up, red = its opponent), both health bars and the score. Click a world to follow its learner up close; [Back to my view] returns you. Cards flash green on a win, red on a loss.
 
-Practise in many arena copies at once: 8 worlds = about 8x the practice per second.
+Practice in many arena copies at once: 8 worlds = about 8x the practice per second.
 
 # Start
 1. Use an AI on the [Lite] base (pictures aren't drawn for the extra worlds)
@@ -341,7 +347,7 @@ Practise in many arena copies at once: 8 worlds = about 8x the practice per seco
 ! Lite base only. Your own player stands still while it trains.
 
 === dummies | Fight a dummy
-Dummies are fake players that stand, move, block and fight back. Use them to practise yourself, or to record and train the AI.
+Dummies are fake players that stand, move, block and fight back. Use them to practice yourself, or to record and train the AI.
 
 # Spawn one
 1. Type [/tg dummy spawn godly] (it appears where you stand)

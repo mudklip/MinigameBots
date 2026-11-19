@@ -27,11 +27,8 @@ public final class MainScreen extends Screen {
 		body.addChild(Button.builder(Component.literal("§e★ Training Hub"),
 				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.HubScreen(this))).width(204)
 				.tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(
-						"Pick what to get better at and how long you have: the Coach does the rest."))).build());
-		body.addChild(Button.builder(Component.literal("§b✦ Skills"),
-				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.SkillsScreen(this))).width(204)
-				.tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(
-						"Every skill it can learn: change what each is rewarded for, what it may do and how it learns, or add your own."))).build());
+						"Plans, skills, training worlds and backups: everything for making your AI better."))).build());
+
 		Button control = body.addChild(Button.builder(Component.translatable("minigamebots.menu.start_idle"), b -> {
 			onClose();
 			AgentControl.get().start(minecraft, io.github.mudklip.minigamebots.client.control.ActionSource.IDLE);

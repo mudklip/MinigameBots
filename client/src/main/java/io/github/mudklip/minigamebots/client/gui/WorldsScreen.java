@@ -15,7 +15,7 @@ import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Training worlds: practise in many copies of an arena at once, and watch all of them live
+ * Training worlds: practice in many copies of an arena at once, and watch all of them live
  * (a mini-map, health and score per world). Click a world to follow its learner up close.
  */
 public final class WorldsScreen extends Screen {
@@ -71,14 +71,14 @@ public final class WorldsScreen extends Screen {
 				cmd("tg multitrain stop");
 				MultiWorldLink.watching = -1;
 				rebuildWidgets();
-			}).pos(width - 120, 6).width(56).build());
+			}).pos(width - 52, 26).size(44, 16).build());
 		}
 		if (MultiWorldLink.watching >= 0) {
 			addRenderableWidget(Button.builder(Component.literal("Back to my view"), b -> {
 				cmd("tg multitrain watch off");
 				MultiWorldLink.watching = -1;
 				rebuildWidgets();
-			}).pos(width - 224, 6).width(100).build());
+			}).pos(width - 148, 26).size(92, 16).build());
 		}
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(width - 60, 6).width(52).build());
 		if (!grounds) {
@@ -99,6 +99,9 @@ public final class WorldsScreen extends Screen {
 
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+		if (HubTabs.click(minecraft, HubTabs.WORLDS, event.x(), event.y(), parent)) {
+			return true;
+		}
 		for (int[] c : chips) {
 			if (Ui.inside(event.x(), event.y(), c[0], c[1], c[2], 13)) {
 				if (c[3] == 0) {
@@ -128,7 +131,7 @@ public final class WorldsScreen extends Screen {
 
 	private int @Nullable [] cell(int i) {
 		int row = i / cols() - scroll;
-		int y = 52 + row * (CARD_H + 4);
+		int y = 54 + row * (CARD_H + 4);
 		if (row < 0 || y + CARD_H > height - 6) {
 			return null;
 		}
@@ -142,7 +145,7 @@ public final class WorldsScreen extends Screen {
 		}
 		super.extractRenderState(g, mouseX, mouseY, a);
 		var p = MinigameBotsClient.instance().profiles().active();
-		g.text(font, Component.literal("§l⚡ Training worlds§r  " + (p == null ? "§cno AI selected" : "§7" + p.name)), 8, 10, Ui.TEXT, false);
+		HubTabs.draw(g, font, HubTabs.WORLDS, mouseX, mouseY, width - 66);
 		if (!MultiWorldLink.running()) {
 			setupView(g, mouseX, mouseY);
 			return;
@@ -151,11 +154,11 @@ public final class WorldsScreen extends Screen {
 		long s = MultiWorldStats.runningMs() / 1000;
 		double wr = MultiWorldStats.recentWinRate();
 		String stats = MultiWorldStats.worlds().size() + " worlds · " + MultiWorldStats.rounds() + " rounds · "
-				+ String.format("%.1f", MultiWorldStats.roundsPerMinute()) + "/min · " + (wr < 0 ? "no rounds yet" : "wins (last 40): "
-				+ Math.round(wr * 100) + "%") + " · " + s / 60 + ":" + String.format("%02d", s % 60);
-		g.text(font, Component.literal("§7" + stats), 8, 26, Ui.MUTED, false);
+				+ String.format("%.1f", MultiWorldStats.roundsPerMinute()) + "/min · " + s / 60 + ":" + String.format("%02d", s % 60);
+		g.text(font, Component.literal("§7" + stats), 8, 28, Ui.MUTED, false);
+		g.text(font, Component.literal("§7" + (wr < 0 ? "no rounds yet" : "wins (last 40): " + Math.round(wr * 100) + "%")), 8, 39, Ui.MUTED, false);
 		if (wr >= 0) {
-			Ui.bar(g, 8, 37, Math.min(220, width - 16), 5, wr, wr >= 0.5 ? Ui.GOOD : Ui.WARN);
+			Ui.bar(g, 8 + font.width("wins (last 40): 100%") + 6, 41, Math.min(100, width - 150), 5, wr, wr >= 0.5 ? Ui.GOOD : Ui.WARN);
 		}
 		List<MultiWorldStats.World> ws = MultiWorldStats.worlds();
 		long now = System.currentTimeMillis();
@@ -215,8 +218,8 @@ public final class WorldsScreen extends Screen {
 
 	private void setupView(GuiGraphicsExtractor g, int mouseX, int mouseY) {
 		chips.clear();
-		int y = 30;
-		for (var line : font.split(Component.literal("§7Practise in many copies of an arena at the same time: each copy has its own "
+		int y = 32;
+		for (var line : font.split(Component.literal("§7Practice in many copies of an arena at the same time: each copy has its own "
 				+ "learner body steered by your AI and its own opponent. More worlds = more practice per minute. Watch them all here, "
 				+ "or click one to follow it."), width - 16)) {
 			g.text(font, line, 8, y, Ui.MUTED, false);

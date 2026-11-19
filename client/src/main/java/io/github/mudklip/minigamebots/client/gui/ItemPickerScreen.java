@@ -11,26 +11,58 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-/** Pick any item as an icon, with search. */
+/** Pick an item (e.g. an icon), a block or a creature, with search. */
 public final class ItemPickerScreen extends Screen {
+	public enum Mode { ITEM, BLOCK, ENTITY }
+
 	private static final int S = 20;
 	private final Screen parent;
 	private final Consumer<String> onPick;
-	private final List<String> all = new ArrayList<>();
-	private List<String> shown = List.of();
+	private final Mode mode;
+	/** {returned id, icon item id, search text}. */
+	private final List<String[]> all = new ArrayList<>();
+	private List<String[]> shown = List.of();
 	private EditBox search;
 	private int scroll;
 
 	public ItemPickerScreen(Screen parent, Consumer<String> onPick) {
-		super(Component.literal("Pick an icon"));
+		this(parent, Mode.ITEM, onPick);
+	}
+
+	public ItemPickerScreen(Screen parent, Mode mode, Consumer<String> onPick) {
+		super(Component.literal(mode == Mode.ITEM ? "Pick an item" : mode == Mode.BLOCK ? "Pick a block" : "Pick a creature"));
 		this.parent = parent;
 		this.onPick = onPick;
-		for (var item : BuiltInRegistries.ITEM) {
-			if (item != Items.AIR) {
-				all.add(BuiltInRegistries.ITEM.getKey(item).toString());
+		this.mode = mode;
+		switch (mode) {
+			case ITEM -> {
+				for (var item : BuiltInRegistries.ITEM) {
+					if (item != Items.AIR) {
+						String id = BuiltInRegistries.ITEM.getKey(item).toString();
+						all.add(new String[] {id, id, id + " " + item.getDefaultInstance().getHoverName().getString().toLowerCase(Locale.ROOT)});
+					}
+				}
+			}
+			case BLOCK -> {
+				for (var item : BuiltInRegistries.ITEM) {
+					if (item instanceof net.minecraft.world.item.BlockItem bi) {
+						String id = BuiltInRegistries.BLOCK.getKey(bi.getBlock()).toString();
+						all.add(new String[] {id, BuiltInRegistries.ITEM.getKey(item).toString(),
+								id + " " + item.getDefaultInstance().getHoverName().getString().toLowerCase(Locale.ROOT)});
+					}
+				}
+			}
+			case ENTITY -> {
+				for (var type : BuiltInRegistries.ENTITY_TYPE) {
+					var key = BuiltInRegistries.ENTITY_TYPE.getKey(type);
+					String egg = key.getNamespace() + ":" + key.getPath() + "_spawn_egg";
+					var eggKey = net.minecraft.resources.Identifier.tryParse(egg);
+					boolean hasEgg = eggKey != null && BuiltInRegistries.ITEM.containsKey(eggKey);
+					String icon = hasEgg ? egg : key.getPath().equals("player") ? "minecraft:player_head" : "minecraft:name_tag";
+					all.add(new String[] {key.toString(), icon, key + " " + type.getDescription().getString().toLowerCase(Locale.ROOT)});
+				}
 			}
 		}
 	}
@@ -47,7 +79,8 @@ public final class ItemPickerScreen extends Screen {
 
 	private void filter() {
 		String q = search == null ? "" : search.getValue().toLowerCase(Locale.ROOT).replace(' ', '_');
-		shown = all.stream().filter(id -> id.contains(q)).toList();
+		String q2 = search == null ? "" : search.getValue().toLowerCase(Locale.ROOT);
+		shown = all.stream().filter(e -> e[2].contains(q) || e[2].contains(q2)).toList();
 		scroll = 0;
 	}
 
@@ -70,7 +103,7 @@ public final class ItemPickerScreen extends Screen {
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
 		int i = index(event.x(), event.y());
 		if (i >= 0) {
-			onPick.accept(shown.get(i));
+			onPick.accept(shown.get(i)[0]);
 			onClose();
 			return true;
 		}
@@ -93,7 +126,7 @@ public final class ItemPickerScreen extends Screen {
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float a) {
 		super.extractRenderState(g, mouseX, mouseY, a);
-		g.text(font, Component.literal("§lPick an icon§r  §7" + shown.size() + " items"), 8, 10, Ui.TEXT, false);
+		g.text(font, Component.literal("§l" + title.getString() + "§r  §7" + shown.size()), 8, 10, Ui.TEXT, false);
 		Ui.panel(g, 6, 46, cols() * S + 4, rows() * S + 4);
 		int hover = index(mouseX, mouseY);
 		for (int r = 0; r < rows(); r++) {
@@ -107,13 +140,13 @@ public final class ItemPickerScreen extends Screen {
 				if (i == hover) {
 					g.fill(x, y, x + S, y + S, Ui.CARD_SELECTED);
 				}
-				g.item(Ui.stack(shown.get(i)), x + 2, y + 2);
+				g.item(Ui.stack(shown.get(i)[1]), x + 2, y + 2);
 			}
 		}
 		if (hover >= 0) {
-			ItemStack st = Ui.stack(shown.get(hover));
-			g.text(font, Component.literal("§f").append(st.getHoverName()).append(Component.literal(" §8" + shown.get(hover))),
-					8, height - 8 - 2, Ui.TEXT, false);
+			String[] h = shown.get(hover);
+			String name = h[2].substring(h[0].length()).trim();
+			g.text(font, Component.literal("§f" + name + " §8" + h[0]), 8, height - 10, Ui.TEXT, false);
 		}
 	}
 

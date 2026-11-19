@@ -45,10 +45,7 @@ public final class SkillsScreen extends Screen {
 	protected void init() {
 		Path dir = profileDir();
 		entries = dir == null ? List.of() : SkillStore.list(dir);
-		addRenderableWidget(Button.builder(Component.literal("Backups"), b -> minecraft.gui.setScreen(new BackupsScreen(this)))
-				.pos(width - 200, 6).width(56).build());
-		addRenderableWidget(Button.builder(Component.literal("Training Hub"), b -> minecraft.gui.setScreen(new HubScreen(this)))
-				.pos(width - 140, 6).width(76).build());
+
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(width - 60, 6).width(52).build());
 	}
 
@@ -74,7 +71,7 @@ public final class SkillsScreen extends Screen {
 
 	private int gridTop() {
 		layoutTabs();
-		int bottom = 26;
+		int bottom = 32;
 		for (int[] t : tabs) {
 			bottom = Math.max(bottom, t[1]);
 		}
@@ -85,7 +82,7 @@ public final class SkillsScreen extends Screen {
 	private void layoutTabs() {
 		tabs.clear();
 		int x = 8;
-		int y = 26;
+		int y = 32;
 		List<String> cats = categories();
 		for (int i = 0; i < cats.size(); i++) {
 			int w = font.width(tabLabel(cats.get(i))) + 10;
@@ -115,6 +112,9 @@ public final class SkillsScreen extends Screen {
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
 		double mx = event.x();
 		double my = event.y();
+		if (HubTabs.click(minecraft, HubTabs.SKILLS, mx, my, parent)) {
+			return true;
+		}
 		layoutTabs();
 		for (int[] t : tabs) {
 			if (Ui.inside(mx, my, t[0], t[1], t[2], 13)) {
@@ -156,7 +156,7 @@ public final class SkillsScreen extends Screen {
 	public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float a) {
 		super.extractRenderState(g, mouseX, mouseY, a);
 		ProfileManifest p = MinigameBotsClient.instance().profiles().active();
-		g.text(font, Component.literal("§lSkills§r  " + (p == null ? "§cno AI selected" : "§7" + p.name)), 8, 10, Ui.TEXT, false);
+		HubTabs.draw(g, font, HubTabs.SKILLS, mouseX, mouseY, width - 66);
 		Path dir = profileDir();
 		if (dir == null) {
 			g.text(font, "Pick an AI first: F10 > AI Profiles > Use this AI.", 8, 40, Ui.WARN, false);
@@ -201,16 +201,14 @@ public final class SkillsScreen extends Screen {
 		}
 		int rows = (list.size() + 1 + cols() - 1) / cols();
 		int visible = Math.max(1, (height - gridTop() - 22) / (CARD_H + 4));
+		int room = width - 16;
 		if (scroll + visible < rows) {
 			String more = "▼ scroll for more";
 			g.text(font, Component.literal("§7" + more), width - 8 - font.width(more), height - 14, Ui.MUTED, false);
+			room -= font.width(more) + 8;
 		}
-		if (hoverHelp != null && !hoverHelp.isBlank()) {
-			g.text(font, Component.literal(font.plainSubstrByWidth(hoverHelp, width - 16)), 8, height - 14, Ui.MUTED, false);
-		} else {
-			g.text(font, Component.literal("§8Click a skill to change what it's rewarded for, what it may do and how it learns."),
-					8, height - 14, Ui.MUTED, false);
-		}
+		String help = hoverHelp != null && !hoverHelp.isBlank() ? hoverHelp : "Click a skill to change what counts, what it may use and how it learns.";
+		g.text(font, Component.literal("§7" + font.plainSubstrByWidth(help, room)), 8, height - 14, Ui.MUTED, false);
 	}
 
 	@Override

@@ -21,7 +21,7 @@ import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.Nullable;
 
 /**
- * One skill, the simple way: icon and name, where it practises, what it's rewarded for, what
+ * One skill, the simple way: icon and name, where it practices, what it's rewarded for, what
  * it may not do, and its stages (with hints and learning speed). Everything else is under
  * Advanced. Ready-made skills can be edited and reset; your own can be deleted.
  */
@@ -102,7 +102,7 @@ public final class SkillEditorScreen extends Screen {
 			def.setup = keys.get((keys.indexOf(def.setup) + 1) % keys.size());
 			changed();
 			rebuildWidgets();
-		}).pos(lx + half + 4, 72).width(half).tooltip(Tooltip.create(Component.literal("Where it practises: "
+		}).pos(lx + half + 4, 72).width(half).tooltip(Tooltip.create(Component.literal("Where it practices: "
 				+ lib.setups.getOrDefault(def.setup, def.setup) + ". Anything but \"Nothing\" needs Training Grounds."))).build());
 		// Rewards card buttons.
 		addRenderableWidget(Button.builder(Component.literal("Edit..."), b -> minecraft.gui.setScreen(
@@ -152,8 +152,8 @@ public final class SkillEditorScreen extends Screen {
 		addRenderableWidget(Button.builder(Component.literal(BUDGET_LABELS[budget]), b -> {
 			budget = (budget + 1) % BUDGETS.length;
 			rebuildWidgets();
-		}).pos(lx + 48, by).width(52).tooltip(Tooltip.create(Component.literal("How long to practise"))).build());
-		addRenderableWidget(Button.builder(Component.literal(Coach.running() ? "§cStop practising" : "§a▶ Practise"), b -> practise())
+		}).pos(lx + 48, by).width(52).tooltip(Tooltip.create(Component.literal("How long to practice"))).build());
+		addRenderableWidget(Button.builder(Component.literal(Coach.running() ? "§cStop practicing" : "§a▶ Practice"), b -> practice())
 				.pos(lx + 104, by).width(80).build());
 		addRenderableWidget(Button.builder(Component.literal("Advanced..."), b -> minecraft.gui.setScreen(new SkillAdvancedScreen(this, def)))
 				.pos(lx + 188, by).width(64).build());
@@ -207,7 +207,7 @@ public final class SkillEditorScreen extends Screen {
 		int x = 0;
 		int rows = 1;
 		for (var l : SkillLibrary.get().locks.values()) {
-			int w = font.width("⊘ " + l.label) + 10;
+			int w = font.width("✔ " + l.label) + 10;
 			if (x + w > colW - 12) {
 				rows++;
 				x = 0;
@@ -246,7 +246,7 @@ public final class SkillEditorScreen extends Screen {
 		}
 	}
 
-	private void practise() {
+	private void practice() {
 		if (Coach.running()) {
 			Coach.stop("Stopped by you");
 			rebuildWidgets();
@@ -316,7 +316,7 @@ public final class SkillEditorScreen extends Screen {
 			g.text(font, Component.literal("§7Nothing yet: press Edit... to add some."), lx + 8, y, Ui.MUTED, false);
 		}
 		// Locks.
-		Ui.header(g, font, "Not allowed while practising", rx + 6, lockTop() + 3);
+		Ui.header(g, font, "What it may use", rx + 6, lockTop() + 3);
 		lockChips.clear();
 		int cx = rx + 6;
 		int cy = lockTop() + 18;
@@ -324,17 +324,17 @@ public final class SkillEditorScreen extends Screen {
 		String hover = null;
 		for (var e : lib.locks.entrySet()) {
 			boolean locked = def.locks.contains(e.getKey());
-			String text = (locked ? "§c⊘§r " : "") + e.getValue().label;
-			int w = font.width("⊘ " + e.getValue().label) + 10;
+			String text = locked ? "§c✖ §7§m" + e.getValue().label : "§a✔ §f" + e.getValue().label;
+			int w = font.width("✔ " + e.getValue().label) + 10;
 			if (cx + w > rx + colW - 6) {
 				cx = rx + 6;
 				cy += 16;
 			}
 			boolean h = Ui.inside(mouseX, mouseY, cx, cy, w, 13);
-			Ui.chip(g, font, text, cx, cy, w, locked, h, 0xFFE05A5A);
+			Ui.chip(g, font, text, cx, cy, w, true, h, locked ? 0xFFB04040 : 0xFF4FAF5A);
 			if (h) {
-				hover = locked ? "Locked: it can't use " + e.getValue().label.toLowerCase() + " in this skill. Click to allow."
-						: "Click to stop it using " + e.getValue().label.toLowerCase() + " while practising this skill";
+				hover = locked ? "✖ Blocked: it never uses " + e.getValue().label.toLowerCase() + " while practicing this skill. Click to allow it."
+						: "✔ Allowed: it may use " + e.getValue().label.toLowerCase() + ". Click to block it while practicing this skill.";
 			}
 			lockChips.add(new int[] {cx, cy, w, i++});
 			cx += w + 3;

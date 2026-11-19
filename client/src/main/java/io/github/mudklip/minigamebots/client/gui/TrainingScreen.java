@@ -75,7 +75,7 @@ public final class TrainingScreen extends Screen {
 	@Override
 	protected void init() {
 		listX = 10;
-		listY = 48;
+		listY = 54;
 		listW = Math.min(220, width / 2 - 20);
 		listH = height - listY - 40;
 		int rx = listX + listW + 14;
@@ -131,11 +131,11 @@ public final class TrainingScreen extends Screen {
 				b -> minecraft.gui.setScreen(new ExamsScreen(this, profile))).pos(width - 64, 8).width(58).build());
 		addRenderableWidget(Button.builder(Component.translatable("minigamebots.training.all"), b -> {
 			recordings.forEach(r -> chosen.add(r.id));
-		}).pos(listX, height - 28).width(50).build());
+		}).pos(listX, height - 28).width(40).build());
 		addRenderableWidget(Button.builder(Component.translatable("minigamebots.training.none"), b -> chosen.clear())
-				.pos(listX + 54, height - 28).width(50).build());
+				.pos(listX + 44, height - 28).width(40).build());
 		addRenderableWidget(Button.builder(Component.translatable("minigamebots.teacher.button"),
-				b -> minecraft.gui.setScreen(new TeacherScreen(this))).pos(listX + 108, height - 28).width(80)
+				b -> minecraft.gui.setScreen(new TeacherScreen(this))).pos(listX + 88, height - 28).width(92)
 				.tooltip(Tooltip.create(Component.translatable("minigamebots.teacher.button_help"))).build());
 		updateButtons();
 	}

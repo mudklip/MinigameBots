@@ -18,7 +18,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * The Coach: pick a goal and a time budget, and it chains the existing tools into a plan and
- * runs it: builds a practice arena, records teacher demos, trains, practises, takes exams, and
+ * runs it: builds a practice arena, records teacher demos, trains, practices, takes exams, and
  * repeats the practice/exam part until the time is up. Steps that can't run (e.g. practice on
  * a VPT-based AI, Baritone not installed) are skipped with a note, never silently.
  * Needs singleplayer (or operator rights) with Training Grounds for PvP and aim.
@@ -97,8 +97,8 @@ public final class Coach {
 	}
 
 	/**
-	 * Coaches one skill: sets up where it practises (arena, dummy, duel or aim trainer), records
-	 * teacher demos and trains first if it has a teacher and nothing learned yet, then practises
+	 * Coaches one skill: sets up where it practices (arena, dummy, duel or aim trainer), records
+	 * teacher demos and trains first if it has a teacher and nothing learned yet, then practices
 	 * with the skill's rewards, hints and locks until the time is up.
 	 */
 	public static @Nullable String startSkill(String id, io.github.mudklip.minigamebots.client.skills.SkillDef def, int budgetMinutes) {
@@ -119,10 +119,10 @@ public final class Coach {
 		}
 		String setup = def.setup == null ? "none" : def.setup;
 		if (!setup.equals("none") && io.github.mudklip.minigamebots.client.TrainingLink.get().isEmpty()) {
-			return "This skill practises in Training Grounds (the training mod): add it to this world, or set Where to \"Nothing\"";
+			return "This skill practices in Training Grounds (the training mod): add it to this world, or set Where to \"Nothing\"";
 		}
 		stop("");
-		io.github.mudklip.minigamebots.client.profile.Backups.auto(mgb.profiles().store().dir(p.id), "Before practising " + def.name);
+		io.github.mudklip.minigamebots.client.profile.Backups.auto(mgb.profiles().store().dir(p.id), "Before practicing " + def.name);
 		skillId = id;
 		skillName = def.name;
 		minutes = budgetMinutes;
@@ -156,7 +156,7 @@ public final class Coach {
 			arena();
 		}
 		long[] lastAim = {0};
-		steps.add(new Step("Practise " + def.name + " (" + chunk + " min)", true, () -> {
+		steps.add(new Step("Practice " + def.name + " (" + chunk + " min)", true, () -> {
 			if (aimMode != null) {
 				cmd("tg aim " + aimMode + " 300");
 				lastAim[0] = System.currentTimeMillis();

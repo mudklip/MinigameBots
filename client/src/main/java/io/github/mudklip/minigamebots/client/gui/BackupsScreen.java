@@ -150,6 +150,9 @@ public final class BackupsScreen extends Screen {
 
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+		if (HubTabs.click(minecraft, HubTabs.BACKUPS, event.x(), event.y(), parent)) {
+			return true;
+		}
 		for (int i = scroll; i < list.size(); i++) {
 			int y = 30 + (i - scroll) * (CARD_H + 3);
 			if (y + CARD_H > height - 8) {
@@ -208,11 +211,11 @@ public final class BackupsScreen extends Screen {
 		}
 		super.extractRenderState(g, mouseX, mouseY, a);
 		ProfileManifest p = MinigameBotsClient.instance().profiles().active();
-		g.text(font, Component.literal("§lBackups§r  " + (p == null ? "§cno AI selected" : "§7" + p.name)), 8, 10, Ui.TEXT, false);
+		HubTabs.draw(g, font, HubTabs.BACKUPS, mouseX, mouseY, width - 170);
 		if (list.isEmpty()) {
 			int ly = 34;
 			for (var line : font.split(Component.literal("§7No backups yet. Press §f+ Back up now§7. One is also made by itself before "
-					+ "coaching and practising (at most every few hours)."), width - 16)) {
+					+ "coaching and practicing (at most every few hours)."), width - 16)) {
 				g.text(font, line, 8, ly, Ui.MUTED, false);
 				ly += 10;
 			}

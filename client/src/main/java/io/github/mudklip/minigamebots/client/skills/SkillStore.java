@@ -107,7 +107,7 @@ public final class SkillStore {
 		return id;
 	}
 
-	/** Stage reached and tries done in it: {stage, episodes}; {0, 0} if never practised. */
+	/** Stage reached and tries done in it: {stage, episodes}; {0, 0} if never practiced. */
 	public static int[] progress(Path profileDir, String id) {
 		Path f = dir(profileDir, id).resolve("stage.json");
 		try {
@@ -118,7 +118,7 @@ public final class SkillStore {
 		}
 	}
 
-	/** Which network practising this skill trains: its own folder, or the Manager's for its area. */
+	/** Which network practicing this skill trains: its own folder, or the Manager's for its area. */
 	public static String network(String id, SkillDef def) {
 		return def.advanced.separate || def.manager == null || def.manager.isBlank() ? id : def.manager;
 	}

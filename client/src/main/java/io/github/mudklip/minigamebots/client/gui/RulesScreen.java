@@ -28,6 +28,44 @@ public final class RulesScreen extends Screen {
 		this.hints = hints;
 	}
 
+	/** The condition field a rule's target goes in for its event, and the picker for it (null = no target). */
+	static String @org.jspecify.annotations.Nullable [] targetField(String event) {
+		return switch (event == null ? "" : event) {
+			case "block_broken", "block_placed" -> new String[] {"block", "BLOCK"};
+			case "kill", "damage_dealt", "attack", "tg_kill" -> new String[] {"target", "ENTITY"};
+			case "item_gained", "item_lost" -> new String[] {"item", "ITEM"};
+			default -> null;
+		};
+	}
+
+	static String targetLabel(Objective.Rule r) {
+		String[] f = targetField(r.event);
+		if (f == null) {
+			return "";
+		}
+		Object v = r.where == null ? null : r.where.get(f[0]);
+		if (v instanceof java.util.Map<?, ?> m && m.get("contains") != null) {
+			return "any " + String.valueOf(m.get("contains")).replace("minecraft:", "").replace('_', ' ').trim();
+		}
+		return v == null ? (f[1].equals("BLOCK") ? "any block" : f[1].equals("ENTITY") ? "anything" : "any item")
+				: String.valueOf(v).replace("minecraft:", "").replace('_', ' ');
+	}
+
+	/** Opens the right picker and puts the choice into the rule's condition. */
+	static void pickTarget(net.minecraft.client.Minecraft mc, Screen back, Objective.Rule r, Runnable after) {
+		String[] f = targetField(r.event);
+		if (f == null) {
+			return;
+		}
+		mc.gui.setScreen(new ItemPickerScreen(back, ItemPickerScreen.Mode.valueOf(f[1]), id -> {
+			if (r.where == null) {
+				r.where = new java.util.LinkedHashMap<>();
+			}
+			r.where.put(f[0], id);
+			after.run();
+		}));
+	}
+
 	static String fmt(double v) {
 		double a = Math.abs(v);
 		String s = a >= 10 ? String.format("%.0f", v) : a >= 1 ? String.format("%.1f", v) : a >= 0.01 ? String.format("%.2f", v)
@@ -53,6 +91,12 @@ public final class RulesScreen extends Screen {
 				rebuildWidgets();
 			}).pos(x0, y).width(20).tooltip(Tooltip.create(Component.literal(r.off ? "Off: click to switch on" : "On: click to switch off"))).build());
 			int bx = x0 + w - 104;
+			if (targetField(r.event) != null) {
+				addRenderableWidget(Button.builder(Component.literal("§b⌖ §f" + targetLabel(r)), b -> pickTarget(minecraft, this, r,
+						parent::changed)).pos(bx - 96, y).width(92).tooltip(Tooltip.create(Component.literal("Which "
+						+ (targetField(r.event)[1].equals("BLOCK") ? "block" : targetField(r.event)[1].equals("ENTITY") ? "creature" : "item")
+						+ " counts. Click to pick one; right now: " + targetLabel(r)))).build());
+			}
 			addRenderableWidget(Button.builder(Component.literal("−"), b -> scale(r, 1 / 1.5)).pos(bx, y).width(16)
 					.tooltip(Tooltip.create(Component.literal("Weaker"))).build());
 			addRenderableWidget(Button.builder(Component.literal((r.value >= 0 ? "§a+" : "§c") + fmt(r.value)), b -> {
@@ -135,9 +179,9 @@ public final class RulesScreen extends Screen {
 			int y = 34 + (i - scroll) * ROW;
 			String label = r.note == null || r.note.isBlank() ? lib.label(r.event) : r.note;
 			String what = lib.label(r.event);
-			g.text(font, Component.literal((r.off ? "§8§m" : "§f") + font.plainSubstrByWidth(label, w - 140)), x0 + 26, y + 2, Ui.TEXT, false);
-			g.text(font, Component.literal("§8" + font.plainSubstrByWidth(what + (r.where != null && !r.where.isEmpty()
-					? " · " + Objective.formatWhere(r.where) : ""), w - 140)), x0 + 26, y + 11, Ui.MUTED, false);
+			int tw = w - 132 - (targetField(r.event) != null ? 96 : 0);
+			g.text(font, Component.literal((r.off ? "§8§m" : "§f") + font.plainSubstrByWidth(label, tw)), x0 + 26, y + 2, Ui.TEXT, false);
+			g.text(font, Component.literal("§8" + font.plainSubstrByWidth(what, tw)), x0 + 26, y + 11, Ui.MUTED, false);
 		}
 		if (rules.isEmpty()) {
 			g.text(font, Component.literal("§7Nothing yet. Press " + (hints ? "+ Add hint" : "+ Add reward") + "."), x0 + 6, 40, Ui.MUTED, false);

@@ -129,7 +129,7 @@ public final class BrainManager {
 		var dir = io.github.mudklip.minigamebots.client.profile.Skills.dir(profileDir, skill);
 		if (learn) {
 			io.github.mudklip.minigamebots.client.profile.VersionHistory.before(profileDir, dir.resolve("core"),
-					"Before practising " + skill + " (" + (objective.name == null || objective.name.isBlank() ? "custom" : objective.name) + ")");
+					"Before practicing " + skill + " (" + (objective.name == null || objective.name.isBlank() ? "custom" : objective.name) + ")");
 		}
 		args.addProperty("profile", dir.toString());
 		args.add("objective", io.github.mudklip.minigamebots.client.practice.ObjectiveStore.toJson(objective));
@@ -513,7 +513,7 @@ public final class BrainManager {
 		return o;
 	}
 
-	/** Practises one skill: its rules, hints and locks; trains the network it belongs to. */
+	/** Practices one skill: its rules, hints and locks; trains the network it belongs to. */
 	public void practiceSkill(Minecraft client, io.github.mudklip.minigamebots.client.profile.ProfileManifest profile, String id,
 			io.github.mudklip.minigamebots.client.skills.SkillDef def, boolean learn) {
 		var profileDir = MinigameBotsClient.instance().profiles().store().dir(profile.id);
@@ -536,7 +536,7 @@ public final class BrainManager {
 		}
 		if (learn) {
 			io.github.mudklip.minigamebots.client.profile.VersionHistory.before(profileDir, dir.resolve("core"),
-					"Before practising the skill " + def.name);
+					"Before practicing the skill " + def.name);
 		}
 		JsonObject args = new JsonObject();
 		args.addProperty("profile", dir.toString());

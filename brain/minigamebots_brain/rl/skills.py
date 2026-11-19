@@ -4,7 +4,7 @@ A skill definition (rl/skills.json "skills", or <profile>/skills/<id>/skill.json
 edited ones):
 
     {"name", "icon", "category", "help", "setup", "manager", "target",
-     "locks": ["move", "inventory", ...],          # actions it may not use while practising
+     "locks": ["move", "inventory", ...],          # actions it may not use while practicing
      "rules": [objective rules, "off": true to switch one off],
      "stages": [{"name", "speed", "shaping": [rules], "advance": {"episodes", "avg"}, "discover"}],
      "stage": null | index,                         # fixed stage (null = move on by itself)

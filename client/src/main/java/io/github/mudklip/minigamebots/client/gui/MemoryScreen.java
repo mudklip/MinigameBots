@@ -63,10 +63,11 @@ public final class MemoryScreen extends Screen {
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(width - 70, height - 26).width(60).build());
 		var wm = io.github.mudklip.minigamebots.client.MinigameBotsClient.instance().memory().memory();
 		int zones = wm == null ? 0 : wm.zones.size();
-		addRenderableWidget(Button.builder(Component.literal("Protect area here (" + zones + " zones)"), b -> {
+		int half = Math.max(70, Math.min(110, (width / 2 - 30) / 2));
+		addRenderableWidget(Button.builder(Component.literal("Protect here (" + zones + ")"), b -> {
 			io.github.mudklip.minigamebots.client.control.Autonomy.protectHere(minecraft);
 			rebuildWidgets();
-		}).pos(10, height - 26).width(150).tooltip(net.minecraft.client.gui.components.Tooltip.create(
+		}).pos(10, height - 50).width(half).tooltip(net.minecraft.client.gui.components.Tooltip.create(
 				Component.translatable("minigamebots.memory.protect_help"))).build());
 		addRenderableWidget(Button.builder(Component.literal("Clear zones"), b -> {
 			if (wm != null) {
@@ -74,7 +75,7 @@ public final class MemoryScreen extends Screen {
 				io.github.mudklip.minigamebots.client.MinigameBotsClient.instance().memory().changed();
 			}
 			rebuildWidgets();
-		}).pos(164, height - 26).width(70).build()).active = zones > 0;
+		}).pos(14 + half, height - 50).width(half).build()).active = zones > 0;
 		WorldMemory m = mm().memory();
 		if (m == null) {
 			return;
@@ -89,7 +90,7 @@ public final class MemoryScreen extends Screen {
 	// --- Places ---
 
 	private void initPlaces(WorldMemory m) {
-		mapSize = Math.max(80, Math.min(height - 70, width / 2 - 20));
+		mapSize = Math.max(80, Math.min(height - 98, width / 2 - 20));
 		mapX = 10;
 		mapY = 32;
 		listX = mapX + mapSize + 12;
@@ -202,7 +203,7 @@ public final class MemoryScreen extends Screen {
 			int y = cy0 + (int) Math.round(Math.cos(yaw) * i);
 			g.fill(x, y, x + 1, y + 1, 0xFFFFFFFF);
 		}
-		g.text(font, String.format("%d chunks explored here", map == null ? 0 : map.size()), mapX + 48, mapY + mapSize + 9, 0xFF909090, false);
+		g.text(font, String.format("%d chunks explored here", map == null ? 0 : map.size()), mapX, mapY + mapSize + 4, 0xFF909090, false);
 
 		// The list.
 		List<Waypoint> list = sortedWaypoints(m);

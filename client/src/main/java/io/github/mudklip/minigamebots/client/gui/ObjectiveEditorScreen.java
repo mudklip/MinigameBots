@@ -135,7 +135,14 @@ public final class ObjectiveEditorScreen extends Screen {
 		Row row = new Row(r);
 		int x = 10;
 		row.event = box(x, y, 92, r.event, "event (e.g. kill)", 40);
-		row.where = box(x + 96, y, 118, Objective.formatWhere(r.where), "only when, e.g. target=minecraft:pig", 120);
+		row.where = box(x + 96, y, 96, Objective.formatWhere(r.where), "only when...", 120);
+		row.where.setTooltip(Tooltip.create(Component.literal("Only counts when this matches, e.g. block=minecraft:diamond_ore or "
+				+ "target=minecraft:pig. Press ⌖ to pick a block, creature or item instead of typing.")));
+		addRenderableWidget(Button.builder(Component.literal("⌖"), b -> {
+			commitAll();
+			RulesScreen.pickTarget(minecraft, this, r, () -> { });
+		}).pos(x + 194, y).size(20, 18).tooltip(Tooltip.create(Component.literal("Pick the block, creature or item it's about "
+				+ "(for break/place, kill/hit and item events)"))).build()).active = RulesScreen.targetField(r.event) != null;
 		row.value = box(x + 218, y, 40, fmt(r.value), "value", 12);
 		addRenderableWidget(Button.builder(Component.literal(perLabel(r.per)), b -> {
 			int i = indexOf(PER, r.per);

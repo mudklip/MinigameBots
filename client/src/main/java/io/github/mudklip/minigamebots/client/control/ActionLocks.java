@@ -5,7 +5,7 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * Actions a skill may not use while it practises (e.g. aim training: no walking, no inventory).
+ * Actions a skill may not use while it practices (e.g. aim training: no walking, no inventory).
  * Applied to the final input, so nothing locked is ever pressed, whatever the brain asks for.
  * Cleared when the AI stops.
  */

@@ -51,6 +51,16 @@ public final class WatchLearn {
 			finishPart(c); // Not while the AI plays, nor outside a world.
 			return;
 		}
+		if (ours && !rec.recording()) {
+			// You stopped the recording yourself (F7): that also switches Watch & learn off, instead of restarting it.
+			on = false;
+			status = "Off (you stopped the recording)";
+			if (c.player != null) {
+				c.player.sendOverlayMessage(net.minecraft.network.chat.Component.literal("Watch & learn switched off (you stopped recording)"));
+			}
+			finishPart(c);
+			return;
+		}
 		if (!rec.recording()) {
 			rec.start(c);
 			rec.label("Watch & learn", "human");

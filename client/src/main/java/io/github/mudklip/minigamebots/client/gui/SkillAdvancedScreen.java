@@ -32,7 +32,7 @@ public final class SkillAdvancedScreen extends Screen {
 			def.advanced.separate = !def.advanced.separate;
 			parent.changed();
 			rebuildWidgets();
-		}).pos(x, y).width(w - 104).tooltip(Tooltip.create(Component.literal("Shared: practising this improves the AI's "
+		}).pos(x, y).width(w - 104).tooltip(Tooltip.create(Component.literal("Shared: practicing this improves the AI's "
 				+ def.manager + " skill, which the Manager uses when playing. Its own: a separate network only for this skill."))).build());
 		addRenderableWidget(Button.builder(Component.literal("Area: " + def.manager), b -> {
 			List<String> c = Skills.COMMON;
