@@ -130,6 +130,10 @@ def main(argv=None) -> int:
         from .learn import train
 
         return train.main(argv[1:])
+    if argv and argv[0] == "video":
+        from .video import cli
+
+        return cli.main(argv[1:])
     if argv and argv[0] == "realism":
         from . import realism
 

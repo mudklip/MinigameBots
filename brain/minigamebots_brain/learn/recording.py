@@ -106,7 +106,8 @@ class Recording:
         return os.path.join(self.directory, f"chunk-{index:05d}.bin.gz")
 
     def _tick_weights(self, ticks: int) -> np.ndarray:
-        w = np.ones(max(ticks, 1), dtype=np.float32)
+        # Imported videos count less than your own recordings (their inputs are guesses).
+        w = np.full(max(ticks, 1), float(self.meta.get("weight", 1.0)), dtype=np.float32)
         for mark in self.meta.get("marks") or []:
             t = int(mark.get("tick", 0))
             lo, hi = max(0, t - MARK_RADIUS), min(len(w), t + MARK_RADIUS + 1)

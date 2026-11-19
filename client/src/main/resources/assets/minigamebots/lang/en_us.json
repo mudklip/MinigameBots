@@ -247,5 +247,22 @@
 	"minigamebots.compare.left": "Left",
 	"minigamebots.compare.right": "Right",
 	"minigamebots.compare.same": "Same",
-	"minigamebots.compare.skip": "Skip"
+	"minigamebots.compare.skip": "Skip",
+	"minigamebots.menu.video": "Video Lab...",
+	"minigamebots.video.screen": "Video Lab",
+	"minigamebots.video.help": "Put Minecraft gameplay videos in the videos folder. The AI keeps first-person gameplay, guesses the keys and mouse, and learns from it (weighted below your own recordings). Tags group what it learns about a server or modpack.",
+	"minigamebots.video.tags": "Tags",
+	"minigamebots.video.tags_hint": "Tags, e.g. my-smp, faithful-pack",
+	"minigamebots.video.import": "Import",
+	"minigamebots.video.import_help": "Turn the selected video into training recordings and questions.",
+	"minigamebots.video.idm": "Train input guesser",
+	"minigamebots.video.idm_help": "Learn to guess keys and mouse from pictures, using your recordings (which have the real inputs). Do this first, and again after recording more.",
+	"minigamebots.video.atlas": "Build atlas",
+	"minigamebots.video.atlas_help": "Save every item's icon as your game shows it (resource packs included), so videos' hotbar items can be recognised.",
+	"minigamebots.video.share": "Share books",
+	"minigamebots.video.share_help": "Export your Knowledge Books to videolab/exports as .mgbkb files, and import any .mgbkb put in videolab/import.",
+	"minigamebots.question.screen": "Question Queue",
+	"minigamebots.question.name_hint": "Name",
+	"minigamebots.question.save": "Save as custom item",
+	"minigamebots.question.ignore": "Ignore"
 }

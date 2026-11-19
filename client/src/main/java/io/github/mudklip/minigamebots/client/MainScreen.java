@@ -46,6 +46,8 @@ public final class MainScreen extends Screen {
 				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.RecorderScreen(this))).width(100).build());
 		row3.addChild(Button.builder(Component.translatable("minigamebots.menu.settings"),
 				b -> minecraft.gui.setScreen(MgbConfig.screen(this))).width(100).build());
+		body.addChild(Button.builder(Component.translatable("minigamebots.menu.video"),
+				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.VideoLabScreen(this))).width(204).build());
 		layout.addToFooter(Button.builder(Component.translatable("gui.done"), b -> onClose()).width(204).build());
 		layout.visitWidgets(this::addRenderableWidget);
 		repositionElements();

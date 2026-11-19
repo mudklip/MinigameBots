@@ -436,6 +436,17 @@ Questions are batched and ranked by how much they would help, so you're never fl
 reuses the answers automatically and only asks about new things. Knowledge Books are
 shareable `.mgbkb` files.
 
+**As built (M13):** `brain/minigamebots_brain/video/`. The input guesser is a small network
+trained on your own recordings, the AI's and teacher demos (all have exact inputs), with five
+frames around each moment; porting OpenAI's much larger released IDM is a possible later
+upgrade. Shot classification is "the hotbar strip stays still while the world moves"
+(menus, stills and third-person shots are dropped); overlays are pixels that never change
+while the world does. The atlas is every item's icon from your game's resources (resource
+packs included); questions are asked about hotbar items for now (screens, HUD elements and
+"vanilla or plugin?" questions are later additions). Videos are put in
+`minigamebots/videolab/videos/`; Knowledge Books are `videolab/books/<tag>.json`, shared as
+`.mgbkb` files via `videolab/exports` and `videolab/import`.
+
 **Limit:** without a language model it learns what players *do*, not what they *say*.
 Commentary is ignored; your tags and answers provide the meaning.
 
@@ -1072,7 +1083,7 @@ behaviour that unit tests can cover. Never zero in-game testing.
 | M10 | **Skills and Manager** | Skill modules, interrupts, goals with built-in reflexes, merge by skills (section 3.9), built-in Minecraft knowledge and calculators (section 4.6.1), hindsight relabelling of goals, mirrored recordings (section 4.10), automatic version history with one-click revert (section 3.8) (done; whole-AI distillation "polish" left for later) |
 | M11 | **Combat league** | Self-play against past versions (a dummy steered by the AI's own client), league matchmaking toward weak spots, opponent styles incl. a cheating "godly" teacher, fast-sim aim pre-training, crit / W-tap / shield-break drills, teacher demos (scripted fighter, aim, and Baritone travel / mining / go home) (done) |
 | M12 | **Realism** | Realism critic (your recordings vs AI play, small practice reward for human-looking input), humanizer tuned from your own turning ("Use my turning"), "which was better?" clip comparisons training a style reward model; Training > Realism (`brain/minigamebots_brain/realism.py`) (done) |
-| M13 | **Video Lab** | Pipeline, IDM labeling, reference atlas, Question Queue, Knowledge Book |
+| M13 | **Video Lab** | Import pipeline (bundled FFmpeg, shot cuts, first-person check, overlay masking, quality), input guesser trained on your recordings, labelled demos as recordings at half weight, reference atlas from your game's textures, Question Queue, Knowledge Books by tag (.mgbkb sharing); main menu > Video Lab (done) |
 | M14 | **Flashback** | Replay import, POV capture, re-render variety, learning from other players' and enemies' good play as seen from the AI's own client on any server (no server mod), exact server-wide recording where Training Grounds is installed (section 4.10) |
 | M15 | **Autonomy and polish** | Watchdog, idle behavior, protected zones, chat, Figure It Out, minigame templates and generator |
 
@@ -1081,6 +1092,17 @@ behaviour that unit tests can cover. Never zero in-game testing.
 Everything here is optional and comes after the main mods are finished and usable, unless
 we decide otherwise. Each will be discussed in detail before any work starts. (Exception
 already scheduled: the built-in Minecraft knowledge, section 4.6.1, is part of M10.)
+
+**Multi-world training in one game (your idea, optional, later):** speedrun "multi-instance"
+mods (the kind that keep several worlds loaded at once to reset for a good seed) suggest a
+way to train faster: one Minecraft process runs many small training worlds side by side
+(e.g. 16), each with its own copy of the AI's body, so one real second gives about 16 seconds
+of practice. Typical approach: one integrated server hosting N arenas or dimensions, server-
+side "bodies" (fake players or puppets, like the M11 self-play dummy) driven in a batch by the
+brain from cheap observations without rendering, with only one instance rendered for you to
+watch. To check first: which speedrun/multi-instance mods work on 26.3 and their licences,
+how much of the AI's input (pictures need rendering; the Lite network can run without) still
+works headless, and RAM/CPU on your PC. Not a mainline milestone.
 
 **Long-term goal:** a fully autonomous player, in the spirit of AI streamers, that is very
 good at every part of Minecraft and does things because it wants to, but can also be told
