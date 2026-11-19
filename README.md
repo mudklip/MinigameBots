@@ -29,6 +29,9 @@ and open **Guide**: a getting-started checklist and short pages for every featur
   Queue) and other players seen in your recordings or Flashback replays.
 - **Skills, one by one:** 36 ready-made skills plus your own; choose what each is rewarded
   for, which actions it may not use, its stages, hints and learning speed.
+- **Attitudes and fair play:** neutral, hunt players, guard, peaceful or from its personality;
+  tells a friend's joke punch from a real attack; counts other players' health from what it
+  saw (hits, armour, totems, golden apples) instead of reading it.
 - **Backups:** of the whole AI; go back completely or only for some parts (e.g. one network).
 - **Play on its own:** goals and a Manager (hunt, mine, explore, follow, protect...), free play,
   memory (waypoints, allies and enemies by banner/shield insignia), built-in Minecraft knowledge.

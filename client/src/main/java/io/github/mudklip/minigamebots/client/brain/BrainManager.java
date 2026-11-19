@@ -151,6 +151,8 @@ public final class BrainManager {
 		args.add("goals", goals);
 		args.addProperty("free_play", freePlay);
 		args.add("likes", likes);
+		args.addProperty("mode", profile.attitude == null || profile.attitude.isBlank() ? "neutral" : profile.attitude);
+		args.addProperty("personality", profile.character == null ? "" : profile.character.personality);
 		args.addProperty("temperature", MgbConfig.get().predictability >= 1 ? 0.0 : 1.0 - MgbConfig.get().predictability);
 		play(client, "manager", args);
 	}
@@ -478,6 +480,7 @@ public final class BrainManager {
 			m.getAsJsonObject("obs").add("multiworld", mw);
 		}
 		m.getAsJsonObject("obs").add("look", look());
+		m.getAsJsonObject("obs").add("healthMemory", io.github.mudklip.minigamebots.client.observe.Observer.healthMemory.toJson());
 		JsonObject puppet = SelfPlayLink.describe();
 		if (puppet != null) {
 			m.getAsJsonObject("obs").add("puppet", puppet);

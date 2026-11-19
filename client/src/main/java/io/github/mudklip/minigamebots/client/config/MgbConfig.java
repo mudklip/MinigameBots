@@ -82,6 +82,11 @@ public final class MgbConfig {
 	public boolean fairPerception = true;
 
 	@AutoGen(category = "perception")
+	@Boolean(colored = true)
+	@SerialEntry
+	public boolean fairHealth = true;
+
+	@AutoGen(category = "perception")
 	@IntSlider(min = 64, max = 256, step = 32, format = "%d px")
 	@SerialEntry
 	public int frameSize = 128;

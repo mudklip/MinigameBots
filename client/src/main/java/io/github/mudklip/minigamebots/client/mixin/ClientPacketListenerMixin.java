@@ -18,6 +18,19 @@ public abstract class ClientPacketListenerMixin {
 		if (player != null) {
 			MinigameBotsClient.instance().relations().onDamage(packet.entityId(), packet.sourceCauseId(),
 					packet.sourceDirectId(), player.getId());
+			if (player.level().getEntity(packet.entityId()) instanceof net.minecraft.world.entity.LivingEntity victim) {
+				io.github.mudklip.minigamebots.client.observe.Observer.healthMemory.onDamage(player, victim, packet.sourceCauseId());
+			}
+		}
+	}
+
+	/** Entity event 35 = a totem of undying popped. */
+	@Inject(method = "handleEntityEvent", at = @At("TAIL"))
+	private void minigamebots$onEntityEvent(net.minecraft.network.protocol.game.ClientboundEntityEventPacket packet, CallbackInfo ci) {
+		var mc = Minecraft.getInstance();
+		if (packet.getEventId() == 35 && mc.level != null
+				&& packet.getEntity(mc.level) instanceof net.minecraft.world.entity.LivingEntity who) {
+			io.github.mudklip.minigamebots.client.observe.Observer.healthMemory.onTotem(who);
 		}
 	}
 }

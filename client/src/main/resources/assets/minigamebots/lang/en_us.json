@@ -44,6 +44,8 @@
 	"yacl3.config.minigamebots:config.aiFrameRate.desc": "Frame rate while the AI is in control, even when minimized. Lower is quieter and cooler.",
 	"yacl3.config.minigamebots:config.guiCursorPixelsPerDegree": "AI cursor speed",
 	"yacl3.config.minigamebots:config.guiCursorPixelsPerDegree.desc": "How far the AI's cursor moves in menus per degree of mouse movement.",
+	"yacl3.config.minigamebots:config.fairHealth": "Count others' health",
+	"yacl3.config.minigamebots:config.fairHealth.desc": "Like a sharp player: the AI works out other players' health from the hits it saw, their armour, totems and golden apples, instead of reading it from the game. Training views (spectating, Training Grounds) still learn from the real values.",
 	"yacl3.config.minigamebots:config.fairPerception": "Fair perception",
 	"yacl3.config.minigamebots:config.fairPerception.desc": "The AI only knows what a human could see or hear: no seeing through walls.",
 	"yacl3.config.minigamebots:config.frameSize": "AI view resolution",

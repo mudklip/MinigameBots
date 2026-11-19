@@ -100,7 +100,46 @@ public final class GoalsScreen extends Screen {
 						Component.translatable("minigamebots.control.human_on"));
 			}
 		}).pos(x + 114, height - 28).width(60).build());
+		ProfileManifest ap = MinigameBotsClient.instance().profiles().active();
+		if (ap != null) {
+			addRenderableWidget(Button.builder(Component.literal("Attitude: §e" + attitudeLabel(ap.attitude)), b -> {
+				int i = ATTITUDES.indexOf(ap.attitude == null ? "neutral" : ap.attitude);
+				ap.attitude = ATTITUDES.get((i + 1) % ATTITUDES.size());
+				try {
+					MinigameBotsClient.instance().profiles().store().save(ap);
+				} catch (java.io.IOException e) {
+					error = "Couldn't save: " + e.getMessage();
+				}
+				rebuildWidgets();
+			}).pos(x + 178, height - 28).width(Math.min(150, width - x - 178 - 76)).tooltip(Tooltip.create(Component.literal(
+					attitudeHelp(ap.attitude)))).build());
+		}
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(width - 70, height - 28).width(60).build());
+	}
+
+	private static final List<String> ATTITUDES = List.of("neutral", "hunter", "guard", "peaceful", "personality");
+
+	private static String attitudeLabel(String a) {
+		return switch (a == null ? "neutral" : a) {
+			case "hunter" -> "Hunt players";
+			case "guard" -> "Guard";
+			case "peaceful" -> "Peaceful";
+			case "personality" -> "From personality";
+			default -> "Neutral";
+		};
+	}
+
+	private static String attitudeHelp(String a) {
+		return switch (a == null ? "neutral" : a) {
+			case "hunter" -> "Gears up first (mines iron, then diamonds), then looks for players and fights the ones it can beat. "
+					+ "Backs off to heal when losing.";
+			case "guard" -> "Stays near its base or the player it protects and fights anything hostile nearby.";
+			case "peaceful" -> "Never fights players: runs from real attacks. Still deals with monsters.";
+			case "personality" -> "Picked from its character's personality (Character screen), once: by the mind if it's installed "
+					+ "and works, else from key words. Worked out again only when the personality changes.";
+			default -> "Lives like a normal player: farms, mines, builds, stocks up. Fights monsters and anyone who attacks it for "
+					+ "real; a friend's joke punch is ignored.";
+		};
 	}
 
 	private ValueSlider slider(int x, int y, int w, String label, double value, java.util.function.DoubleConsumer set) {
@@ -204,6 +243,21 @@ public final class GoalsScreen extends Screen {
 			} + (str(ps, "why").isEmpty() || str(ps, "why").equals("-") ? "" : " (" + str(ps, "why") + ")") + " using " + str(ps, "skill");
 			g.text(font, font.plainSubstrByWidth(line, width - 20), 10, sy, 0xFF80E080, false);
 			sy += 12;
+			if (ps.has("feelings") && ps.get("feelings").isJsonObject()) {
+				StringBuilder f = new StringBuilder("§7Feels: ");
+				for (var en : ps.getAsJsonObject("feelings").entrySet()) {
+					double v = en.getValue().getAsDouble();
+					if (v >= 0.05) {
+						f.append(v >= 1 ? "§f" : "§7").append(en.getKey()).append(" ").append(String.format("%.1f", v)).append("  ");
+					}
+				}
+				if (ps.has("judged") && ps.get("judged").isJsonObject() && !ps.getAsJsonObject("judged").isEmpty()) {
+					f.append("§7| hits: ");
+					ps.getAsJsonObject("judged").entrySet().forEach(en -> f.append(en.getValue().getAsString()).append(" "));
+				}
+				g.text(font, Component.literal(font.plainSubstrByWidth(f.toString(), width - 20)), 10, sy, 0xFFB0B0B0, false);
+				sy += 12;
+			}
 			if (ps.has("completed") && ps.get("completed").isJsonArray() && !ps.getAsJsonArray("completed").isEmpty()) {
 				List<String> done = new ArrayList<>();
 				ps.getAsJsonArray("completed").forEach(e -> done.add(e.getAsString()));

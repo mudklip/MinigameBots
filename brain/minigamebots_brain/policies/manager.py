@@ -25,8 +25,10 @@ SKILLS_FOR = {
     "mine": ("mining", "general"), "hunt": ("hunting", "combat", "general"), "protect": ("combat", "general"),
     "follow": ("travel", "general"), "go_to": ("travel", "general"), "explore": ("explore", "travel", "general"),
     "survive": ("survival", "general"), "fight": ("combat", "general"), "flee": ("flee", "travel", "general"),
-    "free_play": ("general",),
+    "free_play": ("general",), "hunt_players": ("combat", "general"), "farm": ("farming", "general"),
+    "build": ("building", "general"), "stash": ("general",),
 }
+TIMED = ("explore", "survive", "farm", "build", "stash", "hunt_players")
 FOODS = ("cooked_beef", "cooked_porkchop", "golden_carrot", "cooked_mutton", "cooked_chicken", "cooked_salmon",
          "cooked_cod", "bread", "baked_potato", "carrot", "apple", "cooked_rabbit", "pumpkin_pie", "beef", "porkchop",
          "mutton", "chicken", "potato", "melon_slice", "sweet_berries", "cookie", "golden_apple")
@@ -68,6 +70,8 @@ class Goal:
             target = self.spec.get("target", "")
             if not target or target in str(data.get("target", data.get("victim_type", ""))):
                 self.progress += 1
+        elif self.type == "hunt_players" and kind == "kill" and "player" in str(data.get("target", "")):
+            self.done = True
         elif self.type == "go_to" and kind == "waypoint_reached":
             want = self.spec.get("waypoint", "")
             if want in (data.get("name"), data.get("type")):
@@ -77,7 +81,8 @@ class Goal:
 
     def check_time(self, tick: int) -> None:
         minutes = self.spec.get("minutes")
-        if self.type in ("explore", "survive") and minutes and tick - self.started >= float(minutes) * 1200:
+        minutes = minutes or (2 if self.type in TIMED else None)
+        if self.type in TIMED and minutes and tick - self.started >= float(minutes) * 1200:
             self.done = True
 
 
@@ -86,7 +91,13 @@ class ManagerPolicy(Policy):
     CACHE = 3
 
     def __init__(self, profile: str, goals: list | None = None, free_play: bool = False, temperature: float = 1.0,
-                 foundations: str | None = None, likes: dict | None = None, device: str | None = None, **_):
+                 foundations: str | None = None, likes: dict | None = None, device: str | None = None,
+                 mode: str = "neutral", **_):
+        from . import drives
+
+        if mode == "personality":
+            mode = drives.load(profile).get("from_personality", "neutral")
+        self.drives = drives.Drives(mode)
         self.profile = profile
         self.foundations = foundations
         self._aim = FollowPolicy()
@@ -96,6 +107,8 @@ class ManagerPolicy(Policy):
         self.queue = [Goal(g, 0) for g in (goals or [])]
         self.free_play = bool(free_play) or not self.queue
         self.likes = dict(likes or DEFAULT_LIKES)
+        if self.drives.mode != "neutral" or not likes:
+            self.likes = dict(self.drives.cfg["likes"])
         self.skills = {}  # name -> policy (most recently used last)
         self.tick = 0
         self.mode = "goal"  # goal | fight | flee | eat
@@ -175,6 +188,9 @@ class ManagerPolicy(Policy):
             return Goal({"type": "go_to", "waypoint": "base", "why": "it's getting dark"}, self.tick)
         if float(me.get("food", 20)) <= 12 and not self._food_slot():
             return Goal({"type": "hunt", "target": self.rng.choice(FOOD_ANIMALS), "count": 1, "why": "hungry"}, self.tick)
+        own = self.drives.pick_goal(obs, self.rng)
+        if own is not None:
+            return Goal(own, self.tick)
         kinds = list(self.likes)
         kind = self.rng.choices(kinds, weights=[max(0.0, self.likes[k]) for k in kinds])[0]
         spec = {"type": kind, "why": "felt like it"}
@@ -182,7 +198,7 @@ class ManagerPolicy(Policy):
             spec.update(item=self.rng.choice(["coal", "iron", "copper", "diamond"]), count=4)
         elif kind == "hunt":
             spec.update(target=self.rng.choice(FOOD_ANIMALS), count=1)
-        elif kind in ("explore", "survive"):
+        elif kind in TIMED:
             spec.update(minutes=3)
         return Goal(spec, self.tick)
 
@@ -209,7 +225,8 @@ class ManagerPolicy(Policy):
             d = math.sqrt(e.get("dx", 0) ** 2 + e.get("dy", 0) ** 2 + e.get("dz", 0) ** 2)
             hit = e.get("hitMe", -1)
             score = 0.0
-            if 0 <= hit < 100:
+            joke = e.get("player") and self.drives.judge.joke(e.get("id")) and e.get("relation", 0) >= 0
+            if 0 <= hit < 100 and not joke:
                 score = 3.0
             elif e.get("hostile") and d < 5:
                 score = 2.0
@@ -223,12 +240,18 @@ class ManagerPolicy(Policy):
         me = self._obs.get("self") or {}
         threat = self._threat()
         health = float(me.get("health", 20))
+        real = threat is not None and (not threat.get("player") or self.drives.judge.real(threat.get("id"))
+                                       or threat.get("relation", 0) < 0 or threat.get("enemyInsignia", False))
+        need = self.drives.needs(self._obs, threat, real)
         if threat is not None:
             odds = float(threat.get("fightOdds", 0.0))
-            if health <= 6 and odds < 0.2:
-                return "flee", f"low health against {threat.get('type', '?').split(':')[-1]}"
-            if goal is None or goal.type != "flee":
-                return "fight", f"{threat.get('type', '?').split(':')[-1]} (odds {odds:+.2f})"
+            name = threat.get("name") or threat.get("type", "?").split(":")[-1]
+            scared = 0.8 if self.drives.mode == "peaceful" else 1.0
+            if (health <= 6 and odds < 0.2) or (need["fear"] >= scared and need["fear"] >= need["anger"]):
+                return "flee", f"afraid of {name} (health {health:.0f}, odds {odds:+.2f})"
+            if need["anger"] >= 0.8 and (goal is None or goal.type != "flee"):
+                verdict = self.drives.judge.verdict.get(threat.get("id"))
+                return "fight", f"{name} (odds {odds:+.2f}" + (f", {verdict[0]}: {verdict[1]}" if verdict else "") + ")"
         if self.eating > 0 or (float(me.get("food", 20)) <= 14 and self._food_slot() is not None):
             return "eat", "hungry"
         return "goal", ""
@@ -238,6 +261,7 @@ class ManagerPolicy(Policy):
     def act(self, obs, frame):
         self._obs = obs
         self.tick = int(obs.get("tick", self.tick + 1))
+        self.drives.judge.update(self.tick, obs, obs.get("_events") or [])
         for ev in obs.get("_events") or []:
             for g in self.queue[:1] + ([self.sub] if self.sub else []):
                 g.on_event(ev)
@@ -289,6 +313,12 @@ class ManagerPolicy(Policy):
     def _target(self, gtype: str, goal: Goal | None):
         """(dx, dz) to what the goal is about, if visible or remembered."""
         self._tdy = None
+        if gtype == "hunt_players":
+            t = self.drives.prey(self._obs)
+            if t is None:
+                return None
+            self._tdy = t.get("dy")
+            return t.get("dx", 0.0), t.get("dz", 0.0)
         if gtype in ("fight", "flee"):
             t = self._threat()
             if t is None:
@@ -344,14 +374,14 @@ class ManagerPolicy(Policy):
         want_yaw = math.degrees(math.atan2(-dx, dz))
         yaw_err = wrap_degrees(want_yaw - float(me.get("yaw", 0.0)))
         pitch_err = 0.0
-        if gtype in ("fight", "hunt") and self._tdy is not None:
+        if gtype in ("fight", "hunt", "hunt_players") and self._tdy is not None:
             # Aim at the body (dy is measured from the eyes to the feet), not over its head.
             want_pitch = -math.degrees(math.atan2(float(self._tdy) + 0.5, max(dist, 1e-3)))
             pitch_err = want_pitch - float(me.get("pitch", 0.0))
         elif gtype in ("flee", "go_to", "follow", "protect", "explore"):
             pitch_err = -float(me.get("pitch", 0.0))  # Look ahead while travelling.
         keys = set()
-        if gtype in ("fight", "hunt"):
+        if gtype in ("fight", "hunt", "hunt_players"):
             slot = aim.weapon_slot(obs)
             if slot is not None and obs.get("selectedSlot") != slot:
                 return aim._turn({f"hotbar_{slot + 1}"}, 0.0, 0.0)
@@ -373,4 +403,6 @@ class ManagerPolicy(Policy):
         goal = self.queue[0] if self.queue else self.sub
         return {"goal": goal.label() if goal else None, "why": (goal.spec.get("why") if goal else None) or self.why,
                 "mode": self.mode, "skill": self.skill or "reflexes", "queue": len(self.queue),
-                "completed": self.completed[-5:], "skills": self.available, "free_play": self.free_play}
+                "completed": self.completed[-5:], "skills": self.available, "free_play": self.free_play,
+                "attitude": self.drives.mode, "feelings": self.drives.feelings,
+                "judged": {str(k): f"{v[0]} ({v[1]})" for k, v in list(self.drives.judge.verdict.items())[-3:]}}

@@ -57,6 +57,8 @@ class Brain:
         return True
 
     def set_policy(self, name: str, args: dict) -> None:
+        if name == "manager" and args.get("mode") == "personality" and args.get("profile"):
+            self._personality_mode(args)
         try:
             self.policy = policies.create(name, args)
             log(f"Policy: {name} {args or ''}")
@@ -149,6 +151,26 @@ class Brain:
                                "reply": "I didn't hear anything."})
             return
         self.on_command({"id": message.get("id"), "text": text, "me": message.get("me", ""), "heard": text})
+
+    def _personality_mode(self, args: dict) -> None:
+        """Works out once which mode fits the AI's personality (with the mind if it's installed and
+        works, else from keywords); kept in drives.json until the personality changes."""
+        from .policies import drives
+
+        text = str(args.get("personality", ""))
+        known = drives.load(args["profile"]).get("personality_hash") == drives.personality_hash(text)
+        llm = None
+        if not known:
+            try:
+                model = self._mind()
+                if model is not None:
+                    llm = lambda p: model.generate([{"role": "user", "content": p}], max_new_tokens=8)  # noqa: E731
+            except Exception:
+                llm = None  # The mind doesn't work here: keywords instead.
+        try:
+            drives.resolve(args["profile"], text, llm)
+        except OSError:
+            pass
 
     def _mind(self):
         """The language model, loaded on first use; None if it isn't installed."""

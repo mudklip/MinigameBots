@@ -252,6 +252,21 @@ The Manager decides what to do moment to moment, using the AI's skills.
 
 > An untrained AI can already do simple goals (like hunting a pig) with built-in reflexes.
 
+# Attitude
+[Attitude] (bottom of the Goals screen) sets what it's about when it plays by itself:
+- [Neutral]: lives like a normal player (farms, mines, builds, stocks up). Fights monsters and anyone who attacks it for real.
+- [Hunt players]: gears up first (mines iron, then diamonds), then looks for players and fights the ones it can beat.
+- [Guard]: stays near its base or the player it protects; fights anything hostile nearby.
+- [Peaceful]: never fights players; runs from real attacks.
+- [From personality]: picked once from its character's personality (by the mind if installed, else from key words), and again only if the personality changes.
+Needs compete all the time: fear, anger, hunger, duty and boredom. The Goals screen shows what it feels while it plays.
+
+# Joke hits or real attacks?
+A single light punch from a friend is a joke and is ignored. A weapon, real damage, several hits in a row, crits, or an enemy turns it into a real attack, and it reacts (fights back, or runs if it's peaceful or losing).
+
+# Counting health
+Like a sharp player, it doesn't read other players' health from the game: it counts it. It remembers its own hits (weapon, charge, crits, their visible armour, Protection IV assumed on enchanted pieces), hits from others, totems popped and golden apples eaten. The longer since a hit, the less sure it is, because they may have healed. Settings > Perception > [Count others' health] (on by default).
+
 === practice | Practice and exams
 Practice = it tries things and improves from rewards, on its own.
 

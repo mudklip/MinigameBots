@@ -21,6 +21,9 @@ public final class ProfileManifest {
 	public Skin skin = new Skin();
 	public Stats stats = new Stats();
 	public Humanizer humanizer = Humanizer.from(HumanizerSettings.DEFAULT);
+	/** Attitude when it plays on its own: neutral, hunter, guard, peaceful, or personality (from its character). */
+	public String attitude = "neutral";
+
 	/** Chat in character (optional, needs the mind). */
 	public Character character = new Character();
 

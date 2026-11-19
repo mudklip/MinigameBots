@@ -59,6 +59,8 @@ public final class Observer {
 	private final SoundTracker sounds;
 	private final TextTracker text;
 	private final RelationTracker relations;
+	/** Others' health as worked out from what it saw (fair mode). */
+	public static final HealthMemory healthMemory = new HealthMemory();
 	private final Map<Integer, Seen> lastSeen = new HashMap<>();
 
 	private final io.github.mudklip.minigamebots.client.memory.MemoryManager memory;
@@ -92,6 +94,7 @@ public final class Observer {
 			return null;
 		}
 		boolean fair = MgbConfig.get().fairPerception;
+		healthMemory.tick(player, level.players(), tick);
 		int[] crowd = new int[Observation.Crowd.SIZE];
 		List<Observation.EntityInfo> entities = entities(player, level, tick, fair, crowd);
 		return new Observation(tick, self(player, level), inventory(player), player.getInventory().getSelectedSlot(),
@@ -218,8 +221,9 @@ public final class Observer {
 			float maxHealth = 0;
 			String held = "minecraft:air";
 			int armor = 0;
+			HealthMemory.Est guess = e instanceof Player && MgbConfig.get().fairHealth ? healthMemory.get(e.getId()) : null;
 			if (e instanceof LivingEntity living) {
-				health = living.getHealth();
+				health = guess != null ? (float) guess.est : living.getHealth();
 				maxHealth = living.getMaxHealth();
 				held = BuiltInRegistries.ITEM.getKey(living.getMainHandItem().getItem()).toString();
 				armor = living.getArmorValue();
@@ -228,7 +232,7 @@ public final class Observer {
 			boolean isPlayer = e instanceof Player;
 			int id = e.getId();
 			Calculator.Fight fight = e instanceof LivingEntity le2 && le2.isAlive() && (isPlayer || e instanceof Enemy || le2.getMaxHealth() > 0)
-					? Calculator.fight(player, le2) : Calculator.Fight.NONE;
+					? guess != null ? Calculator.fight(player, le2, guess.est) : Calculator.fight(player, le2) : Calculator.Fight.NONE;
 			// Who is this to the AI: by remembered name, scoreboard team and insignia (shield, banner, dyes).
 			var ins = e instanceof LivingEntity le ? io.github.mudklip.minigamebots.client.memory.Insignia.of(le)
 					: io.github.mudklip.minigamebots.client.memory.Insignia.Info.NONE;

@@ -35,12 +35,16 @@ public final class Calculator {
 	}
 
 	public static Fight fight(Player me, LivingEntity other) {
+		return fight(me, other, other.getHealth() + other.getAbsorptionAmount());
+	}
+
+	/** The same with their health given (an estimate, in fair mode). */
+	public static Fight fight(Player me, LivingEntity other, double theirHealth) {
 		Level level = me.level();
 		Hit mine = hit(me, level);
 		Hit theirs = hit(other, level);
 		double toThem = afterDefense(mine.damage, other, level);
 		double toMe = afterDefense(theirs.damage, me, level);
-		double theirHealth = other.getHealth() + other.getAbsorptionAmount();
 		double myHealth = me.getHealth() + me.getAbsorptionAmount();
 		int myHits = toThem <= 0 ? 999 : (int) Math.ceil(theirHealth / toThem);
 		int theirHits = toMe <= 0 ? 999 : (int) Math.ceil(myHealth / toMe);
@@ -52,7 +56,7 @@ public final class Calculator {
 		return new Fight(Math.min(myHits, 999), Math.min(theirHits, 999), odds);
 	}
 
-	private record Hit(double damage, double perSecond) {
+	record Hit(double damage, double perSecond) {
 	}
 
 	/** Damage of one full-strength melee hit and how many such hits per second. */
