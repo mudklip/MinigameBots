@@ -81,6 +81,12 @@ class PracticePolicy(Policy):
         self.saved_updates = 0
         self.episode_start = None
         self.match_rounds = False  # Seen Training Grounds rounds: they define the tries.
+        # Realism (M12): small rewards for human-looking input and for the style you picked.
+        from ..realism import Realism
+
+        self.realism = Realism.load(profile)
+        self.recent_inputs = deque(maxlen=40)
+        self.human = None
 
     def act(self, obs, frame):
         from ..rl import ppo
@@ -131,7 +137,31 @@ class PracticePolicy(Policy):
             if weights is not None:
                 self.model.load_state_dict(weights)
                 self._maybe_save()
-        return ppo.decode(idx)
+        action = ppo.decode(idx)
+        self._realism_reward(action)
+        return action
+
+    REALISM_WEIGHT = 0.05
+    STYLE_WEIGHT = 0.05
+
+    def _realism_reward(self, action) -> None:
+        if self.realism is None:
+            return
+        self.recent_inputs.append({"keys": sorted(action.keys), "yaw": action.yaw, "pitch": action.pitch,
+                                   "attacks": action.attacks})
+        if len(self.recent_inputs) < self.recent_inputs.maxlen or self.decisions % 40:
+            return
+        window = list(self.recent_inputs)
+        bonus = 0.0
+        human = self.realism.human_score(window)
+        if human is not None:
+            self.human = human
+            bonus += self.REALISM_WEIGHT * (human - 0.5)
+        style = self.realism.style_score(window)
+        if style is not None:
+            bonus += self.STYLE_WEIGHT * style
+        if self.learner is not None and bonus:
+            self.learner.reward(bonus)
 
     def _maybe_save(self):
         from ..learn import checkpoint
@@ -155,7 +185,7 @@ class PracticePolicy(Policy):
         avg = sum(self.returns) / len(self.returns) if self.returns else None
         out = {"objective": self.objective.get("name"), "episodes": self.episodes, "avg_return": avg,
                "last_return": self.returns[-1] if self.returns else None, "device": self.device,
-               "warnings": self.warnings}
+               "warnings": self.warnings, "human_score": self.human}
         if self.learner is not None:
             out.update({"updates": self.learner.updates, "learning": self.learner.busy(),
                         "collected": len(self.learner.buffer), "rollout": self.learner.rollout_len,

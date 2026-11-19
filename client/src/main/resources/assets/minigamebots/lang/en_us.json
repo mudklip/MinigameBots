@@ -232,5 +232,20 @@
 	"minigamebots.teacher.tip_grounds": "Tip: start a Training Grounds match first (e.g. against a league or godly opponent) so every round is recorded.",
 	"minigamebots.teacher.tip_alone": "Tip: it fights the nearest player, hostile mob or training dummy. With Training Grounds you get arenas, opponents and instant resets.",
 	"minigamebots.training.aim_drill": "Aim drill",
-	"minigamebots.training.aim_drill_help": "Also learn aiming, tracking and chasing in a tiny built-in simulator (very fast). Lite base only; works even with no recordings."
+	"minigamebots.training.aim_drill_help": "Also learn aiming, tracking and chasing in a tiny built-in simulator (very fast). Lite base only; works even with no recordings.",
+	"minigamebots.realism.button": "Realism...",
+	"minigamebots.realism.screen": "Realism: %s",
+	"minigamebots.realism.help": "A critic learns to tell your own recordings from AI play; during practice the AI gets a small reward for input that looks human, and for the style you pick below. It can also copy how fast and smoothly you turn.",
+	"minigamebots.realism.analyze": "Analyze",
+	"minigamebots.realism.analyze_help": "Train the critic and style model from all recordings and your picks, and measure your turning. Takes seconds.",
+	"minigamebots.realism.apply": "Use my turning",
+	"minigamebots.realism.apply_help": "Set this AI's turn speed, acceleration and aim wobble to what was measured from your play.",
+	"minigamebots.realism.compare": "Which was better?",
+	"minigamebots.realism.compare_help": "Watch two short clips of the AI and pick the better or more human one. Press Analyze afterwards.",
+	"minigamebots.compare.screen": "Which was better?",
+	"minigamebots.compare.help": "Pick the clip that plays better or looks more human",
+	"minigamebots.compare.left": "Left",
+	"minigamebots.compare.right": "Right",
+	"minigamebots.compare.same": "Same",
+	"minigamebots.compare.skip": "Skip"
 }

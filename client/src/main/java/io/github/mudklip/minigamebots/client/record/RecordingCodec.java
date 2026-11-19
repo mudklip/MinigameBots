@@ -115,7 +115,7 @@ public final class RecordingCodec {
 				json.has("cameraJump") && json.get("cameraJump").getAsBoolean(), marks);
 	}
 
-	static JsonObject inputJson(GameInput input) {
+	public static JsonObject inputJson(GameInput input) {
 		JsonObject o = new JsonObject();
 		JsonArray keys = new JsonArray();
 		for (VirtualKey key : VirtualKey.values()) {

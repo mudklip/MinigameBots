@@ -130,6 +130,10 @@ def main(argv=None) -> int:
         from .learn import train
 
         return train.main(argv[1:])
+    if argv and argv[0] == "realism":
+        from . import realism
+
+        return realism.main(argv[1:])
     if argv and argv[0] == "foundation":
         from .vpt import foundation
 
