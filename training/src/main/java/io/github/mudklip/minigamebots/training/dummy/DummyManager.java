@@ -76,6 +76,9 @@ public final class DummyManager {
 		transient long controlTick = Long.MIN_VALUE;
 		transient boolean wasAttacking;
 		transient int sinceAttack = 100;
+		/** An axe hit knocked the shield down until this tick (like a player's shield cooldown). */
+		transient long shieldDisabledUntil;
+		transient long shieldRaisedAt;
 
 		Dummy(UUID id, String dimension, double[] anchor, DummySettings settings) {
 			this.id = id;
@@ -535,6 +538,8 @@ public final class DummyManager {
 		m.setXRot(pitch);
 	}
 
+	private static final int MIN_SHIELD_TICKS = 20;
+
 	private void defend(Mannequin m, Dummy d, @Nullable LivingEntity target) {
 		DummySettings.Defense def = d.settings.defense;
 		boolean want = false;
@@ -545,15 +550,20 @@ public final class DummyManager {
 			if (--d.shieldTimer <= 0) {
 				d.shieldUp = !d.shieldUp;
 				var r = m.getRandom();
-				d.shieldTimer = def == DummySettings.Defense.SHIELD_TIMED ? (d.shieldUp ? 30 : 20)
-						: (d.shieldUp ? 10 + r.nextInt(30) : 10 + r.nextInt(40));
+				d.shieldTimer = def == DummySettings.Defense.SHIELD_TIMED ? (d.shieldUp ? 60 : 15)
+						: (d.shieldUp ? 30 + r.nextInt(40) : 10 + r.nextInt(20));
 			}
 			want = d.shieldUp;
+		}
+		if (tick < d.shieldDisabledUntil) {
+			want = false; // Knocked down by an axe: no blocking until it recovers.
 		}
 		boolean holding = m.isUsingItem() && m.getUsedItemHand() == InteractionHand.OFF_HAND;
 		if (want && !holding && m.getOffhandItem().is(Items.SHIELD)) {
 			m.startUsingItem(InteractionHand.OFF_HAND);
-		} else if (!want && holding) {
+			d.shieldRaisedAt = tick;
+		} else if (!want && holding && (tick - d.shieldRaisedAt >= MIN_SHIELD_TICKS || tick < d.shieldDisabledUntil)) {
+			// Kept up at least a second: a shield only blocks after it's been raised for a moment.
 			m.stopUsingItem();
 		}
 	}
@@ -680,6 +690,18 @@ public final class DummyManager {
 		}
 		float amount = blocked ? 0 : taken;
 		d.stats.hit(tick, amount);
+		Entity hitter = GroundTruth.attacker(source);
+		if (blocked && hitter instanceof LivingEntity le) {
+			var weapon = le.getMainHandItem().get(net.minecraft.core.component.DataComponents.WEAPON);
+			if (weapon != null && weapon.disableBlockingForSeconds() > 0) {
+				// Axe on a raised shield: it goes down for a while, exactly as it would for a player.
+				e.stopUsingItem();
+				d.shieldUp = false;
+				d.shieldDisabledUntil = tick + Math.round(weapon.disableBlockingForSeconds() * 20);
+				level.playSound(null, e.blockPosition(), net.minecraft.sounds.SoundEvents.SHIELD_BREAK.value(),
+						net.minecraft.sounds.SoundSource.PLAYERS, 1f, 0.8f + level.getRandom().nextFloat() * 0.4f);
+			}
+		}
 		Component text = blocked ? Component.literal("blocked").withStyle(ChatFormatting.GRAY)
 				: Component.literal(String.format("-%.1f", amount)).withStyle(amount >= 6 ? ChatFormatting.GOLD : ChatFormatting.RED);
 		numbers.spawn(level, e.position().add(0, e.getBbHeight() * 0.7, 0), text);

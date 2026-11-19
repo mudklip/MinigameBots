@@ -39,6 +39,12 @@ class TeacherPolicy(Policy):
         self.hits = 0
         self.crit_jump = False
         self.airborne = False
+        self.crit_failed = False
+        self.swung = False
+        self.swung_at = 0
+        self.prev_yaw = None
+        self.prev_target = None
+        self.yaw_rate = 0.0
 
     def _slot(self, obs, kinds) -> int | None:
         for item in obs.get("inventory", []):
@@ -68,8 +74,7 @@ class TeacherPolicy(Policy):
         found = self._target(obs)
         if found is None:
             return self.aim._turn(set(), 4.0, -0.3 * float(me.get("pitch", 0.0)))  # Look around.
-        dist, e = found
-        flat = math.hypot(e["dx"], e["dz"])
+        _, e = found
 
         # Weapon: an axe against a raised shield, otherwise a sword (or an axe if that's all).
         sword = self._slot(obs, ("_sword",))
@@ -78,60 +83,88 @@ class TeacherPolicy(Policy):
         if want is not None and obs.get("selectedSlot") != want:
             return self.aim._turn({f"hotbar_{want + 1}"}, 0.0, 0.0)
 
-        want_yaw = math.degrees(math.atan2(-e["dx"], e["dz"]))
-        want_pitch = -math.degrees(math.atan2(e["dy"] + 0.9, max(flat, 1e-3)))
+        # Aim where it will be when the turn lands: our turns arrive ~4 ticks late, and a target
+        # strafing at fighting range moves a few degrees a tick. Measure how fast its direction
+        # changes and lead by that.
+        tx, tz = e["dx"], e["dz"]
+        flat = math.hypot(tx, tz)
+        raw_yaw = math.degrees(math.atan2(-tx, tz))
+        if self.prev_yaw is not None and self.prev_target == e.get("id"):
+            rate = wrap_degrees(raw_yaw - self.prev_yaw)
+            if abs(rate) < 30:
+                self.yaw_rate = 0.6 * self.yaw_rate + 0.4 * rate
+        else:
+            self.yaw_rate = 0.0
+        self.prev_yaw, self.prev_target = raw_yaw, e.get("id")
+        want_yaw = raw_yaw + self.yaw_rate * 3
+        want_pitch = -math.degrees(math.atan2(e["dy"] + 1.1, max(flat, 1e-3)))
         yaw_err = wrap_degrees(want_yaw - float(me.get("yaw", 0.0)))
         pitch_err = want_pitch - float(me.get("pitch", 0.0))
+        # Distance to its hitbox (0.6 wide), as the game measures reach.
+        reach_dist = math.hypot(max(0.0, math.hypot(e["dx"], e["dz"]) - 0.3), e["dy"] + 1.1)
         keys = set()
 
-        # Movement: close in sprinting, then strafe around at fighting distance.
+        ready = float(me.get("attackReady", 1.0)) >= 0.9
+        # After a swing, wait until the recharge shows (the reading lags a few ticks).
+        if self.swung:
+            if float(me.get("attackReady", 1.0)) < 0.5 or self.tick - self.swung_at > 12:
+                self.swung = False
+            ready = False
+        on_ground = bool(me.get("onGround", True))
         if self.tick >= self.next_switch:
             self.strafe = -self.strafe
             self.next_switch = self.tick + self.rng.randint(15, 40)
-        ready = float(me.get("attackReady", 1.0)) >= 0.95
+        # Movement: always close in when out of reach; strafe while the attack recharges.
         if self.release > 0:
             self.release -= 1  # W-tap: forward let go for a moment.
-        elif flat > self.reach - 0.6 or (self.crit_jump and flat > 1.5):
+        elif reach_dist > self.reach - 0.4 and abs(yaw_err) < 70:
             keys |= {"forward", "sprint"}
-        # Strafe only while the attack recharges: moving sideways while swinging spoils the aim.
-        if flat < self.reach + 2 and not ready:
+        elif reach_dist < 1.8:
+            keys.add("back")  # Too close: every sidestep swings the angle; keep fighting distance.
+        if not ready and 2.4 < reach_dist < self.reach + 1.5:
             keys.add("left" if self.strafe > 0 else "right")
 
-        # Aimed = the crosshair is inside its hitbox (0.6 wide): a swing that misses wastes the charge.
-        tolerance = max(4.0, math.degrees(math.atan2(0.28, max(flat, 0.5))))
-        in_reach = dist < self.reach + 0.4 and abs(yaw_err) < tolerance and abs(pitch_err) < 25
-        on_ground = bool(me.get("onGround", True))
-        use_crits = self.style == "crits" or (self.style == "mixed" and self.hits % 2 == 1)
-
-        # Shield up while recharging (and not about to jump), lowered to swing.
-        if self._has_shield(obs) and not ready and dist < 4.5 and on_ground:
+        # Shield up while recharging, lowered to swing.
+        if self._has_shield(obs) and not ready and reach_dist < 4.5 and on_ground:
             keys.add("use")
             keys.discard("sprint")
 
+        # Swing when it's in reach and roughly in the crosshair (like a player; a near miss still
+        # often connects because the target is wider than the exact centre).
+        # Generous on purpose: in testing every swing it took inside this window connected.
+        aimed = (abs(yaw_err) < max(15.0, math.degrees(math.atan2(0.9, max(flat, 0.5))))
+                 and abs(pitch_err) < max(14.0, math.degrees(math.atan2(0.9, max(flat, 0.5)))))
+        in_reach = reach_dist < self.reach
+        use_crits = (self.style == "crits" or (self.style == "mixed" and self.hits % 2 == 1)) and not self.crit_failed
         attack = False
-        if in_reach and ready:
-            if use_crits:
+        if in_reach and ready and aimed:
+            if use_crits and reach_dist < self.reach - 0.3:
                 if on_ground and not self.crit_jump:
                     keys.add("jump")
-                    keys.discard("sprint")  # A sprinting hit can't crit.
                     self.crit_jump = True
-                elif not on_ground and float(me.get("vy", 0.0)) < -0.05:
+                elif not on_ground and float(me.get("vy", 0.0)) < -0.03:
                     attack = True
+                elif on_ground and self.airborne:
+                    attack = True  # Landed without the crit: just hit.
+                    self.crit_failed = True
             else:
                 attack = True
         if self.crit_jump:
             keys.discard("sprint")  # A sprinting hit can't crit.
             self.airborne = self.airborne or not on_ground
             if on_ground and self.airborne and not attack:
-                self.crit_jump = self.airborne = False  # Landed without a hit: try again.
+                self.crit_jump = self.airborne = False
+                self.crit_failed = True
         if attack:
+            self.swung, self.swung_at = True, self.tick
             keys.add("attack")
             keys.discard("use")
             self.hits += 1
-            self.crit_jump = self.airborne = False
+            self.crit_jump = self.airborne = self.crit_failed = False
             if self.style in ("wtap", "mixed"):
                 self.release = 3
-        return self.aim._turn(keys, 0.7 * wrap_degrees(yaw_err - pending[0]), 0.6 * (pitch_err - pending[1]))
+        # Turns already on their way aren't ordered again (they land a few ticks late).
+        return self.aim._turn(keys, 0.6 * wrap_degrees(yaw_err - pending[0]), 0.5 * (pitch_err - pending[1]))
 
     @staticmethod
     def _has_shield(obs) -> bool:

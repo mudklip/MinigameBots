@@ -122,8 +122,9 @@ def tune_humanizer(windows_inputs: list[list[dict]]) -> dict | None:
     speed = np.abs(yaw) * 20  # Degrees per second.
     accel = np.abs(np.diff(yaw)) * 400
     small = np.abs(yaw[(np.abs(yaw) > 0) & (np.abs(yaw) < 0.5)])
-    return {"maxTurnSpeed": round(float(np.clip(np.percentile(speed, 99), 150, 3000)), 0),
-            "maxTurnAccel": round(float(np.clip(np.percentile(accel, 99), 1500, 40000)), 0),
+    # Floors: real players flick well past 600 deg/s even if a recording happens not to show it.
+    return {"maxTurnSpeed": round(float(np.clip(np.percentile(speed, 99.5), 600, 3000)), 0),
+            "maxTurnAccel": round(float(np.clip(np.percentile(accel, 99.5), 8000, 40000)), 0),
             "aimNoise": round(float(np.clip(small.mean() if len(small) else 0.12, 0.02, 0.5)), 3)}
 
 

@@ -4,7 +4,7 @@ from minigamebots_brain.policies import create
 
 
 def obs(dy=-1.62, dz=2.5, on_ground=True, vy=0.0, ready=1.0, blocking=False, slot=0):
-    return {"self": {"yaw": 0.0, "pitch": 30.0, "onGround": on_ground, "vy": vy, "attackReady": ready},
+    return {"self": {"yaw": 0.0, "pitch": 12.0, "onGround": on_ground, "vy": vy, "attackReady": ready},
             "selectedSlot": slot,
             "inventory": [{"slot": 0, "id": "minecraft:diamond_sword"}, {"slot": 1, "id": "minecraft:diamond_axe"},
                           {"slot": 40, "id": "minecraft:shield"}],

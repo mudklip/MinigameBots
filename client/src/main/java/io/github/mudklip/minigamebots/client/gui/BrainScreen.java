@@ -189,6 +189,9 @@ public final class BrainScreen extends Screen {
 
 	/** Downloads the optional language model for free-form /ai commands (one time, about 3 GB). */
 	private void installMind(String size) {
+		// The installer adds Python packages; on Windows a running brain keeps some of their files
+		// locked, so stop it first (it starts again when needed).
+		brain.stop();
 		mindBusy = true;
 		rebuildWidgets();
 		var toast = new net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId();
@@ -203,6 +206,9 @@ public final class BrainScreen extends Screen {
 								Component.literal("Mind"), Component.literal(m))));
 				end = "error".equals(r.has("type") ? r.get("type").getAsString() : "") ? "Failed: " + r.get("message").getAsString()
 						: "Installed. Try /ai with anything.";
+				if (end.startsWith("Failed")) {
+					end += " (details: minigamebots/brain/logs/videolab.log)";
+				}
 			} catch (Exception e) {
 				end = "Failed: " + e.getMessage();
 			}
