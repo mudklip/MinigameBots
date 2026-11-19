@@ -1051,6 +1051,11 @@ After that it's open-ended: more data, more self-play, more skills. There is no 
 
 Each milestone ends with tests, a working jar, and a short demo you can try.
 
+**Testing budget (from M12 on, your request):** rely mainly on automated tests, and do a
+lighter in-game check per milestone: enough to confirm each new feature actually works in the
+game (one or two targeted runs, a screenshot or event log), but no long live debugging of
+behaviour that unit tests can cover. Never zero in-game testing.
+
 | # | Milestone | Contents |
 |---|---|---|
 | M1 | **Skeleton** | Gradle multi-project, two jars, shared `common`, CI build, version handshake |
