@@ -208,3 +208,58 @@ The PC won't grow, so trade **time, data and cleverness** for hardware:
 
 Priority for this hardware: 2 (headless worlds) and 1 (shared core) give the biggest jump, then
 5 and 6, then 3 and 4.
+
+## 11. The Core: common sense first (top priority)
+
+The **Core** is the AI's first and most important skill: general understanding of how Minecraft
+works, trained before anything else, that every other skill and every new game builds on. It
+turns the project from a PvP robot into a general player. In the Skills list it is the first
+card, above every category, with the **light block** icon (minecraft:light).
+
+### What it learns (common sense)
+Trained on everything it can get (your recordings, spectator learning, videos, training worlds,
+simulators), with self-taught goals that need no labels:
+- **What happens next:** predict the next seconds (positions, health, blocks, items) = a small
+  world model.
+- **Cause and effect:** what an action does (hit -> knockback, eat -> food, place -> block,
+  throw -> projectile flies and hits), and who caused what.
+- **What matters:** predict scoreboard, chat, titles and deaths from what's happening; learn
+  that things like health, score, lives and "last one standing" are what games are about.
+- **Objects by their properties** (section 10.6): an unseen item is understood from what it does.
+
+This becomes the shared core network (section 10.1) that all skills sit on.
+
+### Understanding a new minigame quickly: the rule finder
+A small, cheap, symbolic part that watches events and finds rules from very few examples:
+- it counts what follows what: "a snowball hit me -> I died" (1 of 1 times),
+  "my snowball hit Steve -> Steve died, +1 on the sidebar 'Kills'" (2 of 2), and compares it with
+  how often those things happen anyway (so coincidences don't count);
+- it reads the text the game shows (sidebar titles like "Kills"/"Lives", titles like "You won!",
+  chat, item names) by keywords; the mind (language model) can help read explanations, if on;
+- after a handful of rounds it has rules like **"snowball hit = elimination (both ways)"** and
+  **"most kills / last alive wins"**, each with how sure it is.
+
+### Turning rules into play, at once
+- Rules become an **automatic objective**: what leads to winning or score = reward; what leads
+  to dying or losing = penalty; plus drives (fear of snowballs, eagerness to throw them).
+- It **borrows skills that fit:** snowball throwing ~ projectile aiming (Archery), dodging ~
+  strafing (PvP), spleef ~ breaking blocks under others; the Core says which skills relate.
+- A small **per-game add-on** keeps learning the specifics while it plays (section 4 fast
+  weights), and the game's rules + add-on are **remembered**: recognised next time by the
+  server/lobby/sidebar, so it starts out already knowing that game.
+
+### Training the Core (no setup)
+1. **Pretrain** on all collected data (self-taught goals above), overnight.
+2. **Minigame generator in Training Grounds:** instant random games built from rule pieces
+   (one-hit snowballs, sumo knockback, spleef, TNT run, king of the hill, capture the flag,
+   parkour race, last-alive, team modes...). Practising on endless new games teaches it to
+   *learn games fast* (meta-learning), not just to play one.
+3. **Exam:** unseen generated games; score = how many rounds until it plays well.
+
+Cost stays low: the Core is the shared small network (no extra player cost); the rule finder
+is counting and lookups; pretraining and the minigame generator use idle/overnight time.
+
+### Where it goes in the plan
+Make it the first big feature: Core (shared network + self-taught pretraining) -> rule finder ->
+automatic objectives and skill borrowing -> minigame generator -> per-game memory. The memory
+and sleep parts (sections 2 and 5) and the headless worlds (10.2) support it.

@@ -37,6 +37,10 @@
 
 ## Planned features (agreed)
 
+- **#1 priority: the Core** (docs/MIND_DESIGN.md section 11): common sense first, shared by
+  all skills; a rule finder that learns new minigames from a few rounds; first card in the Skills
+  list with the light block icon.
+
 - **Teams of the same AI:** several bodies running the same AI, no special channel between
   them: they only see what a player in their place would see; with the mind on they may use
   normal chat like players do, without it they rely on judgement (no friendly fire, focus the
