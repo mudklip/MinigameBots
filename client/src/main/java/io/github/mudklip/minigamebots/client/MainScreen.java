@@ -24,6 +24,10 @@ public final class MainScreen extends Screen {
 		layout.addTitleHeader(title, font);
 		LinearLayout body = layout.addToContents(LinearLayout.vertical().spacing(6));
 		boolean inWorld = minecraft.player != null;
+		body.addChild(Button.builder(Component.literal("§e★ Training Hub"),
+				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.HubScreen(this))).width(204)
+				.tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(
+						"Pick what to get better at and how long you have: the Coach does the rest."))).build());
 		Button control = body.addChild(Button.builder(Component.translatable("minigamebots.menu.start_idle"), b -> {
 			onClose();
 			AgentControl.get().start(minecraft, io.github.mudklip.minigamebots.client.control.ActionSource.IDLE);

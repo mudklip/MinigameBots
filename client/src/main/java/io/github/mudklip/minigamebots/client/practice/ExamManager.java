@@ -109,6 +109,9 @@ public final class ExamManager {
 
 	private void finish(Result r) {
 		running = null;
+		io.github.mudklip.minigamebots.client.coach.Progress.setRating("pvp", r.winRate() * 100,
+				"exam: won " + r.wins + " of " + r.rounds);
+		io.github.mudklip.minigamebots.client.coach.Progress.addXp("pvp", 5 + r.wins * 2, "exam");
 		ProfileManifest p = profile;
 		if (p == null) {
 			return;

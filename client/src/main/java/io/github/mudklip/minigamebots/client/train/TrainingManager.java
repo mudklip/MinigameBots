@@ -178,6 +178,7 @@ public final class TrainingManager {
 	}
 
 	private boolean aimDrill;
+	private String skillTrained = "general";
 
 	/** Also train on the built-in fast-sim aim drill (Lite only): recordings become optional. */
 	public void setAimDrill(boolean on) {
@@ -198,6 +199,7 @@ public final class TrainingManager {
 			throw new IOException("Set up the brain first (F10 > Brain > Install)");
 		}
 		boolean sim = aimDrill && foundationId == null;
+		skillTrained = skill;
 		if (chosen.isEmpty() && !sim) {
 			throw new IOException("Pick at least one recording to learn from (or tick Aim drill)");
 		}
@@ -344,6 +346,14 @@ public final class TrainingManager {
 			String why = message;
 			client.execute(() -> SystemToast.addOrUpdate(client.gui.toastManager(), TOAST,
 					Component.translatable("minigamebots.training.title"), Component.literal(why)));
+		}
+		if (status == Status.DONE) {
+			Minecraft.getInstance().execute(() -> {
+				io.github.mudklip.minigamebots.client.coach.Progress.unlock("first_training");
+				io.github.mudklip.minigamebots.client.coach.Progress.addXp(
+						"general".equals(skillTrained) ? "pvp" : skillTrained.equals("travel") ? "movement" : skillTrained, 15,
+						"training finished");
+			});
 		}
 		process = null;
 	}

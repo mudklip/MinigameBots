@@ -40,6 +40,16 @@ final class TgCommands {
 						.then(aimMode("track", AimTrainer.Mode.TRACK, tg))
 						.then(aimMode("switch", AimTrainer.Mode.SWITCH, tg)))
 				.then(Commands.literal("arena").requires(tg::canManage)
+						.then(Commands.literal("quick").then(Commands.argument("name", StringArgumentType.word()).executes(ctx -> {
+							try {
+								Arena a = tg.arenas().quick(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "name"));
+								ok(ctx, "Built and saved practice arena " + a.name + " here");
+								return 1;
+							} catch (ArenaManager.ArenaException e) {
+								fail(ctx, e.getMessage());
+								return 0;
+							}
+						})))
 						.then(Commands.literal("pos1").executes(ctx -> corner(ctx, tg, 0)))
 						.then(Commands.literal("pos2").executes(ctx -> corner(ctx, tg, 1)))
 						.then(Commands.literal("list").executes(ctx -> {

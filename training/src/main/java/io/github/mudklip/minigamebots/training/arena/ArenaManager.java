@@ -295,6 +295,36 @@ public final class ArenaManager {
 		return players;
 	}
 
+	/**
+	 * Builds a simple 21 x 21 practice arena where the player stands (stone floor, glass walls,
+	 * air above), saves it with two spawns facing each other, and returns it. Used by the Coach.
+	 */
+	public Arena quick(ServerPlayer player, String name) throws ArenaException {
+		ServerLevel level = (ServerLevel) player.level();
+		BlockPos c = player.blockPosition();
+		int r = 10;
+		BlockPos min = c.offset(-r, -1, -r);
+		BlockPos max = c.offset(r, 6, r);
+		var stone = net.minecraft.world.level.block.Blocks.SMOOTH_STONE.defaultBlockState();
+		var glass = net.minecraft.world.level.block.Blocks.GLASS.defaultBlockState();
+		var air = net.minecraft.world.level.block.Blocks.AIR.defaultBlockState();
+		for (BlockPos p : BlockPos.betweenClosed(min, max)) {
+			boolean floor = p.getY() == min.getY();
+			boolean wall = p.getX() == min.getX() || p.getX() == max.getX() || p.getZ() == min.getZ() || p.getZ() == max.getZ();
+			level.setBlock(p, floor ? stone : wall && p.getY() <= c.getY() + 3 ? glass : air, Block.UPDATE_CLIENTS);
+		}
+		setCorner(player, 0, min);
+		setCorner(player, 1, max);
+		if (get(name) != null) {
+			delete(name);
+		}
+		Arena a = create(player, name);
+		a.spawns.add(new double[] {c.getX() - 6 + 0.5, c.getY(), c.getZ() + 0.5, -90, 0});
+		a.spawns.add(new double[] {c.getX() + 6 + 0.5, c.getY(), c.getZ() + 0.5, 90, 0});
+		saveQuietly(a);
+		return a;
+	}
+
 	/** Places a copy of the arena with its lowest corner at {@code at} (multi-world training). */
 	public void placeCopy(Arena a, BlockPos at) throws ArenaException {
 		ServerLevel level = level(a);

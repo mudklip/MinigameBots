@@ -291,6 +291,7 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		events.addListener(exams::onEvent);
 		events.addListener(io.github.mudklip.minigamebots.client.control.Autonomy::onEvent);
 		events.addListener(io.github.mudklip.minigamebots.client.brain.ChatMind::onEvent);
+		events.addListener(io.github.mudklip.minigamebots.client.coach.Progress::onEvent);
 		events.addListener(io.github.mudklip.minigamebots.client.brain.SelfPlayLink::onEvent);
 		events.addListener(event -> {
 			if (watching) {
@@ -318,6 +319,7 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		}
 		io.github.mudklip.minigamebots.client.train.TeacherDemos.tick(client);
 		io.github.mudklip.minigamebots.client.control.Autonomy.tick(client);
+		io.github.mudklip.minigamebots.client.coach.Coach.tick(client);
 		io.github.mudklip.minigamebots.client.brain.Voice.tick(client,
 				io.github.mudklip.minigamebots.client.control.Hotkeys.PUSH_TO_TALK.isDown());
 		memory.tick(client);
