@@ -173,3 +173,38 @@ beyond this.
 **Build order:** after the mind basics (memory, sleep), add: block-plan format + part library ->
 sandbox tester in Training Grounds -> evolution with a hall of fame -> its own building skill
 (trained partly on Baritone building demos) -> strategist uses inventions.
+
+## 10. Best all-rounder on the same PC
+
+The PC won't grow, so trade **time, data and cleverness** for hardware:
+
+1. **One shared core, tiny skill add-ons.** One network learns general game sense (seeing,
+   moving, items, danger) once; each skill is a small add-on (adapter, a few hundred KB) on top.
+   New skills learn faster (they reuse the core), and dozens of skills fit in memory.
+2. **Headless training worlds.** Run Training Grounds on a background server with no rendering,
+   sped up (/tick sprint), the brain steering its bodies directly: many times faster than
+   real time, mostly CPU, and possible while you play or overnight.
+3. **Fast simplified simulators** for pretraining (like the aim simulator): a Python 1v1 combat
+   model with hits, knockback, cooldowns and crits runs thousands of fights a second; the real
+   game then fine-tunes ("sim-to-real").
+4. **Slow big teacher, fast small player.** Overnight, train a bigger model (slow is fine
+   offline) and distill it into the small network that plays.
+5. **Knowledge as tools, not learned.** Exact things are computed, not learned: damage
+   calculator (exists), crafting/smelting recipe planner (wood -> iron -> diamond -> nether ->
+   end), enchanting, brewing, mob facts. Almost free; the networks decide, tools calculate.
+6. **Items understood by their properties** (damage, speed, durability, food value, block
+   hardness), not just their names, so it handles items it has never used, new versions and
+   modpacks.
+7. **Robust to any server:** training with random ping/lag, different knockback, kits and
+   click limits, so skills transfer to real servers.
+8. **Free data at scale:** spectator learning and Video Lab running in idle time; spectating
+   lots of real games is the biggest skill source that costs no GPU while playing.
+9. **Auto curriculum + exam battery:** always train the weakest skill, never let mastered ones
+   slip (section 4).
+10. **Sharing:** export/import skills and whole AIs, so time other people's PCs spent training
+    can be reused (with the exam battery checking anything imported).
+11. **Budget manager:** one scheduler for GPU/CPU between the game, playing, training and the
+    language model: train when idle, back off when FPS drops.
+
+Priority for this hardware: 2 (headless worlds) and 1 (shared core) give the biggest jump, then
+5 and 6, then 3 and 4.
