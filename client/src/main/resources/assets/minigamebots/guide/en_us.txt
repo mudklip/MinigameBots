@@ -2,6 +2,8 @@
 # What this is
 An AI that plays Minecraft as you, with a real (virtual) keyboard and mouse. You teach it by playing, by letting teachers play, or by letting it practise.
 
+> New: [F10] > [★ Training Hub] trains your AI for you. Start there.
+
 # The 3 keys to remember
 - [F10] opens this menu
 - [F8] gives the AI control, or takes it back
@@ -9,6 +11,32 @@ An AI that plays Minecraft as you, with a real (virtual) keyboard and mouse. You
 
 > You never need to be good at Minecraft: Teacher demos and practice can train it without you.
 > Press [F1] on any MinigameBots screen to jump to its page here.
+
+=== hub | Training Hub (start here)
+The easiest way to make your AI better: pick a goal and a time, the Coach does the rest.
+
+1. [F10] > [★ Training Hub]
+2. Click a goal: [PvP], [Aim], [Movement], [Mining] or [Survival]
+3. Pick a time: [30 min], [2 hours] or [Overnight]
+4. Press [Start coaching] and let it run
+
+# What the Coach does (PvP example)
+- Builds a practice arena where you stand (stand somewhere open!)
+- Starts a duel against the godly teacher and records Fighter demos
+- Trains on them, then practises (in 6 worlds at once for Lite AIs)
+- Takes an exam against the league, then repeats practice + exam until time is up
+
+# Levels, ratings and achievements
+- [Lv] grows with effort (training, practice, exams)
+- PvP [win%] and Aim [score] only move when the AI really got better
+- Achievements mark milestones: hover the badges at the bottom
+
+# Watch & learn
+- [Watch & learn: on] (top of the Hub): while you play or spectate, other players' fights are recorded and turned into demos every 10 minutes
+- Good moments count more, the ones that got them killed count nothing
+- The PvP plan trains on them automatically
+! Only use Watch & learn where you're allowed to record other players.
+> Want full control? [Advanced...] opens all the detailed screens.
 
 === keys | Keys and controls
 # Hotkeys

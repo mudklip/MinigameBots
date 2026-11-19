@@ -98,6 +98,9 @@ def importance(e: dict) -> float:
 
 
 def featurize(obs: dict) -> dict:
+    # Privileged training data (Watch & learn) is never an input of the playing network.
+    if "privileged" in obs:
+        obs = {k: v for k, v in obs.items() if k != "privileged"}
     """Numpy arrays for one tick. Missing fields fall back to neutral values."""
     me = obs.get("self") or {}
     yaw = float(me.get("yaw", 0.0))

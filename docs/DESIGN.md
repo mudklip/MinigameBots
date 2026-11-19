@@ -1101,6 +1101,18 @@ path; optional spoken replies with Piper). All local: Brain > Mind (3 GB) or Lit
 and Voice (350 MB). Defaults chosen: mind on GPU (CPU without one), one character per AI,
 speaks only when spoken to, push-to-talk. Code: `brain/minigamebots_brain/mind/`.
 
+**1.1 (built):** Training Hub + Coach (goal + time budget -> arena, teacher demos, training,
+practice / multi-world, exams, repeated; skipped steps are noted), XP levels, measured ratings
+(exam win rate, aim score) and achievements (`client/coach/`); small in-house UI kit (`gui/Ui`,
+no library). Human limits now cap only at top-level human play (reaction ~140 ms, 3500 deg/s,
+20 CPS, no wobble except for scripted players), with Top-level / Average presets. Watch & learn:
+records while you play or spectate, with privileged true states of other players
+(`obs.privileged`), converted every 10 minutes into player demos; privileged data is used only
+to follow players and judge outcomes, and `featurize` drops it so the playing network never
+sees it. Not built yet: an asymmetric (privileged) critic for practice, and a teacher network
+trained on privileged data and distilled into the player; the rest of the screens keep the
+vanilla look (only the Hub uses the new kit).
+
 **Multi-world training (built):** `/tg multitrain start <arena> <count> <opponent>` places copies of
 an arena (+X side), each with a learner body steered by the AI (the self-play puppet) and an
 opponent; the server sends one compact observation per learner each tick, the brain's

@@ -19,7 +19,18 @@ public record Observation(
 		Text text,
 		@Nullable Gui gui,
 		Crowd crowd,
-		List<WaypointInfo> waypoints) {
+		List<WaypointInfo> waypoints,
+		@Nullable List<PrivilegedPlayer> privileged) {
+
+	/**
+	 * Watch & learn only, for training: every nearby player's TRUE state, including ones behind
+	 * walls. Never an input of the playing network (the brain's features ignore it, and the
+	 * player-demo converter only uses it to follow players and judge outcomes).
+	 */
+	public record PrivilegedPlayer(int id, String name, double dx, double dy, double dz, float yaw, float pitch,
+			boolean onGround, float health, int hurtTime, boolean swinging, boolean usingItem, boolean sprinting,
+			boolean sneaking, String heldItem) {
+	}
 
 	/**
 	 * A remembered place near the AI (same dimension), relative to its eyes. {@code type} is one of

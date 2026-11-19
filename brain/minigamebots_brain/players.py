@@ -89,6 +89,28 @@ def outcome_weights(track: list[dict], hits: set[int], died: bool) -> list[float
     return [max(0.0, min(1.5, x)) for x in w]
 
 
+def with_truth(obs: dict) -> dict:
+    """The observation with players at their TRUE states when Watch & learn recorded them
+    (privileged data: follows players behind walls). Only for building demos; the demo's own
+    observation is rebuilt from the tracked player's side and never includes this field."""
+    priv = obs.get("privileged")
+    if not priv:
+        return obs
+    ents = [e for e in obs.get("entities") or [] if not e.get("player")]
+    for p in priv:
+        ents.append({"id": p.get("id"), "type": "minecraft:player", "player": True, "name": p.get("name"),
+                     "visible": True, "dx": p.get("dx", 0.0), "dy": p.get("dy", 0.0), "dz": p.get("dz", 0.0),
+                     "yaw": p.get("yaw", 0.0), "pitch": p.get("pitch", 0.0), "onGround": p.get("onGround", True),
+                     "health": p.get("health", 20.0), "maxHealth": 20.0, "hurtTime": p.get("hurtTime", 0),
+                     "swinging": p.get("swinging", False), "usingItem": p.get("usingItem", False),
+                     "sprinting": p.get("sprinting", False), "sneaking": p.get("sneaking", False),
+                     "heldItem": p.get("heldItem", "")})
+    out = dict(obs)
+    out["entities"] = ents
+    out.pop("privileged", None)
+    return out
+
+
 def tracks(recording: str) -> dict[str, list[list[dict]]]:
     """Each player's continuous stretches in a recording: [{"t", "e", "obs", "exact"}]."""
     records = []
@@ -97,7 +119,7 @@ def tracks(recording: str) -> dict[str, list[list[dict]]]:
     by_name: dict[str, list[list[dict]]] = {}
     last_seen: dict[str, int] = {}
     for t, rec in records:
-        obs = rec.get("obs") or {}
+        obs = with_truth(rec.get("obs") or {})
         exact = {}
         for ev in rec.get("events") or []:
             if ev.get("type") == "tg_inputs":

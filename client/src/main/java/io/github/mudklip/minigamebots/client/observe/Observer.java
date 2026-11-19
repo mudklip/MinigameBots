@@ -96,7 +96,27 @@ public final class Observer {
 		List<Observation.EntityInfo> entities = entities(player, level, tick, fair, crowd);
 		return new Observation(tick, self(player, level), inventory(player), player.getInventory().getSelectedSlot(),
 				entities, blocks(player, level, fair), sounds.recent(client), text(client, level), gui(client),
-				new Observation.Crowd(crowd), waypoints(player, level));
+				new Observation.Crowd(crowd), waypoints(player, level), privileged(player, level));
+	}
+
+	/** True states of nearby players, only while Watch & learn is on (see Observation.PrivilegedPlayer). */
+	private static java.util.@org.jspecify.annotations.Nullable List<Observation.PrivilegedPlayer> privileged(
+			net.minecraft.client.player.LocalPlayer me, net.minecraft.client.multiplayer.ClientLevel level) {
+		if (!io.github.mudklip.minigamebots.client.train.WatchLearn.on()) {
+			return null;
+		}
+		Vec3 eye = me.getEyePosition();
+		List<Observation.PrivilegedPlayer> out = new ArrayList<>();
+		for (Player p : level.players()) {
+			if (p == me || p.isSpectator() || p.distanceTo(me) > 64) {
+				continue;
+			}
+			out.add(new Observation.PrivilegedPlayer(p.getId(), p.getGameProfile().name(), p.getX() - eye.x, p.getY() - eye.y,
+					p.getZ() - eye.z, p.getYHeadRot(), p.getXRot(), p.onGround(), p.getHealth(), p.hurtTime, p.isSwinging(),
+					p.isUsingItem(), p.isSprinting(), p.isShiftKeyDown(),
+					net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(p.getMainHandItem().getItem()).toString()));
+		}
+		return out;
 	}
 
 	private static Observation.Self self(LocalPlayer p, ClientLevel level) {

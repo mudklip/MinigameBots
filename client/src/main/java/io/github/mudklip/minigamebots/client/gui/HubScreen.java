@@ -50,6 +50,13 @@ public final class HubScreen extends Screen {
 		cardW = Math.min(160, width / 3);
 		int rx = cardsX + cardW + 8;
 		int rw = width - rx - 8;
+		addRenderableWidget(Button.builder(Component.literal("Watch & learn: " + (io.github.mudklip.minigamebots.client.train.WatchLearn.on()
+				? "§aon" : "off")), b -> {
+			io.github.mudklip.minigamebots.client.train.WatchLearn.set(minecraft, !io.github.mudklip.minigamebots.client.train.WatchLearn.on());
+			rebuildWidgets();
+		}).pos(width - 240, 6).width(96).tooltip(Tooltip.create(Component.literal("While you play or spectate, records "
+				+ "other players' fights and turns them into demos every 10 minutes (from their point of view, good moments "
+				+ "count more). The Coach's PvP plan trains on them. Only where you're allowed to record others."))).build());
 		addRenderableWidget(Button.builder(Component.literal("Advanced..."), b -> {
 			ProfileManifest p = MinigameBotsClient.instance().profiles().active();
 			if (p != null) {

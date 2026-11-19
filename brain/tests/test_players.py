@@ -49,3 +49,21 @@ class PlayersTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PrivilegedTest(unittest.TestCase):
+    def test_truth_used_for_tracks_but_never_for_play(self):
+        import numpy as np
+        from minigamebots_brain.learn import features
+
+        obs = {"self": {"x": 0.0, "y": 64.0, "z": 0.0, "yaw": 0.0, "pitch": 0.0},
+               "entities": [{"id": 5, "type": "minecraft:player", "player": True, "name": "Alex", "dx": 9.0, "dy": -1.6,
+                             "dz": 9.0, "visible": False}],
+               "privileged": [{"id": 5, "name": "Alex", "dx": 1.0, "dy": -1.6, "dz": 2.0, "health": 7.0}]}
+        t = players.with_truth(obs)
+        self.assertEqual(t["entities"][0]["dx"], 1.0)  # True position, not the stale last-seen one.
+        self.assertNotIn("privileged", t)
+        a = features.featurize(obs)
+        b = features.featurize({k: v for k, v in obs.items() if k != "privileged"})
+        for k in a:
+            self.assertTrue(np.array_equal(a[k], b[k]), k)

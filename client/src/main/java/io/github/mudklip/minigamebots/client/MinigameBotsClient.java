@@ -320,6 +320,7 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		io.github.mudklip.minigamebots.client.train.TeacherDemos.tick(client);
 		io.github.mudklip.minigamebots.client.control.Autonomy.tick(client);
 		io.github.mudklip.minigamebots.client.coach.Coach.tick(client);
+		io.github.mudklip.minigamebots.client.train.WatchLearn.tick(client);
 		io.github.mudklip.minigamebots.client.brain.Voice.tick(client,
 				io.github.mudklip.minigamebots.client.control.Hotkeys.PUSH_TO_TALK.isDown());
 		memory.tick(client);
