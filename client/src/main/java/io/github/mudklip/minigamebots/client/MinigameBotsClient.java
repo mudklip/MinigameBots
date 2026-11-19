@@ -284,6 +284,7 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		events.addListener(brain::onEvent);
 		events.addListener(exams::onEvent);
 		events.addListener(io.github.mudklip.minigamebots.client.control.Autonomy::onEvent);
+		events.addListener(io.github.mudklip.minigamebots.client.brain.ChatMind::onEvent);
 		events.addListener(io.github.mudklip.minigamebots.client.brain.SelfPlayLink::onEvent);
 		events.addListener(event -> {
 			if (watching) {

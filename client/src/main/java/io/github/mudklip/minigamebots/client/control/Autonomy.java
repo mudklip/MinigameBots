@@ -114,6 +114,10 @@ public final class Autonomy {
 	public static void onEvent(GameEvent e) {
 		MgbConfig cfg = MgbConfig.get();
 		Minecraft c = Minecraft.getInstance();
+		var prof = MinigameBotsClient.instance().profiles().active();
+		if (prof != null && prof.character.chat) {
+			return; // Its character does the talking (ChatMind).
+		}
 		if (!cfg.chatReplies || !AgentControl.aiActive() || c.player == null || tick - lastChatTick < 200) {
 			return;
 		}

@@ -21,6 +21,20 @@ public final class ProfileManifest {
 	public Skin skin = new Skin();
 	public Stats stats = new Stats();
 	public Humanizer humanizer = Humanizer.from(HumanizerSettings.DEFAULT);
+	/** Chat in character (optional, needs the mind). */
+	public Character character = new Character();
+
+	public static final class Character {
+		/** Talks in chat when spoken to, while it plays. */
+		public boolean chat;
+		public String name = "";
+		public String personality = "";
+		public String style = "";
+		public String background = "";
+		/** Comma-separated topics it must never talk about. */
+		public String avoid = "";
+	}
+
 	/** Ids of the profiles this one was duplicated or merged from. */
 	public java.util.List<String> parents = new java.util.ArrayList<>();
 

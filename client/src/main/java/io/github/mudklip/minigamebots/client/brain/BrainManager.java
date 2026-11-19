@@ -275,6 +275,24 @@ public final class BrainManager {
 	}
 
 	private int commandId;
+	private final java.util.Map<Integer, java.util.function.Consumer<JsonObject>> asks = new java.util.concurrent.ConcurrentHashMap<>();
+
+	/** Sends a request to the brain (starting it if needed); {@code onReply} runs on the client thread. */
+	public void ask(JsonObject message, java.util.function.Consumer<JsonObject> onReply) {
+		int id = ++commandId;
+		message.addProperty("id", id);
+		asks.put(id, onReply);
+		control.execute(() -> {
+			if (status != Status.RUNNING && !startBlocking()) {
+				asks.remove(id);
+				JsonObject err = new JsonObject();
+				err.addProperty("error", "The brain isn't set up or didn't start (F10 > Brain)");
+				Minecraft.getInstance().execute(() -> onReply.accept(err));
+				return;
+			}
+			sendAsync(message);
+		});
+	}
 
 	/**
 	 * A command you typed with /ai: the brain turns it into goals (rule parser, or the optional
@@ -343,6 +361,12 @@ public final class BrainManager {
 			}
 			case "status" -> lastStatus = m;
 			case "command_result" -> onCommandResult(m);
+			case "chat_reply", "character" -> {
+				var cb = m.has("id") ? asks.remove(m.get("id").getAsInt()) : null;
+				if (cb != null) {
+					Minecraft.getInstance().execute(() -> cb.accept(m));
+				}
+			}
 			case "policy" -> {
 				if (m.has("ok") && !m.get("ok").getAsBoolean()) {
 					String error = m.has("error") ? m.get("error").getAsString() : "unknown error";

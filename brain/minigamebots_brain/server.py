@@ -39,6 +39,8 @@ class Brain:
             self.on_obs(message)
         elif kind == "set_policy":
             self.set_policy(message.get("name", "idle"), message.get("args") or {})
+        elif kind in ("chat", "make_character"):
+            threading.Thread(target=self.on_chat, args=(message,), daemon=True).start()
         elif kind == "command":
             threading.Thread(target=self.on_command, args=(message,), daemon=True).start()
         elif kind == "ping":
@@ -104,12 +106,40 @@ class Brain:
             if model is None and llm_mod.installed(root):
                 self.channel.send({"type": "command_result", "id": message.get("id"), "progress": True,
                                    "reply": "Loading the mind model (first time only)..."})
-                model = self.llm = llm_mod.LLM(root)
+                model = self._mind()
             result = commands.understand(str(message.get("text", "")), str(message.get("me", "")), model)
         except Exception as e:
             log("Mind error:\n" + traceback.format_exc())
             result = {"goals": [], "stop": False, "via": "none", "reply": f"My mind had a problem: {e}"}
         self.channel.send({"type": "command_result", "id": message.get("id"), **result})
+
+    def _mind(self):
+        """The language model, loaded on first use; None if it isn't installed."""
+        from .mind import llm as llm_mod
+
+        root = os.path.join(os.getcwd(), "mind")
+        if getattr(self, "llm", None) is None and llm_mod.installed(root):
+            self.llm = llm_mod.LLM(root)
+        return getattr(self, "llm", None)
+
+    def on_chat(self, message: dict) -> None:
+        """Chat in character, or make a character: needs the mind (Brain > Install mind)."""
+        from .mind import chat
+
+        out = {"type": "chat_reply" if message.get("type") == "chat" else "character", "id": message.get("id")}
+        try:
+            model = self._mind()
+            if model is None:
+                out["error"] = "Install the mind first (Brain > Install mind)"
+            elif message.get("type") == "chat":
+                out["text"] = chat.reply(model, message.get("character") or {}, str(message.get("ai_name", "")),
+                                         list(message.get("recent") or []), str(message.get("text", "")))
+            else:
+                out["character"] = chat.make_character(model, str(message.get("ai_name", "")), list(message.get("skills") or []))
+        except Exception as e:
+            log("Mind error:\n" + traceback.format_exc())
+            out["error"] = str(e)
+        self.channel.send(out)
 
     def _selfplay(self, profile: str):
         """The self-play opponent for this AI (made on first use)."""

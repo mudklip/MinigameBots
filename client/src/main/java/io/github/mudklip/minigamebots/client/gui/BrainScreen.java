@@ -103,10 +103,13 @@ public final class BrainScreen extends Screen {
 				b -> minecraft.gui.setScreen(new FoundationsScreen(this))).pos(width - 90, 4).width(80)
 				.tooltip(net.minecraft.client.gui.components.Tooltip.create(
 						Component.translatable("minigamebots.foundations.button_help"))).build());
-		boolean mindInstalled = java.nio.file.Files.isDirectory(brain.runtime().root().resolve("mind"));
+		boolean mindInstalled = mindReady(brain.runtime().root().resolve("mind"));
 		addRenderableWidget(Button.builder(Component.literal(mindBusy ? "Mind: installing..." : mindInstalled ? "Mind: installed"
-				: "Install mind (3 GB)"), b -> installMind()).pos(width - 174, 4).width(80)
+				: "Install mind (3 GB)"), b -> installMind("standard")).pos(width - 174, 4).width(80)
 				.tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable("minigamebots.mind.help"))).build())
+				.active = !mindBusy && !mindInstalled && brain.runtime().installed();
+		addRenderableWidget(Button.builder(Component.literal("Lite mind (1 GB)"), b -> installMind("lite")).pos(width - 258, 4).width(80)
+				.tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable("minigamebots.mind.lite_help"))).build())
 				.active = !mindBusy && !mindInstalled && brain.runtime().installed();
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose())
 				.pos(width - 70, y2).width(60).build());
@@ -164,8 +167,23 @@ public final class BrainScreen extends Screen {
 
 	private static volatile boolean mindBusy;
 
+	/** A mind model with its weights downloaded (an interrupted download doesn't count). */
+	private static boolean mindReady(java.nio.file.Path root) {
+		try (var dirs = java.nio.file.Files.list(root)) {
+			return dirs.anyMatch(d -> {
+				try (var files = java.nio.file.Files.list(d)) {
+					return files.anyMatch(f -> f.toString().endsWith(".safetensors"));
+				} catch (Exception e) {
+					return false;
+				}
+			});
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
 	/** Downloads the optional language model for free-form /ai commands (one time, about 3 GB). */
-	private void installMind() {
+	private void installMind(String size) {
 		mindBusy = true;
 		rebuildWidgets();
 		var toast = new net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId();
@@ -173,7 +191,7 @@ public final class BrainScreen extends Screen {
 		Thread t = new Thread(() -> {
 			String end;
 			try {
-				var r = io.github.mudklip.minigamebots.client.video.VideoLab.run(java.util.List.of("mind", "install", "--root",
+				var r = io.github.mudklip.minigamebots.client.video.VideoLab.run(java.util.List.of("mind", "install", "--size", size, "--root",
 						brain.runtime().root().resolve("mind").toString()), m -> mc.execute(() ->
 						net.minecraft.client.gui.components.toasts.SystemToast.addOrUpdate(mc.gui.toastManager(), toast,
 								Component.literal("Mind"), Component.literal(m))));

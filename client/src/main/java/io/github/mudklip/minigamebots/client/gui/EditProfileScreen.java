@@ -94,6 +94,9 @@ public final class EditProfileScreen extends Screen {
 		addRenderableWidget(new ValueSlider(half, "Aim wobble", 0, 1, 0.01, h.aimNoise, v -> String.format("%.2f°", v),
 				v -> h.aimNoise = (float) v)).setPosition(x + half + 4, sy + 48);
 
+		addRenderableWidget(Button.builder(Component.translatable("minigamebots.character.button"),
+				b -> minecraft.gui.setScreen(new CharacterScreen(this, working))).pos(width - 96, 6).width(90)
+				.tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable("minigamebots.character.chat_help"))).build());
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> save()).pos(width / 2 - 104, height - 28).width(100).build());
 		addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), b -> cancel()).pos(width / 2 + 4, height - 28).width(100).build());
 		setInitialFocus(name);

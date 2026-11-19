@@ -16,6 +16,7 @@ def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="minigamebots_brain mind")
     p.add_argument("action", choices=["install", "check"])
     p.add_argument("--root", required=True)
+    p.add_argument("--size", choices=["standard", "lite"], default="standard")
     args = p.parse_args(argv)
     from . import llm
 
@@ -28,7 +29,7 @@ def main(argv=None) -> int:
                             "accelerate>=0.33"], capture_output=True, text=True)
         if r.returncode != 0:
             raise RuntimeError("pip failed: " + (r.stderr or r.stdout)[-400:])
-        llm.install(args.root, log=lambda m: emit("log", message=m))
+        llm.install(args.root, log=lambda m: emit("log", message=m), size=args.size)
         emit("done", installed=True)
         return 0
     except Exception as e:

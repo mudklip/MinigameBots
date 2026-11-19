@@ -128,6 +128,28 @@ Tell your AI what to do in plain words. Only you can: it's a command on your own
 
 > Chain with "then", "and" or commas: [/ai get food, then go home, then explore].
 
+=== chat | Chat in character
+Give your AI a personality: it chats when people talk to it, while it plays.
+
+# Set it up
+1. Install the mind once: [F10] > [Brain...] > [Install mind (3 GB)] (or [Lite mind (1 GB)])
+2. [AI Profiles] > select the AI > [Edit...] > [Character...]
+3. Write the character, or press [Make one for me] and edit what it invents
+4. Turn [Chat: on], press [Done], then [Done] again to save
+
+# When does it talk?
+- Only while it's playing ([F8])
+- Only when someone says its character name or your name
+- At most one short line every 8 seconds, tagged [AI] (Settings)
+
+# Character fields
+- [Name in chat] what it calls itself
+- [Personality], [How it talks], [About it]
+- [Never talk about] topics it will skip (comma-separated)
+
+> It all runs on your PC. The same mind also understands free-form [/ai] commands.
+! A small model: fun for banter, not deep conversation. It can be repetitive or odd now and then.
+
 === goals | Goals
 The Manager decides what to do moment to moment, using the AI's skills.
 
