@@ -49,14 +49,14 @@ public final class VideoLab {
 		}
 	}
 
-	/** Runs `python -m minigamebots_brain video ...`; returns the final JSON line ("done" or "error"). */
+	/** Runs `python -m minigamebots_brain <args>` (e.g. "video", "import", ...); returns the final JSON line ("done" or "error"). */
 	public static JsonObject run(List<String> args, Consumer<String> progress) throws IOException, InterruptedException {
 		var runtime = MinigameBotsClient.instance().brain().runtime();
 		if (!runtime.installed()) {
 			throw new IOException("Set up the brain first (Brain > Install)");
 		}
 		var code = runtime.prepareCode();
-		List<String> cmd = new ArrayList<>(List.of(runtime.venvPython().toString(), "-m", "minigamebots_brain", "video"));
+		List<String> cmd = new ArrayList<>(List.of(runtime.venvPython().toString(), "-m", "minigamebots_brain"));
 		cmd.addAll(args);
 		ArrayDeque<String> out = new ArrayDeque<>();
 		JsonObject[] last = {new JsonObject()};

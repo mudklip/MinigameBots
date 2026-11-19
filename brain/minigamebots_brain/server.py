@@ -130,6 +130,10 @@ def main(argv=None) -> int:
         from .learn import train
 
         return train.main(argv[1:])
+    if argv and argv[0] == "players":
+        from . import players
+
+        return players.main(argv[1:])
     if argv and argv[0] == "video":
         from .video import cli
 

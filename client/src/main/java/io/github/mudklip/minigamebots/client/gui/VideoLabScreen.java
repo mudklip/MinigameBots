@@ -67,6 +67,11 @@ public final class VideoLabScreen extends Screen {
 		}).pos(x, 146).width(100).tooltip(Tooltip.create(Component.translatable("minigamebots.video.share_help"))).build());
 		addRenderableWidget(Button.builder(Component.translatable("minigamebots.profiles.folder"),
 				b -> com.mojang.blaze3d.Blaze3D.openPath(VideoLab.root().resolve("videos"))).pos(x + 104, 146).width(130).build());
+		addRenderableWidget(Button.builder(Component.translatable("minigamebots.video.players"), b -> {
+			Path recordings = io.github.mudklip.minigamebots.client.MinigameBotsClient.instance().recorder().store().root();
+			String me = minecraft.getUser().getName();
+			background("Reading other players", List.of("players", "--recordings", recordings.toString(), "--me", me));
+		}).pos(x, 170).width(234).tooltip(Tooltip.create(Component.translatable("minigamebots.video.players_help"))).build()).active = !busy;
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(width - 70, height - 28).width(60).build());
 	}
 
@@ -96,6 +101,11 @@ public final class VideoLabScreen extends Screen {
 			return String.format("Input guesser trained on %s moments: keys %.0f%% right, camera off by %s deg on average",
 					r.get("examples").getAsString(), r.get("key_accuracy").getAsDouble() * 100, r.get("yaw_error_deg").getAsString());
 		}
+		if (r.has("players")) {
+			return String.format("Made %s demo(s), %s s in all, from %s player(s); %s tick(s) with exact keys",
+					r.get("recordings").getAsString(), r.get("seconds").getAsString(), r.getAsJsonArray("players").size(),
+					r.get("exact_ticks").getAsString());
+		}
 		if (r.has("kept")) {
 			return String.format("Kept %s of %s shots (%s s of gameplay) as recordings; %s new question(s)",
 					r.get("kept").getAsString(), r.get("shots").getAsString(), r.get("kept_seconds").getAsString(),
@@ -113,13 +123,13 @@ public final class VideoLabScreen extends Screen {
 			return;
 		}
 		Path recordings = io.github.mudklip.minigamebots.client.MinigameBotsClient.instance().recorder().store().root();
-		background("Importing", List.of("import", "--video", videos.get(selected).toString(), "--recordings", recordings.toString(),
+		background("Importing", List.of("video", "import", "--video", videos.get(selected).toString(), "--recordings", recordings.toString(),
 				"--lab", VideoLab.root().toString(), "--tags", tags.trim()));
 	}
 
 	private void trainIdm() {
 		Path recordings = io.github.mudklip.minigamebots.client.MinigameBotsClient.instance().recorder().store().root();
-		background("Training the input guesser", List.of("idm", "--recordings", recordings.toString(), "--lab",
+		background("Training the input guesser", List.of("video", "idm", "--recordings", recordings.toString(), "--lab",
 				VideoLab.root().toString()));
 	}
 
@@ -129,7 +139,7 @@ public final class VideoLabScreen extends Screen {
 		g.text(font, title, 10, 10, 0xFFFFFFFF, false);
 		g.textWithWordWrap(font, Component.translatable("minigamebots.video.help"), 10, 24, width - 20, 0xFFB0B0B0);
 		if (status != null) {
-			g.textWithWordWrap(font, Component.literal(status), 10, 172, width - 20, 0xFF80E080);
+			g.textWithWordWrap(font, Component.literal(status), 10, 196, width - 20, 0xFF80E080);
 		}
 	}
 

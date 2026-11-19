@@ -79,6 +79,27 @@ final class TgCommands {
 							tg.arenas().clearSpawns(a);
 							ok(ctx, "Removed all spawns of " + a.name);
 						})))
+				.then(Commands.literal("record")
+						.then(Commands.literal("on").requires(tg::canManage).executes(ctx -> {
+							tg.inputs().set(ctx.getSource().getServer(), true);
+							ok(ctx, "Recording player inputs for linked AI clients (everyone was told)");
+							return 1;
+						}))
+						.then(Commands.literal("off").requires(tg::canManage).executes(ctx -> {
+							tg.inputs().set(ctx.getSource().getServer(), false);
+							ok(ctx, "Stopped recording player inputs");
+							return 1;
+						}))
+						.then(Commands.literal("optout").executes(ctx -> {
+							tg.inputs().setOptedOut(ctx.getSource().getPlayerOrException(), true);
+							ok(ctx, "Your inputs won't be recorded");
+							return 1;
+						}))
+						.then(Commands.literal("optin").executes(ctx -> {
+							tg.inputs().setOptedOut(ctx.getSource().getPlayerOrException(), false);
+							ok(ctx, "Your inputs may be recorded while recording is on");
+							return 1;
+						})))
 				.then(Commands.literal("match").requires(tg::canManage)
 						.then(Commands.literal("list").executes(ctx -> {
 							var list = tg.scenarios().list();

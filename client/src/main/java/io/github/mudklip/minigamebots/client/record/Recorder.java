@@ -85,7 +85,7 @@ public final class Recorder {
 		}
 		m.name = m.id;
 		m.created = OffsetDateTime.now().toString();
-		m.source = AgentControl.aiActive() ? "ai" : "human";
+		m.source = inFlashbackReplay() ? "replay" : AgentControl.aiActive() ? "ai" : "human";
 		m.world = worldName(client);
 		m.minecraftVersion = SharedConstants.getCurrentVersion().name();
 		m.modVersion = FabricLoader.getInstance().getModContainer("minigamebots")
@@ -126,6 +126,22 @@ public final class Recorder {
 		}
 		if (w.dropped() > 0) {
 			MinigameBotsClient.LOGGER.warn("Recording {} dropped {} ticks because the disk was too slow", m.id, w.dropped());
+		}
+	}
+
+	/**
+	 * True while watching a Flashback replay (optional mod, asked by reflection): the camera is
+	 * then not a player, so the recording only teaches through the other players in it.
+	 */
+	static boolean inFlashbackReplay() {
+		if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("flashback")) {
+			return false;
+		}
+		try {
+			Object r = Class.forName("com.moulberry.flashback.Flashback").getMethod("isInReplay").invoke(null);
+			return Boolean.TRUE.equals(r);
+		} catch (ReflectiveOperationException | RuntimeException e) {
+			return false;
 		}
 	}
 

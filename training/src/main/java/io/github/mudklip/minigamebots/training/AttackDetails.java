@@ -31,6 +31,12 @@ public final class AttackDetails {
 		LAST.computeIfPresent(p.getUUID(), (k, i) -> new Info(i.tick, i.charge, i.sprint, true));
 	}
 
+	/** Game time of the player's last melee attack, or -1. */
+	public static long attackedAt(ServerPlayer p) {
+		Info i = LAST.get(p.getUUID());
+		return i == null ? -1 : i.tick;
+	}
+
 	public static void forget(UUID id) {
 		LAST.remove(id);
 	}

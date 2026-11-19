@@ -42,6 +42,11 @@ public final class TrainingGrounds implements ModInitializer {
 
 	private final LinkedClients linkedClients = new LinkedClients();
 	private final GroundTruth truth = new GroundTruth(linkedClients);
+	private final InputRecorder inputs = new InputRecorder(truth);
+
+	public InputRecorder inputs() {
+		return inputs;
+	}
 	private final ArenaManager arenas = new ArenaManager();
 	private final DummyManager dummies = new DummyManager(truth);
 	private final AimTrainer aim = new AimTrainer(truth);
@@ -124,6 +129,9 @@ public final class TrainingGrounds implements ModInitializer {
 			if (ServerPlayNetworking.canSend(handler.getPlayer(), HelloPayload.TYPE)) {
 				sender.sendPacket(hello);
 			}
+			if (inputs.on()) {
+				inputs.notice(handler.getPlayer());
+			}
 		});
 
 		ServerPlayNetworking.registerGlobalReceiver(HelloPayload.TYPE, (payload, context) -> {
@@ -171,6 +179,7 @@ public final class TrainingGrounds implements ModInitializer {
 			dummies.tick();
 			aim.tick(server.getPlayerList().getPlayers());
 			scenarios.tick();
+			inputs.tick(server);
 		});
 
 		ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> dummies.allowDamage(entity, source));

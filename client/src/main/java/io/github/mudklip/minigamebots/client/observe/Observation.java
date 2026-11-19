@@ -54,7 +54,8 @@ public record Observation(
 			String heldItem, int armor, boolean visible, int ticksSinceSeen, int hitMe, int hitByMe, int hitProtected,
 			boolean sameTeam, boolean protectedTarget, boolean hostile, String insignia, int relation,
 			boolean allyInsignia, boolean enemyInsignia, int myHitsToKill, int theirHitsToKill, float fightOdds,
-			boolean blocking, float yaw, float pitch, boolean onGround) {
+			boolean blocking, float yaw, float pitch, boolean onGround, boolean swinging, boolean usingItem, boolean sprinting,
+			boolean sneaking, int hurtTime) {
 	}
 
 	/**

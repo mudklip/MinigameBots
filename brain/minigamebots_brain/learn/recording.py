@@ -107,7 +107,9 @@ class Recording:
 
     def _tick_weights(self, ticks: int) -> np.ndarray:
         # Imported videos count less than your own recordings (their inputs are guesses).
-        w = np.full(max(ticks, 1), float(self.meta.get("weight", 1.0)), dtype=np.float32)
+        # A Flashback replay's camera isn't a player: only its other players teach (players.py).
+        base = 0.0 if self.meta.get("source") == "replay" else float(self.meta.get("weight", 1.0))
+        w = np.full(max(ticks, 1), base, dtype=np.float32)
         for mark in self.meta.get("marks") or []:
             t = int(mark.get("tick", 0))
             lo, hi = max(0, t - MARK_RADIUS), min(len(w), t + MARK_RADIUS + 1)
@@ -208,7 +210,7 @@ class SequenceSampler:
                 has_frame[i] = 0
             else:
                 frames.append(decode_jpeg(jpeg))
-            weights[i] = rec.weights[t] if t < len(rec.weights) else 1.0
+            weights[i] = (rec.weights[t] if t < len(rec.weights) else 1.0) * float(record.get("w", 1.0))
             if record.get("cameraJump") or record.get("obs") is None:
                 camera_ok[i] = 0
             if record.get("obs") is None:

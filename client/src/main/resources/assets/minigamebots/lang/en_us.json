@@ -264,5 +264,7 @@
 	"minigamebots.question.screen": "Question Queue",
 	"minigamebots.question.name_hint": "Name",
 	"minigamebots.question.save": "Save as custom item",
-	"minigamebots.question.ignore": "Ignore"
+	"minigamebots.question.ignore": "Ignore",
+	"minigamebots.video.players": "Learn from other players in recordings",
+	"minigamebots.video.players_help": "Every other player seen in your recordings (any server, or a Flashback replay you recorded while watching) becomes a demo from their point of view, weighted by how well it went for them. Only on servers where you're allowed to record."
 }

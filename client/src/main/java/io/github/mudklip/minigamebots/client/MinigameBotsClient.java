@@ -116,6 +116,8 @@ public final class MinigameBotsClient implements ClientModInitializer {
 							if (v.isJsonPrimitive()) {
 								var p = v.getAsJsonPrimitive();
 								data.put(e.getKey(), p.isNumber() ? p.getAsDouble() : p.isBoolean() ? p.getAsBoolean() : p.getAsString());
+							} else {
+								data.put(e.getKey(), v); // Lists (e.g. "inputs") stay JSON and are recorded as they are.
 							}
 						}
 					} catch (RuntimeException e) {

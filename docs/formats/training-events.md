@@ -66,3 +66,12 @@ to; if input stops for half a second the dummy plays like an L3 dummy instead.
 `kiter`, `godly` (a teacher that cheats: never misses, reach 3.4, crits, W-taps, knocks shields
 down instantly), `self` (self-play, above), or `league` for a team: each round picks the style
 the player has the worst record against (weight (1 - win rate)^2, results in `league.json`).
+
+## Exact player inputs (M14)
+
+`/tg record on|off` (managers) and `/tg record optout|optin` (anyone). While on, everyone is
+told in chat (and again when they join), and each linked client gets an `inputs` event every
+tick: `players` = list of `{name, keys, slot}` for players within 32 blocks who haven't opted
+out, `keys` from the player's own movement input plus `attack` (a melee attack this tick) and
+`use`. The client records it with the tick, and the player-demo converter uses these exact keys
+instead of guessing them from motion.
