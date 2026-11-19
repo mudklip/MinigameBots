@@ -66,7 +66,7 @@ public final class SkillsScreen extends Screen {
 
 	/** The Core card is cell 0 in the "All" list, before every skill. */
 	private int offset() {
-		return category.equals("All") ? 1 : 0;
+		return category.equals("All") || category.equals("Core") ? 1 : 0;
 	}
 
 	private List<SkillStore.Entry> shown() {

@@ -89,9 +89,25 @@ final class TgCommands {
 							tg.arenas().clearSpawns(a);
 							ok(ctx, "Removed all spawns of " + a.name);
 						})))
+				.then(Commands.literal("coregame").requires(tg::canManage)
+						.then(Commands.literal("stop").executes(ctx -> {
+							tg.coreGames().stop(ctx.getSource().getServer());
+							ok(ctx, "Game stopped (the ground is as it was)");
+							return 1;
+						}))
+						.then(Commands.argument("kind", StringArgumentType.word())
+								.suggests((c, sb) -> {
+									var all = new java.util.ArrayList<>(CoreGames.KINDS);
+									all.add("random");
+									return net.minecraft.commands.SharedSuggestionProvider.suggest(all, sb);
+								})
+								.executes(ctx -> {
+									ok(ctx, tg.coreGames().start(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "kind")));
+									return 1;
+								})))
 				.then(Commands.literal("area").requires(tg::canManage)
 						.then(Commands.literal("clear").executes(ctx -> {
-							tg.areas().clear();
+							tg.areas().clear(ctx.getSource().getPlayer());
 							ok(ctx, "Practice area removed (the ground is as it was)");
 							return 1;
 						}))

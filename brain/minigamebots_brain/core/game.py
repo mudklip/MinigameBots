@@ -17,12 +17,14 @@ class CoreGamePolicy(PracticePolicy):
 
     def __init__(self, profile: str, me: str = "", learn: bool = True, stage_dir: str | None = None, **kwargs):
         self.me = me
+        self.base_profile = profile
         self.store = stage_dir or profile
         self.key = None
         self.finder = RuleFinder(me)
         kwargs.pop("objective", None)
         super().__init__(profile, objective=self.finder.objective(), learn=learn, **kwargs)
         self.prev = None
+        self.started_from = "general"
 
     def _switch_game(self, key: str) -> None:
         if self.key is not None:
@@ -30,6 +32,40 @@ class CoreGamePolicy(PracticePolicy):
         self.key = key
         self.finder = RuleFinder.load(self.store, key, self.me)
         self._refresh()
+        self._game_network(key)
+
+    def _game_network(self, key: str) -> None:
+        """Each game learns into its own network (the general one is never overwritten): a game seen
+        before continues from its own; a new one starts from the AI's skill that fits its rules best."""
+        import os
+
+        from ..learn import checkpoint
+        from ..rl import skills
+
+        own = os.path.join(self.store, "nets", key)
+        start = None
+        if checkpoint.read_info(own):
+            start = own
+        else:
+            for sid in self.finder.borrow():
+                area = (skills.preset(sid) or {}).get("manager", "")
+                d = os.path.join(self.base_profile, "skills", area) if area and area != "general" else None
+                if d and checkpoint.read_info(d):
+                    start = d
+                    break
+        self.profile = own
+        if start is not None:
+            try:
+                model, info = checkpoint.load(start, "latest", self.device)
+                self.model.load_state_dict(model.state_dict())
+                if self.learner is not None:
+                    self.learner.actor.load_state_dict(model.state_dict())
+                    self.learner.learner.load_state_dict(model.state_dict())
+                self.started_from = os.path.basename(start) if start != own else "its own"
+            except Exception:
+                self.started_from = "general"
+        else:
+            self.started_from = "general"
 
     def _refresh(self) -> None:
         from ..rl import objective as obj
@@ -60,5 +96,6 @@ class CoreGamePolicy(PracticePolicy):
 
     def status(self):
         out = super().status()
-        out.update({"game": self.key, "rules": self.finder.describe(), "borrow": self.finder.borrow()})
+        out.update({"game": self.key, "rules": self.finder.describe(), "borrow": self.finder.borrow(),
+                    "started_from": self.started_from})
         return out

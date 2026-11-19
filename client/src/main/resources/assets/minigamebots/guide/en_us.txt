@@ -202,6 +202,11 @@ The Core is the first card in the Skills list (the light block). It's common sen
 3. It plays and watches what happens: what knocks players out, what scores, what wins. After a few rounds the rules appear on the Core screen, for example "my hit with snowball -> I get a kill (90% sure)" and "getting hit by snowball -> I'm out".
 4. It rewards itself by those rules, borrows skills that fit (snowballs use its archery aim, melee uses its sword skills) and keeps learning the game's details.
 > Games are remembered by their scoreboard title: next time it starts out knowing the rules.
+
+# Core plan (no setup)
+Training Hub > Plans > [Core] > [Start coaching]: it builds a random little minigame around you (Snowball Fight, One Hit, Sumo, King of the Hill), learns it for a while, then switches to a new random game, again and again. Every game teaches it to pick up new games faster. The ground goes back as it was when the plan ends.
+- Each game gets its own network: a new game starts from the AI's skill that fits the rules best (e.g. its combat network), a game it knows continues where it left off. Its main network is never overwritten.
+> Command: /tg coregame <snowball|one_hit|sumo|king|random>, /tg coregame stop.
 ! It ignores coincidences: a rule needs to happen a few times, clearly more often than by chance.
 
 === skills | Skills (one by one)

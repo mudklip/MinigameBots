@@ -25,6 +25,7 @@ import org.jspecify.annotations.Nullable;
  */
 public final class Coach {
 	public enum Goal {
+		CORE("Core", Items.LIGHT, "general", "Common sense: plays new minigames, works out their rules by itself, and gets quicker at every new one."),
 		PVP("PvP", Items.DIAMOND_SWORD, "general", "Fight like an expert: crits, W-taps, shields, then beat the league."),
 		AIM("Aim", Items.BOW, "general", "Turn onto targets and track them fast and steadily."),
 		MOVEMENT("Movement", Items.LEATHER_BOOTS, "travel", "Walk, jump, bridge and path across terrain (Baritone teacher)."),
@@ -232,8 +233,11 @@ public final class Coach {
 			return "Join a world first";
 		}
 		boolean grounds = io.github.mudklip.minigamebots.client.TrainingLink.get().isPresent();
-		if ((g == Goal.PVP || g == Goal.AIM) && !grounds) {
-			return "PvP and Aim need Training Grounds (the training mod) in this world";
+		if ((g == Goal.PVP || g == Goal.AIM || g == Goal.CORE) && !grounds) {
+			return "PvP, Aim and Core need Training Grounds (the training mod) in this world";
+		}
+		if (g == Goal.CORE && !lite(p)) {
+			return "The Core's game learning needs a Lite-based AI";
 		}
 		stop("");
 		io.github.mudklip.minigamebots.client.profile.Backups.auto(mgb.profiles().store().dir(p.id), "Before coaching " + g.label);
@@ -256,6 +260,19 @@ public final class Coach {
 				: TrainingManager.Plan.LONG;
 		boolean lite = lite(p);
 		switch (g) {
+			case CORE -> {
+				int game = Math.max(5, Math.min(15, budget / 6));
+				steps.add(new Step("Start a new random minigame", true, () -> {
+					stopAi();
+					cmd("tg coregame random");
+				}, () -> elapsed() > 3000));
+				steps.add(new Step("Learn the game (" + game + " min)", true,
+						() -> mgb.brain().playCore(Minecraft.getInstance(), p), () -> elapsed() > game * 60_000L));
+				steps.add(new Step("End this game", true, () -> {
+					stopAi();
+					cmd("tg coregame stop");
+				}, () -> elapsed() > 2000));
+			}
 			case PVP -> {
 				arena();
 				match("godly");
@@ -413,6 +430,9 @@ public final class Coach {
 		}
 		cmd("tg multitrain stop");
 		cmd("tg match stop");
+		if (goal == Goal.CORE) {
+			cmd("tg coregame stop");
+		}
 		if (skillId != null) {
 			cmd("tg area clear");
 		}

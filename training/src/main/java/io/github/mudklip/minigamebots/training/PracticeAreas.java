@@ -30,11 +30,14 @@ public final class PracticeAreas {
 	private final List<net.minecraft.world.entity.Entity> spawned = new ArrayList<>();
 	private @Nullable ServerLevel level;
 
+	private BlockPos start = BlockPos.ZERO;
+
 	public String setup(ServerPlayer p, String kind) {
-		clear();
+		clear(p);
 		ServerLevel lv = (ServerLevel) p.level();
 		level = lv;
-		BlockPos c = p.blockPosition();
+		BlockPos c = ground(p);
+		start = c;
 		RandomSource r = lv.getRandom();
 		switch (kind) {
 			case "mining" -> {
@@ -140,9 +143,31 @@ public final class PracticeAreas {
 		}
 	}
 
+	/** The block above the ground under {@code p} (so nothing gets built in mid-air if they're flying or jumping). */
+	static BlockPos ground(ServerPlayer p) {
+		var lv = p.level();
+		BlockPos at = p.blockPosition();
+		for (int i = 0; i < 40 && at.getY() > lv.getMinY() + 1; i++) {
+			if (!lv.getBlockState(at.below()).isAir() && lv.getBlockState(at.below()).getFluidState().isEmpty()) {
+				return at;
+			}
+			at = at.below();
+		}
+		return p.blockPosition();
+	}
+
 	/** Removes the area: the ground goes back exactly as it was, spawned creatures go. */
 	public void clear() {
+		clear(null);
+	}
+
+	/** As {@link #clear()}, first moving {@code p} back to where the area was started if they're inside it. */
+	public void clear(@Nullable ServerPlayer p) {
 		ServerLevel lv = level;
+		if (lv != null && p != null && !replaced.isEmpty() && p.level() == lv && p.blockPosition().distSqr(start) < 40 * 40) {
+			p.teleportTo(lv, start.getX() + 0.5, start.getY(), start.getZ() + 0.5, java.util.Set.of(), p.getYRot(), p.getXRot(), true);
+			p.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
+		}
 		if (lv != null) {
 			for (int k = replaced.size() - 1; k >= 0; k--) {
 				lv.setBlock(replaced.get(k).getKey(), replaced.get(k).getValue(), Block.UPDATE_CLIENTS);

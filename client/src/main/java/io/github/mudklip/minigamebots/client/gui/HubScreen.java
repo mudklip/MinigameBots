@@ -38,7 +38,7 @@ public final class HubScreen extends Screen {
 	private int cardsX = 8;
 	private int cardsY = 30;
 	private int cardW = 150;
-	private static final int CARD_H = 30;
+	private static final int CARD_H = 25;
 
 	public HubScreen(@Nullable Screen parent) {
 		super(Component.literal("Training Hub"));
@@ -52,7 +52,7 @@ public final class HubScreen extends Screen {
 		int rw = width - rx - 8;
 
 		addRenderableWidget(Button.builder(Component.literal("§cNever..."), b -> minecraft.gui.setScreen(new NeverScreen(this)))
-				.pos(width - 194, 6).width(50).tooltip(Tooltip.create(Component.literal("Actions this AI never uses, whatever it's "
+				.pos(rx + 14 + Math.min(130, rw - 84) + 66, cardsY + 64).width(50).tooltip(Tooltip.create(Component.literal("Actions this AI never uses, whatever it's "
 						+ "doing (e.g. never open its inventory, never drop items)"))).build());
 		addRenderableWidget(Button.builder(Component.literal("Advanced..."), b -> {
 			ProfileManifest p = MinigameBotsClient.instance().profiles().active();
@@ -101,7 +101,7 @@ public final class HubScreen extends Screen {
 			return true;
 		}
 		for (int i = 0; i < Coach.Goal.values().length; i++) {
-			if (!Coach.running() && Ui.inside(event.x(), event.y(), cardsX, cardsY + i * (CARD_H + 4), cardW, CARD_H)) {
+			if (!Coach.running() && Ui.inside(event.x(), event.y(), cardsX, cardsY + i * (CARD_H + 3), cardW, CARD_H)) {
 				selected = Coach.Goal.values()[i];
 				return true;
 			}
@@ -126,21 +126,16 @@ public final class HubScreen extends Screen {
 		Coach.Goal active = Coach.goal() != null ? Coach.goal() : selected;
 		for (int i = 0; i < Coach.Goal.values().length; i++) {
 			Coach.Goal goal = Coach.Goal.values()[i];
-			int y = cardsY + i * (CARD_H + 4);
+			int y = cardsY + i * (CARD_H + 3);
 			boolean hover = Ui.inside(mouseX, mouseY, cardsX, y, cardW, CARD_H);
 			Ui.card(g, cardsX, y, cardW, CARD_H, goal == active ? Ui.CARD_SELECTED : hover ? Ui.CARD_HOVER : Ui.CARD,
 					goal == active ? Ui.ACCENT : Ui.BORDER);
-			g.item(new ItemStack(goal.icon), cardsX + 6, y + 7);
+			g.item(new ItemStack(goal.icon), cardsX + 6, y + 4);
 			int xp = pr.xp.getOrDefault(goal.key(), 0) + relatedSkillXp(pr, goal);
 			g.text(font, goal.label, cardsX + 28, y + 4, Ui.TEXT, false);
 			String lv = "Lv " + Progress.level(xp);
 			g.text(font, lv, cardsX + cardW - 6 - font.width(lv), y + 4, Ui.GOOD, false);
-			Ui.bar(g, cardsX + 28, y + 16, cardW - 36, 6, Progress.toNext(xp), Ui.ACCENT);
-			Double r = pr.rating.get(goal == Coach.Goal.PVP ? "pvp" : goal == Coach.Goal.AIM ? "aim" : "");
-			if (r != null) {
-				g.text(font, Component.literal(String.format("§7%s %.0f", goal == Coach.Goal.PVP ? "win%" : "score", r)),
-						cardsX + 28, y + 23, Ui.MUTED, false);
-			}
+			Ui.bar(g, cardsX + 28, y + 15, cardW - 36, 5, Progress.toNext(xp), Ui.ACCENT);
 		}
 		// Right panel: the goal and its plan.
 		int rx = cardsX + cardW + 8;
@@ -233,7 +228,7 @@ public final class HubScreen extends Screen {
 			case MOVEMENT -> "Movement";
 			case MINING -> "Mining";
 			case SURVIVAL -> "Survival";
-			case AIM -> "";
+			case AIM, CORE -> "";
 		};
 		int sum = 0;
 		for (var e : io.github.mudklip.minigamebots.client.skills.SkillLibrary.get().skills.entrySet()) {

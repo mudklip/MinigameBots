@@ -45,8 +45,9 @@
 - **#1 priority: the Core** (docs/MIND_DESIGN.md section 11). Done in 1.9.0: rule finder (counts
   cause -> effect with a coincidence check; win/lose titles, kills, deaths, scores, projectile
   hits), automatic rewards from rules, skill borrowing suggestions, per-game memory by sidebar
-  title, "Learn this game" mode, Core card (light block) first in Skills. Next for the Core:
-  (a) actually switch to borrowed skills inside a game (the Manager picks them by the rules),
+  title, "Learn this game" mode, Core card (light block) first in Skills. 1.10.0: Core plan and
+  Core category; generated games (snowball, one_hit, sumo, king) built around you; each game
+  learns into its own network, starting from the best-fitting skill's network (a). Next:
   (b) self-taught pretraining heads (predict next seconds, events, deaths) on the shared network,
   needs a model change and retraining, (c) the minigame generator in Training Grounds (instant
   random rule sets: one-hit snowballs, sumo, spleef, TNT run, king of the hill, last alive...),

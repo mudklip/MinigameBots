@@ -75,6 +75,7 @@ public final class MultiTrainer {
 	/** Blocks replaced by arenas built around the player, put back when training stops. */
 	private final java.util.List<java.util.Map.Entry<BlockPos, net.minecraft.world.level.block.state.BlockState>> replaced =
 			new java.util.ArrayList<>();
+	private BlockPos gridCentre = BlockPos.ZERO;
 	private static final int HALF = 7; // Arena 15 x 15 inside the walls' outer edge.
 	private static final int STEP = 2 * HALF + 1 + 3;
 
@@ -108,7 +109,8 @@ public final class MultiTrainer {
 		style = opponentStyle;
 		owner = p.getUUID();
 		int[] g = grid(count);
-		BlockPos c = p.blockPosition();
+		BlockPos c = PracticeAreas.ground(p);
+		gridCentre = c;
 		// Cell (i, j) centre, measured from the player in steps; the grid is centred on the player.
 		double ox = (g[0] - 1) / 2.0;
 		double oz = (g[1] - 1) / 2.0;
@@ -283,6 +285,13 @@ public final class MultiTrainer {
 			}
 		}
 		copies.clear();
+		if (owner != null && server != null && level != null && !replaced.isEmpty()) {
+			ServerPlayer back = server.getPlayerList().getPlayer(owner);
+			if (back != null && back.blockPosition().distSqr(gridCentre) < 64 * 64) {
+				back.teleportTo(level, gridCentre.getX() + 0.5, gridCentre.getY(), gridCentre.getZ() + 0.5, java.util.Set.of(),
+						back.getYRot(), back.getXRot(), true);
+			}
+		}
 		restoreTerrain();
 		owner = null;
 	}

@@ -45,6 +45,11 @@ public final class TrainingGrounds implements ModInitializer {
 	private final InputRecorder inputs = new InputRecorder(truth);
 	private MultiTrainer multi;
 	private final PracticeAreas areas = new PracticeAreas();
+	private @org.jspecify.annotations.Nullable CoreGames coreGames;
+
+	public CoreGames coreGames() {
+		return coreGames;
+	}
 
 	public PracticeAreas areas() {
 		return areas;
@@ -170,6 +175,7 @@ public final class TrainingGrounds implements ModInitializer {
 		});
 
 		multi = new MultiTrainer(arenas, dummies, truth);
+		coreGames = new CoreGames(dummies, truth);
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			arenas.load(server);
 			dummies.load(server);
@@ -195,6 +201,9 @@ public final class TrainingGrounds implements ModInitializer {
 			if (multi != null) {
 				multi.tick(server);
 			}
+			if (coreGames != null) {
+				coreGames.tick(server);
+			}
 		});
 
 		ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> dummies.allowDamage(entity, source));
@@ -205,6 +214,9 @@ public final class TrainingGrounds implements ModInitializer {
 			dummies.afterDamage(entity, source, taken, blocked);
 			if (multi != null) {
 				multi.onDamage(entity, source, blocked ? 0 : taken);
+			}
+			if (coreGames != null) {
+				coreGames.onDamage(entity, source, blocked ? 0 : taken);
 			}
 			scenarios.onDamage(entity, source, blocked ? 0 : taken);
 		});
