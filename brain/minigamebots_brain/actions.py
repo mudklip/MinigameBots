@@ -18,6 +18,7 @@ class Action:
     pitch: float = 0.0  # Degrees, down is positive.
     mark: str | None = None  # Meta-action: remember this place as a waypoint of this type ("base", ...).
     protect: str | None = None  # Meta-action: player name to protect ("" stops protecting).
+    puppets: list | None = None  # Multi-world training: input for each learner body ({id, keys, yaw, pitch}).
 
     def to_message(self, tick: int) -> dict:
         unknown = set(self.keys) - set(KEYS)
@@ -36,6 +37,8 @@ class Action:
             msg["mark"] = self.mark
         if self.protect is not None:
             msg["protect"] = self.protect
+        if self.puppets:
+            msg["puppets"] = self.puppets
         return msg
 
 

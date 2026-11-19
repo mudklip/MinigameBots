@@ -1101,6 +1101,12 @@ path; optional spoken replies with Piper). All local: Brain > Mind (3 GB) or Lit
 and Voice (350 MB). Defaults chosen: mind on GPU (CPU without one), one character per AI,
 speaks only when spoken to, push-to-talk. Code: `brain/minigamebots_brain/mind/`.
 
+**Multi-world training (built):** `/tg multitrain start <arena> <count> <opponent>` places copies of
+an arena (+X side), each with a learner body steered by the AI (the self-play puppet) and an
+opponent; the server sends one compact observation per learner each tick, the brain's
+`multiworld` policy answers for all in one batch and trains with PPO on every copy's
+experience (separate rollout and reward engine per copy). Lite only. Original idea below.
+
 **Multi-world training in one game (your idea, optional, later):** speedrun "multi-instance"
 mods (the kind that keep several worlds loaded at once to reset for a good seed) suggest a
 way to train faster: one Minecraft process runs many small training worlds side by side

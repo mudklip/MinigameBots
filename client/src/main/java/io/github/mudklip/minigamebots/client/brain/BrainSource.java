@@ -138,6 +138,9 @@ public final class BrainSource implements ActionSource {
 		if (m.has("puppet") && m.get("puppet").isJsonObject()) {
 			SelfPlayLink.send(m.getAsJsonObject("puppet"));
 		}
+		if (m.has("puppets") && m.get("puppets").isJsonArray()) {
+			m.getAsJsonArray("puppets").forEach(p -> SelfPlayLink.send(p.getAsJsonObject()));
+		}
 		if (m.has("protect") && m.get("protect").isJsonPrimitive()) {
 			String name = m.get("protect").getAsString();
 			net.minecraft.client.Minecraft c = net.minecraft.client.Minecraft.getInstance();

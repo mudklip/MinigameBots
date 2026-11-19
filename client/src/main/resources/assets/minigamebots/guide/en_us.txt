@@ -236,6 +236,25 @@ The route to a strong fighter, with no PvP skill needed from you. Each step buil
 > The league keeps picking the opponent styles it loses to, so practice always targets its weak spots.
 ! Baritone is not part of this: it's a walking/mining bot. The fighting teacher is built in.
 
+=== multiworld | Multi-world training
+Practise in many arena copies at once: 8 worlds = about 8x the practice per second.
+
+# Start
+1. Use an AI on the [Lite] base (pictures aren't drawn for the extra worlds)
+2. Save an arena (see "Arenas and matches")
+3. [/tg multitrain start duel1 8 L3] (arena, how many copies, opponent style)
+4. Your AI takes control by itself and trains in all copies; you just watch
+5. [/tg multitrain stop] when done (progress is saved as it goes)
+
+# Tips
+- Start with 4-8 copies; more needs a faster PC
+- [/tick sprint 6000] runs the game as fast as your PC allows for a while
+- Use a harder opponent ([L5], [godly]) once it starts winning
+- Check progress with [Exams...]; a version is saved before practice
+
+> Copies are built next to the arena, in the direction of +X: keep that space empty.
+! Lite base only. Your own player stands still while it trains.
+
 === dummies | Fight a dummy
 Dummies are fake players that stand, move, block and fight back. Use them to practise yourself, or to record and train the AI.
 

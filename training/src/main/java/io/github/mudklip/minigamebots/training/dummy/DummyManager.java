@@ -164,6 +164,12 @@ public final class DummyManager {
 		return dummies.get(e.getUUID());
 	}
 
+	/** Ticks since the dummy last swung, for its attack charge (multi-world observations). */
+	public int sinceAttack(UUID id) {
+		Dummy d = dummies.get(id);
+		return d == null ? 100 : d.sinceAttack;
+	}
+
 	public @Nullable Dummy byId(UUID id) {
 		return dummies.get(id);
 	}

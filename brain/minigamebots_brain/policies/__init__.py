@@ -25,6 +25,12 @@ def _manager(**kwargs) -> Policy:
     return ManagerPolicy(**kwargs)
 
 
+def _multiworld(**kwargs) -> Policy:
+    from .multiworld import MultiWorldPolicy  # Imported on use: it needs torch.
+
+    return MultiWorldPolicy(**kwargs)
+
+
 def _practice(**kwargs) -> Policy:
     from .practice import PracticePolicy  # Imported on use: it needs torch.
 
@@ -37,6 +43,7 @@ POLICIES = {
     "spin": SpinPolicy,
     "follow": FollowPolicy,
     "teacher": TeacherPolicy,
+    "multiworld": _multiworld,
     "torch_smoke": TorchSmokePolicy,
     "learned": create_learned,
     "vpt": _vpt,

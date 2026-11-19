@@ -43,6 +43,11 @@ public final class TrainingGrounds implements ModInitializer {
 	private final LinkedClients linkedClients = new LinkedClients();
 	private final GroundTruth truth = new GroundTruth(linkedClients);
 	private final InputRecorder inputs = new InputRecorder(truth);
+	private MultiTrainer multi;
+
+	public MultiTrainer multi() {
+		return multi;
+	}
 
 	public InputRecorder inputs() {
 		return inputs;
@@ -159,12 +164,14 @@ public final class TrainingGrounds implements ModInitializer {
 			scenarios.onDisconnect(handler.getPlayer());
 		});
 
+		multi = new MultiTrainer(arenas, dummies, truth);
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			arenas.load(server);
 			dummies.load(server);
 			scenarios.load(server);
 		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+			multi.stop(server);
 			scenarios.shutdown();
 			aim.clear();
 			dummies.unload();
@@ -180,6 +187,9 @@ public final class TrainingGrounds implements ModInitializer {
 			aim.tick(server.getPlayerList().getPlayers());
 			scenarios.tick();
 			inputs.tick(server);
+			if (multi != null) {
+				multi.tick(server);
+			}
 		});
 
 		ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> dummies.allowDamage(entity, source));
@@ -188,12 +198,18 @@ public final class TrainingGrounds implements ModInitializer {
 		ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, base, taken, blocked) -> {
 			truth.onDamage(entity, source, taken, blocked);
 			dummies.afterDamage(entity, source, taken, blocked);
+			if (multi != null) {
+				multi.onDamage(entity, source, blocked ? 0 : taken);
+			}
 			scenarios.onDamage(entity, source, blocked ? 0 : taken);
 		});
 		ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
 			truth.onDeath(entity, source);
 			scenarios.afterDeath(entity, source);
 			dummies.afterDeath(entity);
+			if (multi != null) {
+				multi.onDeath(entity);
+			}
 		});
 
 		AttackEntityCallback.EVENT.register((player, level, hand, entity, hit) -> {

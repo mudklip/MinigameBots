@@ -124,6 +124,12 @@ public final class MinigameBotsClient implements ClientModInitializer {
 						LOGGER.debug("Bad Training Grounds event {}", payload.kind(), e);
 						return;
 					}
+					if ("mw".equals(payload.kind()) || "mw_stop".equals(payload.kind())) {
+						// Multi-world training data: every tick and only for the brain, not recordings.
+						io.github.mudklip.minigamebots.client.brain.MultiWorldLink.onEvent(
+								new io.github.mudklip.minigamebots.client.events.GameEvent(0, "tg_" + payload.kind(), data, "server"));
+						return;
+					}
 					events.emitServer("tg_" + payload.kind(), data);
 				});
 

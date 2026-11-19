@@ -79,6 +79,32 @@ final class TgCommands {
 							tg.arenas().clearSpawns(a);
 							ok(ctx, "Removed all spawns of " + a.name);
 						})))
+				.then(Commands.literal("multitrain").requires(tg::canManage)
+						.then(Commands.literal("stop").executes(ctx -> {
+							tg.multi().stop(ctx.getSource().getServer());
+							ok(ctx, "Stopped multi-world training");
+							return 1;
+						}))
+						.then(Commands.literal("start").then(Commands.argument("arena", StringArgumentType.word()).suggests(arenaNames)
+								.then(Commands.argument("count", IntegerArgumentType.integer(1, 32))
+										.then(Commands.argument("opponent", StringArgumentType.word())
+												.suggests((c, sb) -> net.minecraft.commands.SharedSuggestionProvider.suggest(DummySettings.STYLES, sb))
+												.executes(ctx -> {
+													Arena a = tg.arenas().get(StringArgumentType.getString(ctx, "arena"));
+													String style = StringArgumentType.getString(ctx, "opponent");
+													if (a == null || !DummySettings.STYLES.contains(style) || style.equals("self")) {
+														fail(ctx, a == null ? "No such arena" : "Opponent styles: L1-L5, rusher, blocker, critter, w_tapper, kiter, godly");
+														return 0;
+													}
+													try {
+														ok(ctx, tg.multi().start(ctx.getSource().getPlayerOrException(), a,
+																IntegerArgumentType.getInteger(ctx, "count"), style));
+													} catch (ArenaManager.ArenaException e) {
+														fail(ctx, e.getMessage());
+														return 0;
+													}
+													return 1;
+												}))))))
 				.then(Commands.literal("record")
 						.then(Commands.literal("on").requires(tg::canManage).executes(ctx -> {
 							tg.inputs().set(ctx.getSource().getServer(), true);

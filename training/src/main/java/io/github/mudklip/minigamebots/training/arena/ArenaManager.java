@@ -295,6 +295,12 @@ public final class ArenaManager {
 		return players;
 	}
 
+	/** Places a copy of the arena with its lowest corner at {@code at} (multi-world training). */
+	public void placeCopy(Arena a, BlockPos at) throws ArenaException {
+		ServerLevel level = level(a);
+		snapshot(a, level).placeInWorld(level, at, at, new StructurePlaceSettings(), level.getRandom(), Block.UPDATE_CLIENTS);
+	}
+
 	private static boolean isDebris(Entity e) {
 		return e instanceof ItemEntity || e instanceof ExperienceOrb || e instanceof Projectile
 				|| e instanceof PrimedTnt || e instanceof FallingBlockEntity;

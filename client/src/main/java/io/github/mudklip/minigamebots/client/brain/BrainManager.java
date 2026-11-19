@@ -1,5 +1,6 @@
 package io.github.mudklip.minigamebots.client.brain;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.github.mudklip.minigamebots.client.MinigameBotsClient;
 import io.github.mudklip.minigamebots.client.config.MgbConfig;
@@ -465,6 +466,10 @@ public final class BrainManager {
 		m.addProperty("slot", slot);
 		m.addProperty("frameTick", frame == null ? -1 : frame.tick());
 		m.add("obs", RecordingCodec.GSON.toJsonTree(obs));
+		JsonArray mw = MultiWorldLink.take();
+		if (mw != null) {
+			m.getAsJsonObject("obs").add("multiworld", mw);
+		}
 		JsonObject puppet = SelfPlayLink.describe();
 		if (puppet != null) {
 			m.getAsJsonObject("obs").add("puppet", puppet);
