@@ -228,7 +228,8 @@ A backup is a copy of the whole AI: every network (what it learned), skill setti
 # Go back
 1. Click a backup on the left.
 2. To go back completely, press [Bring back everything].
-3. To bring back only some parts, untick the rest, then press [Bring back ticked parts]. For example, tick only [Network: combat] to undo bad combat practice and keep everything else.
+3. To bring back only some parts, untick the rest, then press [Bring back ticked parts]. Each skill is its own part: [Skill: Sword PvP] is its settings and stage, [Learned: ...] is what it learned. For example, tick only those to bring back an old PvP and keep everything else.
+! Skills in one area share what they learn by default (e.g. all combat skills learn into [Learned: combat (shared)]), so they go back together. To restore one skill alone, give it its own network first: its card > [Advanced...] > [Network: its own].
 ! Going back to an older version replaces what it learned since then. You'll be asked first, with the option to [Back up first, then go back], so you can always return to how it is now. It never stops you.
 > The network history in [Advanced] > [Versions] works the same way for a single network, and warns the same way.
 

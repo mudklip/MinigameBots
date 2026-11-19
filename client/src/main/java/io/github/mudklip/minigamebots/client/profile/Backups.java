@@ -73,7 +73,7 @@ public final class Backups {
 			if (p.length >= 4 && p[2].equals("core")) {
 				return "network:" + p[1];
 			}
-			return "skills";
+			return p.length >= 3 ? "skill:" + p[1] : "skills";
 		}
 		if (r.equals("progress.json") || r.equals("exams.json")) {
 			return "progress";
@@ -91,7 +91,19 @@ public final class Backups {
 	public static String label(String part) {
 		if (part.startsWith("network:")) {
 			String n = part.substring(8);
-			return n.equals("general") ? "Main network (what it learned)" : "Network: " + n;
+			if (n.equals("general")) {
+				return "Main network (what it learned)";
+			}
+			var lib = io.github.mudklip.minigamebots.client.skills.SkillLibrary.get();
+			if (lib.skills.containsKey(n)) {
+				return "Learned: " + lib.skills.get(n).name;
+			}
+			return "Learned: " + n + " (shared)";
+		}
+		if (part.startsWith("skill:")) {
+			String n = part.substring(6);
+			var d = io.github.mudklip.minigamebots.client.skills.SkillLibrary.get().skills.get(n);
+			return "Skill: " + (d != null ? d.name : n.startsWith("my_") ? n.substring(3).replace('_', ' ') : n);
 		}
 		return switch (part) {
 			case "skills" -> "Skill settings and stages";

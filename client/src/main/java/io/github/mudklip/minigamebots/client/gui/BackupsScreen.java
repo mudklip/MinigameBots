@@ -32,6 +32,7 @@ public final class BackupsScreen extends Screen {
 	private @Nullable String message;
 	private final List<int[]> partChips = new ArrayList<>();
 	private int listW;
+	private int partScroll;
 
 	public BackupsScreen(@Nullable Screen parent) {
 		super(Component.literal("Backups"));
@@ -138,6 +139,10 @@ public final class BackupsScreen extends Screen {
 
 	@Override
 	public boolean mouseScrolled(double x, double y, double dx, double dy) {
+		if (x > 8 + listW + 8 && current() != null) {
+			partScroll = Math.max(0, Math.min(Math.max(0, current().parts.size() - 3), partScroll - (int) Math.signum(dy)));
+			return true;
+		}
 		int vis = Math.max(1, (height - 44) / (CARD_H + 3));
 		scroll = Math.max(0, Math.min(Math.max(0, list.size() - vis), scroll - (int) Math.signum(dy)));
 		return true;
@@ -152,6 +157,7 @@ public final class BackupsScreen extends Screen {
 			}
 			if (Ui.inside(event.x(), event.y(), 8, y, listW, CARD_H)) {
 				selected = i;
+				partScroll = 0;
 				rebuildWidgets();
 				return true;
 			}
@@ -167,6 +173,26 @@ public final class BackupsScreen extends Screen {
 			}
 		}
 		return super.mouseClicked(event, doubleClick);
+	}
+
+	/** For a shared network: which skills it holds (they go back together). */
+	private @Nullable String sharedHelp(String part) {
+		if (!part.startsWith("network:") || part.equals("network:general")) {
+			return part.startsWith("skill:") ? "Its settings and stage. What it learned is in its network (see Learned: ...)" : null;
+		}
+		String n = part.substring(8);
+		Path dir = profileDir();
+		if (dir == null) {
+			return null;
+		}
+		List<String> users = new ArrayList<>();
+		for (var e : io.github.mudklip.minigamebots.client.skills.SkillStore.list(dir)) {
+			if (io.github.mudklip.minigamebots.client.skills.SkillStore.network(e.id(), e.def()).equals(n) && !e.id().equals(n)) {
+				users.add(e.def().name);
+			}
+		}
+		return users.isEmpty() ? "What this skill learned" : "Shared by: " + String.join(", ", users)
+				+ " (give a skill its own network in Advanced to restore it alone)";
 	}
 
 	private static String size(long b) {
@@ -216,21 +242,30 @@ public final class BackupsScreen extends Screen {
 		partChips.clear();
 		int y = 80;
 		int k = 0;
-		for (var e : b.parts.entrySet()) {
+		String hover = null;
+		var entries = new ArrayList<>(b.parts.entrySet());
+		for (int idx = partScroll; idx < entries.size(); idx++) {
+			var e = entries.get(idx);
+			k = idx;
 			boolean on = chosen.contains(e.getKey());
 			String text = (on ? "☑ " : "☐ ") + Backups.label(e.getKey());
 			int w = Math.min(rw - 52, font.width(text) + 10);
-			if (y + 13 > height - 56) {
+			if (y + 13 > height - 76) {
+				g.text(font, Component.literal("§7▼ scroll for more"), rx + 6, y, Ui.MUTED, false);
 				break;
+			}
+			if (Ui.inside(mouseX, mouseY, rx + 6, y, w, 13)) {
+				hover = sharedHelp(e.getKey());
 			}
 			Ui.chip(g, font, text, rx + 6, y, w, on, Ui.inside(mouseX, mouseY, rx + 6, y, w, 13), Ui.GOOD);
 			String sz = size(e.getValue());
 			g.text(font, Component.literal("§8" + sz), rx + rw - 8 - font.width(sz), y + 3, Ui.MUTED, false);
-			partChips.add(new int[] {rx + 6, y, w, k++});
+			partChips.add(new int[] {rx + 6, y, w, k});
 			y += 15;
 		}
-		if (message != null) {
-			g.text(font, Component.literal(font.plainSubstrByWidth(message, rw - 12)), rx + 6, height - 62, Ui.WARN, false);
+		String bottom = hover != null ? hover : message;
+		if (bottom != null) {
+			g.text(font, Component.literal(font.plainSubstrByWidth(bottom, rw - 12)), rx + 6, height - 62, hover != null ? Ui.MUTED : Ui.WARN, false);
 		}
 	}
 
