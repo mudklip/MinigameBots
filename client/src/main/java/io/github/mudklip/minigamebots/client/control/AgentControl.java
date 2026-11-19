@@ -28,6 +28,18 @@ public final class AgentControl {
 	}
 
 	/** True while the AI controls this instance. Read from mixins on the render thread. */
+	/**
+	 * Whether your real mouse and keyboard are held back: while the AI plays, except on
+	 * MinigameBots' own screens (e.g. watching training worlds), which you can always use.
+	 */
+	public static boolean blocksHuman(Minecraft mc) {
+		if (!aiActive()) {
+			return false;
+		}
+		var screen = mc.gui.screen();
+		return screen == null || !screen.getClass().getName().startsWith("io.github.mudklip.minigamebots.");
+	}
+
 	public static boolean aiActive() {
 		return INSTANCE.active;
 	}

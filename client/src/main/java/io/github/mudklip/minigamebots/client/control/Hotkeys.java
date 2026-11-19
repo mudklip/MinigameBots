@@ -81,6 +81,11 @@ public final class Hotkeys {
 			return true;
 		}
 		if (OPEN_MENU.matches(event)) {
+			if (io.github.mudklip.minigamebots.client.brain.MultiWorldLink.running()) {
+				// Training worlds keep running: F10 opens their live view (with the main menu behind it).
+				client.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.WorldsScreen(new MainScreen(null)));
+				return true;
+			}
 			if (control.active()) {
 				control.stop(client, Component.translatable("minigamebots.control.human_on"));
 			}

@@ -29,14 +29,14 @@ public abstract class KeyboardHandlerMixin {
 		if (!AgentControl.aiActive()) {
 			MinigameBotsClient.instance().humanInput().onKey(minecraft, action, event);
 		}
-		if (Hotkeys.onKey(minecraft, action, event) || AgentControl.aiActive()) {
+		if (Hotkeys.onKey(minecraft, action, event) || AgentControl.blocksHuman(minecraft)) {
 			ci.cancel();
 		}
 	}
 
 	@Inject(method = "charTyped", at = @At("HEAD"), cancellable = true)
 	private void minigamebots$charTyped(long handle, CharacterEvent event, CallbackInfo ci) {
-		if (AgentControl.aiActive()) {
+		if (AgentControl.blocksHuman(minecraft)) {
 			ci.cancel();
 		}
 	}

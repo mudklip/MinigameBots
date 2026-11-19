@@ -15,6 +15,12 @@ import net.minecraft.client.Minecraft;
 public final class MultiWorldLink {
 	private static volatile JsonArray latest;
 	private static volatile boolean running;
+	/** The world being watched (0-based), or -1. */
+	public static volatile int watching = -1;
+
+	public static boolean running() {
+		return running;
+	}
 
 	private MultiWorldLink() {
 	}
@@ -22,6 +28,7 @@ public final class MultiWorldLink {
 	public static void onEvent(GameEvent e) {
 		if ("tg_mw_stop".equals(e.type())) {
 			running = false;
+			watching = -1;
 			latest = null;
 			Minecraft c = Minecraft.getInstance();
 			c.execute(() -> {
@@ -35,6 +42,7 @@ public final class MultiWorldLink {
 		if (!"tg_mw".equals(e.type()) || !(e.data().get("copies") instanceof JsonElement el) || !el.isJsonArray()) {
 			return;
 		}
+		MultiWorldStats.update(el.getAsJsonArray());
 		JsonArray prev = latest;
 		if (prev != null) {
 			// Keep events from ticks the brain hasn't seen yet.
@@ -54,6 +62,8 @@ public final class MultiWorldLink {
 		}
 		if (!running) {
 			running = true;
+			MultiWorldStats.reset();
+			MultiWorldStats.update(el.getAsJsonArray());
 			Minecraft c = Minecraft.getInstance();
 			var profile = MinigameBotsClient.instance().profiles().active();
 			if (profile != null) {

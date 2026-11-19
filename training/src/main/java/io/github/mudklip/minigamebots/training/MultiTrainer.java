@@ -55,6 +55,12 @@ public final class MultiTrainer {
 	private @Nullable ServerLevel level;
 	private String style = "L3";
 	private int rounds;
+	/** Watching a learner (spectating it): which copy, and how to put the player back after. */
+	private int watching = -1;
+	private net.minecraft.world.level.@Nullable GameType watchMode;
+	private @Nullable Vec3 watchPos;
+	private float watchYaw;
+	private float watchPitch;
 
 	public MultiTrainer(ArenaManager arenas, DummyManager dummies, GroundTruth truth) {
 		this.arenas = arenas;
@@ -127,7 +133,48 @@ public final class MultiTrainer {
 		return t != null ? t : sb.addPlayerTeam(name);
 	}
 
+	/** Spectates copy {@code index}'s learner (follows it across rounds). */
+	public String watch(ServerPlayer p, int index) {
+		if (index < 0 || index >= copies.size()) {
+			return "There are " + copies.size() + " training worlds";
+		}
+		if (watching < 0) {
+			watchMode = p.gameMode();
+			watchPos = p.position();
+			watchYaw = p.getYRot();
+			watchPitch = p.getXRot();
+		}
+		watching = index;
+		p.setGameMode(net.minecraft.world.level.GameType.SPECTATOR);
+		LivingEntity l = entity(copies.get(index).learner);
+		if (l != null) {
+			p.setCamera(l);
+		}
+		return "Watching training world " + (index + 1);
+	}
+
+	/** Back to the player's own view, place and game mode. */
+	public void unwatch(ServerPlayer p) {
+		if (watching < 0) {
+			return;
+		}
+		watching = -1;
+		p.setCamera(p);
+		if (watchPos != null && level != null) {
+			p.teleportTo(level, watchPos.x, watchPos.y, watchPos.z, java.util.Set.of(), watchYaw, watchPitch, true);
+		}
+		if (watchMode != null) {
+			p.setGameMode(watchMode);
+		}
+	}
+
 	public void stop(net.minecraft.server.MinecraftServer server) {
+		if (owner != null && server != null && watching >= 0) {
+			ServerPlayer w = server.getPlayerList().getPlayer(owner);
+			if (w != null) {
+				unwatch(w);
+			}
+		}
 		for (Copy c : copies) {
 			if (c.learner != null) {
 				dummies.remove(c.learner);
@@ -201,6 +248,12 @@ public final class MultiTrainer {
 		if (p == null) {
 			stop(server);
 			return;
+		}
+		if (watching >= 0 && watching < copies.size()) {
+			LivingEntity l = entity(copies.get(watching).learner);
+			if (l != null && p.getCamera() != l) {
+				p.setCamera(l); // A new round: a new learner body.
+			}
 		}
 		JsonArray out = new JsonArray();
 		for (Copy c : copies) {

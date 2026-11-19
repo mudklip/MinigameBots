@@ -305,6 +305,8 @@ The route to a strong fighter, with no PvP skill needed from you. Each step buil
 ! Baritone is not part of this: it's a walking/mining bot. The fighting teacher is built in.
 
 === multiworld | Multi-world training
+The easy way: Training Hub > [⚡ Training worlds]. Pick how many worlds and the opponent, press [Start]. The screen then shows every world live: a mini-map (green = your AI facing up, red = its opponent), both health bars and the score. Click a world to follow its learner up close; [Back to my view] returns you. Cards flash green on a win, red on a loss.
+
 Practise in many arena copies at once: 8 worlds = about 8x the practice per second.
 
 # Start

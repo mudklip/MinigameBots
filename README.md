@@ -23,7 +23,8 @@ and open **Guide**: a getting-started checklist and short pages for every featur
 - **Learn from you:** record yourself (F7) and train (imitation learning, Lite or OpenAI VPT base).
 - **Learn without you:** scripted teacher demos (expert fighter, Baritone travel/mining), a
   fast aim simulator, practice with rewards (PPO), a league that targets its weak spots,
-  self-play against its past versions, and multi-world training (many arenas at once).
+  self-play against its past versions, and training worlds (many arenas at once, all watched
+  live on one screen).
 - **Learn from others:** gameplay videos (Video Lab, with an input guesser and a Question
   Queue) and other players seen in your recordings or Flashback replays.
 - **Skills, one by one:** 36 ready-made skills plus your own; choose what each is rewarded

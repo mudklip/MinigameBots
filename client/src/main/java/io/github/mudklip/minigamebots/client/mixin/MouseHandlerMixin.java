@@ -32,7 +32,7 @@ public abstract class MouseHandlerMixin {
 
 	@Inject(method = "onButton", at = @At("HEAD"), cancellable = true)
 	private void minigamebots$onButton(long handle, MouseButtonInfo info, int action, CallbackInfo ci) {
-		if (AgentControl.aiActive()) {
+		if (AgentControl.blocksHuman(minecraft)) {
 			ci.cancel();
 		} else if (handle == minecraft.getWindow().handle()) {
 			MinigameBotsClient.instance().humanInput().onMouseButton(minecraft, info, action);
@@ -41,14 +41,14 @@ public abstract class MouseHandlerMixin {
 
 	@Inject(method = "onScroll", at = @At("HEAD"), cancellable = true)
 	private void minigamebots$onScroll(long handle, double x, double y, CallbackInfo ci) {
-		if (AgentControl.aiActive()) {
+		if (AgentControl.blocksHuman(minecraft)) {
 			ci.cancel();
 		}
 	}
 
 	@Inject(method = "onMove", at = @At("HEAD"), cancellable = true)
 	private void minigamebots$onMove(long handle, double x, double y, double xrel, double yrel, CallbackInfo ci) {
-		if (AgentControl.aiActive()) {
+		if (AgentControl.blocksHuman(minecraft)) {
 			ci.cancel();
 		}
 	}

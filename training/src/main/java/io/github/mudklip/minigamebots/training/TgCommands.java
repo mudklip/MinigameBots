@@ -90,6 +90,16 @@ final class TgCommands {
 							ok(ctx, "Removed all spawns of " + a.name);
 						})))
 				.then(Commands.literal("multitrain").requires(tg::canManage)
+						.then(Commands.literal("watch")
+								.then(Commands.literal("off").executes(ctx -> {
+									tg.multi().unwatch(ctx.getSource().getPlayerOrException());
+									ok(ctx, "Back to your own view");
+									return 1;
+								}))
+								.then(Commands.argument("world", IntegerArgumentType.integer(1, 32)).executes(ctx -> {
+									ok(ctx, tg.multi().watch(ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "world") - 1));
+									return 1;
+								})))
 						.then(Commands.literal("stop").executes(ctx -> {
 							tg.multi().stop(ctx.getSource().getServer());
 							ok(ctx, "Stopped multi-world training");
