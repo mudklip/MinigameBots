@@ -199,3 +199,87 @@ class AwarenessTest(unittest.TestCase):
         calm = d.needs(o, t, True)["fear"]
         o["places"] = [{"here": True, "feeling": -1.0}]
         self.assertGreater(d.needs(o, t, True)["fear"], calm)
+
+
+class AnnoyanceAndAftermathTest(unittest.TestCase):
+    def _poke(self, m, t, **kw):
+        """One joke punch from Steve (id 7) at tick t."""
+        m.act(obs(t - 1, [player(hit=30, **kw)]), None)
+        m.act(obs(t, [player(hit=0, **kw)], [{"type": "damage_taken", "data": {"amount": 1}}]), None)
+
+    def test_joke_hits_build_up_in_steps(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            m = ManagerPolicy(tmp, free_play=True, mode="neutral")
+            stages = []
+            for k in range(4):
+                self._poke(m, 100 + k * 200)  # Spread out: each one alone is a joke.
+                stages.append(m.drives.judge.stage(7))
+            self.assertEqual(stages[0], "calm")
+            self.assertIn("notice", stages)
+            self.assertEqual(stages[-1], "fed_up")
+            self.assertTrue(m.drives.judge.real(7))
+
+    def test_peaceful_is_more_patient_than_hunter(self):
+        a, b = drives.Drives("peaceful"), drives.Drives("hunter")
+        for d in (a, b):
+            for k in range(3):
+                t = 100 + k * 200
+                d.judge.update(t - 1, obs(t - 1, [player(hit=30)]), [])
+                d.judge.update(t, obs(t, [player(hit=0)]), [])
+        self.assertLess(a.judge.annoy.get(7, 0), b.judge.annoy.get(7, 0))
+
+    def test_annoyed_steps_away_and_warns(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            m = ManagerPolicy(tmp, free_play=True, mode="neutral")
+            m.drives.judge.annoy[7] = 0.85
+            o = obs(1000, [player(hit=-1)])
+            a = None
+            for t in range(1000, 1011):
+                o = obs(t, [player(hit=-1)])
+                a = m.act(o, None)
+                if a.say:
+                    break
+            self.assertEqual(m.mode, "back_off")
+            self.assertEqual(a.say, "stop it")
+
+    def test_mercy_after_a_knockout_leaves_and_gives_back(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            m = ManagerPolicy(tmp, free_play=True, mode="peaceful")
+            o = obs(10, [player(dz=1.0)], [{"type": "kill", "data": {"name": "Steve"}}], x=0.0, z=0.0)
+            m.act(o, None)
+            self.assertEqual(m.aftermath["mode"], "mercy")
+            o = obs(20, [], [{"type": "item_gained", "data": {"item": "minecraft:diamond_sword", "count": 1}}], x=0.0, z=0.0)
+            o["inventory"] = [{"slot": 3, "id": "minecraft:diamond_sword"}]
+            o["selectedSlot"] = 3
+            m.act(o, None)
+            self.assertEqual(m.mode, "leave_spot")  # Near the spot: walk away first.
+            o = obs(30, [], x=0.0, z=20.0)
+            o["inventory"] = [{"slot": 3, "id": "minecraft:diamond_sword"}]
+            o["selectedSlot"] = 3
+            acts = [m.act(dict(o, tick=30 + k), None) for k in range(12)]
+            self.assertEqual(m.mode, "give_back")
+            self.assertTrue(any("drop" in a.keys for a in acts))
+
+    def test_ruthless_fights_them_again_when_they_come_back(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            m = ManagerPolicy(tmp, free_play=True, mode="neutral", after="ruthless")
+            m.act(obs(10, [], [{"type": "kill", "data": {"name": "Steve"}}]), None)
+            m.act(obs(20, [player(dz=10.0, hit=-1)]), None)
+            self.assertEqual(m.mode, "fight")
+
+    def test_mercy_lets_go_when_they_back_off(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            m = ManagerPolicy(tmp, free_play=True, mode="neutral", after="mercy")
+            whys = []
+            for t in range(0, 300, 10):
+                if t < 60:  # A real fight: sword hits that hurt.
+                    hit = 0 if t % 20 == 0 else 10
+                    ev = [{"type": "damage_taken", "data": {"amount": 4}}] if hit == 0 else []
+                    m.act(obs(t, [player(dz=3.0, hit=hit, held="minecraft:iron_sword")], ev), None)
+                else:  # Then they walk away and stop hitting.
+                    m.act(obs(t, [player(dz=3.0 + (t - 60) / 10, hit=60 + t - 60, held="minecraft:iron_sword")]), None)
+                if t == 50:
+                    self.assertEqual(m.mode, "fight")
+                whys.append(m.why)
+            self.assertNotEqual(m.mode, "fight")
+            self.assertTrue(any("backed off" in w for w in whys))

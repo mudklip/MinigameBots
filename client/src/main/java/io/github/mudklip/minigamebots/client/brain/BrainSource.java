@@ -138,8 +138,23 @@ public final class BrainSource implements ActionSource {
 		return total == 0 ? 0 : (double) late / total;
 	}
 
+	private static long lastSay;
+
 	/** Meta-actions ride along with an action: e.g. "mark": "base" remembers this place. */
 	static void metaActions(JsonObject m) {
+		if (m.has("say") && m.get("say").isJsonPrimitive()
+				&& io.github.mudklip.minigamebots.client.config.MgbConfig.get().chatReplies
+				&& System.currentTimeMillis() - lastSay > 10_000) {
+			// Only with chat replies on (Settings), at most every 10 s.
+			lastSay = System.currentTimeMillis();
+			String text = m.get("say").getAsString();
+			net.minecraft.client.Minecraft c = net.minecraft.client.Minecraft.getInstance();
+			c.execute(() -> {
+				if (c.player != null) {
+					c.player.connection.sendChat(text.length() > 100 ? text.substring(0, 100) : text);
+				}
+			});
+		}
 		if (m.has("puppet") && m.get("puppet").isJsonObject()) {
 			SelfPlayLink.send(m.getAsJsonObject("puppet"));
 		}

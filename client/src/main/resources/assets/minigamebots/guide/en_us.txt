@@ -291,6 +291,11 @@ Needs compete all the time: fear, anger, hunger, duty and boredom. The Goals scr
 # Joke hits or real attacks?
 A single light punch from a friend is a joke and is ignored. A weapon, real damage, several hits in a row, crits, or an enemy turns it into a real attack, and it reacts (fights back, or runs if it's peaceful or losing).
 
+# Jokes, annoyance and how fights end
+- Joke hits build up an annoyance meter per person that drains over a few minutes. Friends and people it likes get more patience; Peaceful has lots, Hunt players little. Sprinting or crit hits annoy more; walking away annoys less.
+- Steps: ignore -> look at them and step back -> a warning ("stop it", only with chat replies on) -> a real fight.
+- [After a fight] (Goals screen) decides how fights it wins end: Mercy (stops when they back off, gives back what it picked up from them), Fair (lets them go, stays away so they can get their things), Ruthless (chases longer, keeps the loot, fights them again if they come back), or Auto (by attitude). Fights that only started because jokes went too far always end mercifully; duels and matches are left to the game.
+
 # Counting health
 Like a sharp player, it doesn't read other players' health from the game: it counts it. It remembers its own hits (weapon, charge, crits, their visible armour, Protection IV assumed on enchanted pieces), hits from others, totems popped and golden apples eaten. The longer since a hit, the less sure it is, because they may have healed. Settings > Perception > [Count others' health] (on by default).
 

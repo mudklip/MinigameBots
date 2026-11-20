@@ -27,6 +27,9 @@ public final class ProfileManifest {
 	/** Attitude when it plays on its own: neutral, hunter, guard, peaceful, or personality (from its character). */
 	public String attitude = "neutral";
 
+	/** How fights it wins end: auto, mercy, fair, ruthless. */
+	public String afterFight = "auto";
+
 	/** Chat in character (optional, needs the mind). */
 	public Character character = new Character();
 

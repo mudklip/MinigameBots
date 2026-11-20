@@ -82,6 +82,19 @@ public final class GoalsScreen extends Screen {
 			}).pos(x, ry + i * 14 - 2).size(14, 12).build());
 		}
 		int by = height - 54;
+		ProfileManifest fp = MinigameBotsClient.instance().profiles().active();
+		if (fp != null) {
+			addRenderableWidget(Button.builder(Component.literal("After a fight: §e" + afterLabel(fp.afterFight)), b -> {
+				int i = AFTER.indexOf(fp.afterFight == null ? "auto" : fp.afterFight);
+				fp.afterFight = AFTER.get((i + 1) % AFTER.size());
+				try {
+					MinigameBotsClient.instance().profiles().store().save(fp);
+				} catch (java.io.IOException e) {
+					error = "Couldn't save: " + e.getMessage();
+				}
+				rebuildWidgets();
+			}).pos(x, by - 24).width(170).tooltip(Tooltip.create(Component.literal(afterHelp(fp.afterFight)))).build());
+		}
 		addRenderableWidget(Button.builder(Component.literal("Free play: " + (freePlay ? "on" : "off")), b -> {
 			freePlay = !freePlay;
 			b.setMessage(Component.literal("Free play: " + (freePlay ? "on" : "off")));
@@ -115,6 +128,27 @@ public final class GoalsScreen extends Screen {
 					attitudeHelp(ap.attitude)))).build());
 		}
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(width - 70, height - 28).width(60).build());
+	}
+
+	private static final List<String> AFTER = List.of("auto", "mercy", "fair", "ruthless");
+
+	private static String afterLabel(String a) {
+		return switch (a == null ? "auto" : a) {
+			case "mercy" -> "Mercy";
+			case "fair" -> "Fair";
+			case "ruthless" -> "Ruthless";
+			default -> "Auto";
+		};
+	}
+
+	private static String afterHelp(String a) {
+		return switch (a == null ? "auto" : a) {
+			case "mercy" -> "Stops as soon as they back off; if it knocks them out, it gives back what it picked up from them.";
+			case "fair" -> "Lets them go when they back off; after a knock-out it stays away so they can get their things.";
+			case "ruthless" -> "Chases longer, keeps the loot, and fights them again if they come back for their things.";
+			default -> "By its attitude (peaceful: mercy, neutral and guard: fair, hunt players: ruthless). Fights that only "
+					+ "started because jokes went too far always end mercifully; duels and matches are left to the game.";
+		};
 	}
 
 	private static final List<String> ATTITUDES = List.of("neutral", "hunter", "guard", "peaceful", "personality");

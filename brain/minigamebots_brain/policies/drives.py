@@ -51,13 +51,23 @@ class HitJudge:
     """Real attack or joke? Per attacker, from the last 15 seconds."""
 
     WINDOW = 300
+    DRAIN = 1.0 / 3600  # Annoyance drains away over about 3 minutes.
 
     def __init__(self):
         self.hits = {}  # id -> [(tick, damage, weapon, crit)]
         self.prev = {}
         self.verdict = {}  # id -> ("real"|"joke", why)
+        self.annoy = {}  # id -> 0..1+: joke hits pile up; 1 = fed up (a real fight)
+        self.patience = 1.0  # Set by the attitude: peaceful has lots, hunters little.
+        self.last_tick = 0
 
     def update(self, tick: int, obs: dict, events: list) -> None:
+        dt = max(0, tick - self.last_tick) if self.last_tick else 1
+        self.last_tick = tick
+        for i in list(self.annoy):
+            self.annoy[i] = max(0.0, self.annoy[i] - self.DRAIN * dt)
+            if self.annoy[i] == 0.0:
+                del self.annoy[i]
         dmg = sum(float((e.get("data") or {}).get("amount", 0)) for e in events if e.get("type") == "damage_taken")
         for e in obs.get("entities") or []:
             i = e.get("id")
@@ -71,7 +81,17 @@ class HitJudge:
             lst = [h for h in self.hits.get(i, []) if tick - h[0] < self.WINDOW]
             lst.append((tick, dmg, is_weapon(e.get("heldItem", "")), crit))
             self.hits[i] = lst
-            self.verdict[i] = self.judge(e, lst, obs)
+            v = self.judge(e, lst, obs)
+            if v[0] == "joke":
+                # Jokes pile up: friends and liked people get more patience, pushy behaviour less.
+                mem = {p.get("id"): p for p in obs.get("people") or []}.get(i) or {}
+                tolerance = self.patience * (1.5 if e.get("relation", 0) > 0 or e.get("sameTeam") else 1.0) \
+                    * (1.0 + max(0.0, float(mem.get("like", 0))))
+                push = 1.5 if (e.get("sprinting") or crit) else 0.6 if self.walking_away(e) else 1.0
+                self.annoy[i] = self.annoy.get(i, 0.0) + 0.3 * push / tolerance
+                if self.annoy[i] >= 1.0:
+                    v = ("real", f"fed up after {sum(1 for _ in lst)} joke hits")
+            self.verdict[i] = v
 
     @staticmethod
     def judge(e: dict, hits: list, obs: dict) -> tuple:
@@ -118,6 +138,16 @@ class HitJudge:
         real = score >= 3
         return ("real" if real else "joke", ", ".join(why) or ("one light hit" if not real else "attacking"))
 
+    @staticmethod
+    def walking_away(e: dict) -> bool:
+        """Moving away from us (velocity points the same way as their offset)."""
+        return e.get("dx", 0) * e.get("vx", 0) + e.get("dz", 0) * e.get("vz", 0) > 0.01
+
+    def stage(self, entity_id) -> str:
+        """How annoyed: calm, notice (look, step away), warn, fed_up."""
+        a = self.annoy.get(entity_id, 0.0)
+        return "fed_up" if a >= 1.0 else "warn" if a >= 0.75 else "notice" if a >= 0.5 else "calm"
+
     def real(self, entity_id) -> bool:
         v = self.verdict.get(entity_id)
         return v is not None and v[0] == "real"
@@ -128,10 +158,13 @@ class HitJudge:
 
 
 class Drives:
+    PATIENCE = {"peaceful": 2.0, "neutral": 1.0, "guard": 0.8, "hunter": 0.5}
+
     def __init__(self, mode: str = "neutral"):
         self.mode = mode if mode in MODES else "neutral"
         self.cfg = MODES[self.mode]
         self.judge = HitJudge()
+        self.judge.patience = self.PATIENCE.get(self.mode, 1.0)
         self.feelings = {}
         self.focus = None  # The player a hunter has picked.
 
@@ -204,6 +237,8 @@ class Drives:
         if here is not None and float(here.get("feeling", 0)) < -0.4:
             fear += 0.3  # It remembers bad things happening here.
         hunger = max(0.0, (16 - food) / 8)
+        if threat is not None and self.judge.stage(threat.get("id")) == "fed_up":
+            anger = max(anger, 1.0)  # Fed up: it's a fight now (the attitude still weighs it below).
         duty = c["duty"]
         if self.mode == "hunter" and self.geared(obs) and self.prey(obs) is not None:
             duty = 1.6
@@ -224,6 +259,24 @@ class Drives:
         if self.mode == "guard":
             return {"type": "go_to", "waypoint": "base", "why": "back to guard the base"} if rng.random() < 0.3 else None
         return None
+
+
+# --- after a fight -----------------------------------------------------------------------------
+
+AFTER = ("auto", "mercy", "fair", "ruthless")
+AFTER_BY_ATTITUDE = {"peaceful": "mercy", "neutral": "fair", "guard": "fair", "hunter": "ruthless"}
+
+
+def after_mode(setting: str, attitude: str, kind: str) -> str:
+    """How a fight ends. Fights that started from jokes going too far always end mercifully;
+    agreed fights are left to the game."""
+    if kind == "sport":
+        return "sport"
+    if kind == "annoyed":
+        return "mercy"
+    if setting in AFTER and setting != "auto":
+        return setting
+    return AFTER_BY_ATTITUDE.get(attitude, "fair")
 
 
 # --- personality -> mode (one time, optionally with the mind) ------------------------------

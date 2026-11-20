@@ -92,7 +92,7 @@ class ManagerPolicy(Policy):
 
     def __init__(self, profile: str, goals: list | None = None, free_play: bool = False, temperature: float = 1.0,
                  foundations: str | None = None, likes: dict | None = None, device: str | None = None,
-                 mode: str = "neutral", **_):
+                 mode: str = "neutral", after: str = "auto", **_):
         from . import drives
 
         if mode == "personality":
@@ -120,6 +120,13 @@ class ManagerPolicy(Policy):
         self.completed = []
         self.sub = None  # Goal picked by free play
         self.rng = random.Random()
+        self.after = after if after in drives.AFTER else "auto"
+        self.fight_kind = "real"
+        self.fight_target = None
+        self.target_dist = []  # Recent distances to the one it's fighting (to see them back off).
+        self.aftermath = None  # {"name", "x", "z", "until", "mode", "picked": [item ids]}
+        self.warned = {}  # id -> tick of last warning
+        self._annoyer, self._annoy_stage = None, "calm"
         self.calm_ticks = 0
         self.held = Action()
         self.thinking = 20
@@ -229,7 +236,10 @@ class ManagerPolicy(Policy):
             hit = e.get("hitMe", -1)
             score = 0.0
             joke = e.get("player") and self.drives.judge.joke(e.get("id")) and e.get("relation", 0) >= 0
-            if 0 <= hit < 100 and not joke:
+            a = self.aftermath
+            if a and a["mode"] == "ruthless" and e.get("name") == a["name"] and d < 24:
+                score = 3.0  # Back for their things: fight them again.
+            elif 0 <= hit < self._chase_ticks() and not joke:
                 score = 3.0
             elif e.get("hostile") and d < 5:
                 score = 2.0
@@ -239,11 +249,80 @@ class ManagerPolicy(Policy):
                 best, best_score = e, score / (1 + d * 0.05)
         return best
 
+    def _aftermath_events(self, obs: dict) -> None:
+        from . import drives
+
+        me = obs.get("self") or {}
+        for ev in obs.get("_events") or []:
+            t, d = ev.get("type"), ev.get("data") or {}
+            if t == "kill" and d.get("name"):
+                e = next((x for x in obs.get("entities") or [] if x.get("name") == d["name"]), None)
+                x = float(me.get("x", 0)) + (e.get("dx", 0) if e else 0)
+                z = float(me.get("z", 0)) + (e.get("dz", 0) if e else 0)
+                mode = drives.after_mode(self.after, self.drives.mode, self.fight_kind)
+                self.aftermath = {"name": d["name"], "x": x, "z": z, "until": self.tick + 3600, "mode": mode, "picked": []}
+            elif t == "item_gained" and self.aftermath and self.tick < self.aftermath["until"] - 3000:
+                if self._dist_to_spot(me) < 8:
+                    self.aftermath["picked"].append(str(d.get("item", "")))
+        if self.aftermath and self.tick > self.aftermath["until"]:
+            self.aftermath = None
+
+    def _dist_to_spot(self, me: dict) -> float:
+        a = self.aftermath
+        return math.hypot(float(me.get("x", 0)) - a["x"], float(me.get("z", 0)) - a["z"]) if a else 1e9
+
+    def _annoyed_by(self):
+        """Someone joke-hitting it enough to react to (but not fed up): (entity, stage)."""
+        for e in self._obs.get("entities") or []:
+            st = self.drives.judge.stage(e.get("id"))
+            if st in ("notice", "warn") and e.get("visible", True):
+                return e, st
+        return None, "calm"
+
+    def _chase_ticks(self) -> int:
+        """How long after their last hit it keeps after them: ruthless fighters chase longer."""
+        from . import drives
+
+        return 300 if drives.after_mode(self.after, self.drives.mode, self.fight_kind) == "ruthless" else 100
+
+    def _backing_off(self, t: dict) -> bool:
+        """The one it's fighting is leaving and hasn't hit it for 5 s."""
+        d = math.sqrt(t.get("dx", 0) ** 2 + t.get("dz", 0) ** 2)
+        self.target_dist = (self.target_dist + [d])[-30:]
+        hit = t.get("hitMe", -1)
+        recent = self.target_dist[-4:]
+        return (len(recent) >= 4 and recent[-1] > recent[0] + 1.5 and d > 4 and (hit < 0 or hit > 40))
+
     def _decide(self, goal: Goal | None):
         me = self._obs.get("self") or {}
         threat = self._threat()
+        from . import drives
+
+        if threat is not None and threat.get("id") != self.fight_target:
+            self.fight_target = threat.get("id")
+            self.target_dist = []
+            verdict = self.drives.judge.verdict.get(threat.get("id")) or ("", "")
+            self.fight_kind = ("sport" if (self._obs.get("risk") or {}).get("sport")
+                               else "annoyed" if "fed up" in verdict[1] else "real")
+        if threat is not None and threat.get("player"):
+            mode = drives.after_mode(self.after, self.drives.mode, self.fight_kind)
+            if mode in ("mercy", "fair") and self._backing_off(threat):
+                return "goal", f"{threat.get('name', 'they')} backed off: letting it go"
+        if threat is None:
+            annoyer, stage = self._annoyed_by()
+            if annoyer is not None:
+                self._annoyer, self._annoy_stage = annoyer, stage
+                return "back_off", f"{annoyer.get('name', 'someone')} keeps joke-hitting ({stage})"
+            a = self.aftermath
+            if a and a["mode"] in ("fair", "mercy") and self._dist_to_spot(me) < 7:
+                return "leave_spot", f"letting {a['name']} get their things"
+            if a and a["mode"] == "mercy" and a["picked"] and self._drop_slot() is not None:
+                return "give_back", "giving " + a["name"] + " their things back"
+
         health = float(me.get("health", 20))
-        real = threat is not None and (not threat.get("player") or self.drives.judge.real(threat.get("id"))
+        back_for_loot = (threat is not None and self.aftermath is not None and self.aftermath["mode"] == "ruthless"
+                         and threat.get("name") == self.aftermath["name"])
+        real = threat is not None and (back_for_loot or not threat.get("player") or self.drives.judge.real(threat.get("id"))
                                        or threat.get("relation", 0) < 0 or threat.get("enemyInsignia", False))
         need = self.drives.needs(self._obs, threat, real)
         if threat is not None:
@@ -265,6 +344,7 @@ class ManagerPolicy(Policy):
         self._obs = obs
         self.tick = int(obs.get("tick", self.tick + 1))
         self.drives.judge.update(self.tick, obs, obs.get("_events") or [])
+        self._aftermath_events(obs)
         for ev in obs.get("_events") or []:
             for g in self.queue[:1] + ([self.sub] if self.sub else []):
                 g.on_event(ev)
@@ -286,6 +366,12 @@ class ManagerPolicy(Policy):
             self.mode, self.why = self._decide(goal)
         if self.mode == "eat":
             return self._eat()
+        if self.mode == "back_off":
+            return self._back_off()
+        if self.mode == "leave_spot":
+            return self._leave_spot()
+        if self.mode == "give_back":
+            return self._give_back()
         if self.tick < self.unstick_until:
             # Watchdog: it hasn't got anywhere for a while: turn away, jump and walk, then retry.
             self.skill = "unstick"
@@ -386,6 +472,46 @@ class ManagerPolicy(Policy):
 
     # --- built-in reflexes (when no trained skill exists yet) ---
 
+    def _back_off(self) -> Action:
+        """Annoyed: look at them and step back; at the warning stage, say so (once in a while)."""
+        e = self._annoyer
+        if e is None:
+            return Action()
+        me = self._obs.get("self") or {}
+        want_yaw = math.degrees(math.atan2(-e.get("dx", 0), e.get("dz", 0)))
+        yaw_err = wrap_degrees(want_yaw - float(me.get("yaw", 0.0)))
+        act = Action(keys={"back"}, yaw=max(-12.0, min(12.0, yaw_err * 0.4)))
+        if self._annoy_stage == "warn" and self.tick - self.warned.get(e.get("id"), -10**9) > 600:
+            self.warned[e.get("id")] = self.tick
+            act.say = "stop it"
+        return act
+
+    def _leave_spot(self) -> Action:
+        """Walk away from where they were knocked out, so they can get their things."""
+        a = self.aftermath
+        me = self._obs.get("self") or {}
+        dx, dz = float(me.get("x", 0)) - a["x"], float(me.get("z", 0)) - a["z"]
+        want_yaw = math.degrees(math.atan2(-dx, dz))
+        yaw_err = wrap_degrees(want_yaw - float(me.get("yaw", 0.0)))
+        return Action(keys={"forward"} if abs(yaw_err) < 60 else set(), yaw=max(-15.0, min(15.0, yaw_err * 0.5)))
+
+    def _drop_slot(self):
+        a = self.aftermath
+        for it in self._obs.get("inventory") or []:
+            if it.get("slot", 99) < 9 and any(p and p in it.get("id", "") for p in a["picked"]):
+                return it["slot"]
+        return None
+
+    def _give_back(self) -> Action:
+        """Drop what it picked up from their body (one item every other tick, from the hotbar)."""
+        slot = self._drop_slot()
+        if slot is None:
+            self.aftermath["picked"] = []
+            return Action()
+        if self._obs.get("selectedSlot") != slot:
+            return Action(keys={f"hotbar_{slot + 1}"})
+        return Action(keys={"drop"}) if self.tick % 2 == 0 else Action()
+
     def _eat(self) -> Action:
         slot = self._food_slot()
         if slot is None:
@@ -463,5 +589,6 @@ class ManagerPolicy(Policy):
         return {"goal": goal.label() if goal else None, "why": (goal.spec.get("why") if goal else None) or self.why,
                 "mode": self.mode, "skill": self.skill or "reflexes", "queue": len(self.queue),
                 "completed": self.completed[-5:], "skills": self.available, "free_play": self.free_play,
-                "attitude": self.drives.mode, "thinking": self.thinking, "feelings": self.drives.feelings,
+                "attitude": self.drives.mode, "thinking": self.thinking,
+                "after_fight": self.aftermath["mode"] if self.aftermath else None, "feelings": self.drives.feelings,
                 "judged": {str(k): f"{v[0]} ({v[1]})" for k, v in list(self.drives.judge.verdict.items())[-3:]}}

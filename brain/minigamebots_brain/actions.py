@@ -19,6 +19,7 @@ class Action:
     mark: str | None = None  # Meta-action: remember this place as a waypoint of this type ("base", ...).
     protect: str | None = None  # Meta-action: player name to protect ("" stops protecting).
     puppets: list | None = None  # Multi-world training: input for each learner body ({id, keys, yaw, pitch}).
+    say: str | None = None  # A short chat line (only sent if chat replies are on; rate-limited by the mod).
 
     def to_message(self, tick: int) -> dict:
         unknown = set(self.keys) - set(KEYS)
@@ -39,6 +40,8 @@ class Action:
             msg["protect"] = self.protect
         if self.puppets:
             msg["puppets"] = self.puppets
+        if self.say:
+            msg["say"] = self.say
         return msg
 
 
