@@ -275,9 +275,25 @@ screen shows AI vs you.
 
 ## Next update plan (do in parts; commit+push main and coach after each part; one release zip at the end)
 S = small, M = medium, (check) = needs an in-game check (batch these).
-- A1 persistent brain process (swap policies, no restart per play) M (check)
-- A2 automatic short exam after every training, in a fast training world M
-- A3 everything this mod draws (popups, REC, AI-control line, toasts) drawn after FrameCapture; other mods' HUD (AppleSkin) stays visible M (check)
+- ~~A1 persistent brain process (swap policies, no restart per play) M (check)~~ done, in-game check pending:
+  server.set_policy closes the old policy (Policy.close(): practice saves pending updates, learned saves fast
+  weights + styles, Manager saves strategist + cached skills) and frees GPU memory; a failing policy leaves the
+  brain idle (BrainManager.policyFailed toasts, stops AI control, stays RUNNING); BrainManager.release() ends a
+  play without stopping the process (Practice > Stop, AgentControl.stop via controlStopped); stop() waits 5 s
+  for the save. Status: swaps, swap_ms, uptime_s (Brain screen "Kept loaded" line). Tests: PersistentBrainTest.
+- ~~A2 automatic short exam after every training, in a fast training world M~~ done, in-game check pending:
+  practice/AutoExam (singleplayer, headless): after practice of a fighting network (release/controlStopped),
+  training worlds stopping (MultiWorldLink stop hooks) or imitation training DONE (TrainingManager), 5 s later
+  `tg multitrain here 4 L3 1 round=60` with learn=false (AutoExam.worldArgs in stepWorlds/relay), 8 rounds or
+  5 min, saved to exams.json as scenario "Auto: 4 worlds vs L3[ (network)]". Skips < 1 min trainings,
+  non-Combat skills, coach/sleep/imitation running; Stop in Training worlds skips. MgbConfig.autoExam (Exams
+  screen switch, on).
+- ~~A3 everything this mod draws (popups, REC, AI-control line, toasts) drawn after FrameCapture; other mods' HUD (AppleSkin) stays visible M (check)~~
+  done, in-game check pending: overlay/Overlay second GUI pass after FrameCapture.afterRender (GuiRenderState,
+  GuiRenderer.render(), GuiGraphicsExtractor ctor found by type via reflection; falls back to vanilla toasts/
+  action bar/HUD REC if not found or it throws, log line "MinigameBots overlays: ..."). Overlay.toast replaces
+  SystemToast.addOrUpdate, Overlay.message replaces sendOverlayMessage, Overlay.add(Piece) for B6 popups.
+  Check: overlays show and are absent from /mgb debug frame dumps; no double-render artifacts.
 - B1 damage_taken gets cause (explosion/fall/fire/lava/melee/arrow/drown/void) + self flag; picker: "Hurts itself", "Takes <cause> damage" S
 - B2 options: going down; standing on block (item picker); inside zone; near/away from edge; holding item; close to teammate/protectee; combo hits; lands in water; falls into void M
 - B3 rule settings: "only if safe for N s" (hold reward, cancel on damage/death; mirror of forgive) and "only beyond its best this round" S
@@ -302,7 +318,8 @@ S = small, M = medium, (check) = needs an in-game check (batch these).
 Client: client/src/main/java/io/github/mudklip/minigamebots/client/
 - brain/BrainManager (talks to Python: play(), playLearned(), ask(); status handler "status"), brain/BrainRuntime (code unpack, venv)
 - events/EventDetector + EventTypes (damage_taken emits only "amount" today -> add cause/self in B1)
-- observe/Observer + Observation (Self has saturation; EntityInfo has dx..vz, health, blocking, onGround, hitMe/hitByMe, protectedTarget), observe/FrameCapture (AI snapshot; MinecraftMixin injects after GameRenderer.render -> A3 draws after this)
+- overlay/Overlay (toast/message/add: everything the mod draws, after the capture), practice/AutoExam (exam after training)
+- observe/Observer + Observation (Self has saturation; EntityInfo has dx..vz, health, blocking, onGround, hitMe/hitByMe, protectedTarget), observe/FrameCapture (AI snapshot; MinecraftMixin injects after GameRenderer.render, then Overlay.afterCapture)
 - practice/ExamManager (exams.json, Result) + Objective (rules), coach/Watchdog (progress verdict), coach/Coach, coach/Progress
 - gui/Ui (BG, CARD, ACCENT, GOOD, WARN, panel/card/bar/header/chip/tile pieces), gui/ProgressScreen (chart/line/dashed/hover card), gui/PickRuleScreen (rule picker: skills.json behaviours + events), gui/SkillEditorScreen ("Rewarded for" card), gui/ExamsScreen, MainScreen (LinearLayout menu)
 - config/MgbConfig (all settings; YACL screen), invent/BuildRunner, train/BaritoneTeacher, sleep/SleepMode
