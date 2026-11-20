@@ -21,12 +21,13 @@ import random
 
 import numpy as np
 
-PLANS = ("gear_up", "hunt", "heal", "ambush", "pick_fights", "roam", "guard")
+PLANS = ("gear_up", "hunt", "heal", "ambush", "pick_fights", "roam", "guard", "set_trap", "build_shelter")
 FEATURES = ("bias", "health", "food", "armor", "weapon", "enemies", "best_odds", "prey", "risk", "deaths",
-            "kills", "night", "base", "long_goal", "target_seen")
+            "kills", "night", "base", "long_goal", "target_seen", "trap_ready", "shelter_ready")
 NF = len(FEATURES)
 SAY = {"gear_up": "gearing up", "hunt": "hunting", "heal": "retreating to heal", "ambush": "waiting in ambush",
-       "pick_fights": "only taking winnable fights", "roam": "roaming", "guard": "guarding home"}
+       "pick_fights": "only taking winnable fights", "roam": "roaming", "guard": "guarding home",
+       "set_trap": "setting a trap", "build_shelter": "building a shelter"}
 WEAPONS = ("sword", "axe", "mace", "trident", "bow", "crossbow")
 
 
@@ -35,7 +36,7 @@ def person(e: dict) -> bool:
     return bool(e.get("player")) or "mannequin" in str(e.get("type", ""))
 
 
-def features(obs: dict, long_goal: dict | None, recent: dict) -> np.ndarray:
+def features(obs: dict, long_goal: dict | None, recent: dict, ready: dict | None = None) -> np.ndarray:
     me = obs.get("self") or {}
     inv = obs.get("inventory") or []
     foes = [e for e in obs.get("entities") or [] if person(e) and e.get("visible", True)
@@ -59,6 +60,9 @@ def features(obs: dict, long_goal: dict | None, recent: dict) -> np.ndarray:
     x[12] = float(any(w.get("type") == "base" for w in obs.get("waypoints") or []))
     x[13] = float(long_goal is not None)
     x[14] = float(bool(target) and any(e.get("name") == target for e in foes))
+    ready = ready or {}
+    x[15] = float(bool(ready.get("trap")))  # It has the items for one of its kept traps (and may use them).
+    x[16] = float(bool(ready.get("shelter")))
     return x
 
 
@@ -76,6 +80,11 @@ def rule_scores(x: np.ndarray) -> dict:
         "ambush": 0.15 + 0.4 * f["risk"] + 0.3 * f["enemies"] * (f["best_odds"] < 0) + 0.2 * f["deaths"],
         "roam": 0.4 - 0.2 * f["night"],
         "guard": 0.8 * f["base"] * f["night"] + 0.2 * f["base"] * f["risk"] - 0.2,
+        # Its own inventions: a trap where enemies are expected (not mid-fight), a shelter for the night.
+        "set_trap": f["trap_ready"] * (0.3 + 0.4 * f["risk"] + 0.4 * f["long_goal"] + 0.2 * f["deaths"]
+                                       - 0.9 * f["enemies"] - 0.8 * hurt) - (1 - f["trap_ready"]) * 5,
+        "build_shelter": f["shelter_ready"] * (1.3 * f["night"] * (1 - f["base"]) - 0.6 * f["enemies"] - 0.2)
+        - (1 - f["shelter_ready"]) * 5,
     }
 
 
@@ -186,9 +195,9 @@ class Strategist:
 
     # --- deciding ---
 
-    def decide(self, tick: int, obs: dict, long_goal: dict | None, why_now: str = "") -> str:
+    def decide(self, tick: int, obs: dict, long_goal: dict | None, why_now: str = "", ready: dict | None = None) -> str:
         self._finish(tick)
-        x = features(obs, long_goal, self.recent)
+        x = features(obs, long_goal, self.recent, ready)
         prior = rule_scores(x)
         learned = self.learned(x)
         scores = {}
@@ -197,6 +206,9 @@ class Strategist:
             scores[p] = (1 - trust) * prior[p] + trust * learned[i]
         if not (x[12] > 0):
             scores["guard"] -= 5  # Nothing to guard.
+        for p, i in (("set_trap", 15), ("build_shelter", 16)):
+            if not x[i]:
+                scores[p] = -9  # Can't (no items, or not allowed): never chosen, not even to try it out.
         if self.learn and self.history and self.rng.random() < 0.1:
             # Now and then, try something else, to find out (only while learning).
             options = [p for p in PLANS if scores[p] > -2]
@@ -227,6 +239,10 @@ class Strategist:
             return "dangerous here: let them come"
         if plan == "guard":
             return "night, close to home"
+        if plan == "set_trap":
+            return "enemies expected: one of its traps first"
+        if plan == "build_shelter":
+            return "night and no home: one of its shelters"
         return "nothing pressing"
 
     def due(self, tick: int) -> bool:
@@ -246,6 +262,8 @@ class Strategist:
     def goal(self, long_goal: dict | None) -> dict | None:
         target = (long_goal or {}).get("player")
         why = "plan: " + SAY[self.plan]
+        if self.plan in ("set_trap", "build_shelter"):
+            return {"type": "invent_build", "kind": "trap" if self.plan == "set_trap" else "shelter", "minutes": 4, "why": why}
         if self.plan == "heal":
             return {"type": "go_to", "waypoint": "base", "why": why} if self._has_base else {"type": "ambush", "minutes": 1,
                                                                                            "why": why + " (keeping still)"}

@@ -195,6 +195,7 @@ public final class BrainManager {
 		args.addProperty("mode", profile.attitude == null || profile.attitude.isBlank() ? "neutral" : profile.attitude);
 		args.addProperty("personality", profile.character == null ? "" : profile.character.personality);
 		args.addProperty("after", profile.afterFight == null || profile.afterFight.isBlank() ? "auto" : profile.afterFight);
+		args.addProperty("inventions", profile.useInventions == null ? "shelters" : profile.useInventions);
 		args.addProperty("temperature", MgbConfig.get().predictability >= 1 ? 0.0 : 1.0 - MgbConfig.get().predictability);
 		play(client, "manager", args);
 	}

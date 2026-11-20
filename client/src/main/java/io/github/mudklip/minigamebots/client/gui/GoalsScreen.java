@@ -96,6 +96,27 @@ public final class GoalsScreen extends Screen {
 				}
 				rebuildWidgets();
 			}).pos(x, by - 24).width(170).tooltip(Tooltip.create(Component.literal(afterHelp(fp.afterFight)))).build());
+			String use = fp.useInventions == null ? "shelters" : fp.useInventions;
+			addRenderableWidget(Button.builder(Component.literal("Inventions: §e" + switch (use) {
+				case "off" -> "off";
+				case "all" -> "traps & shelters";
+				default -> "shelters";
+			}), b -> {
+				fp.useInventions = switch (use) {
+					case "off" -> "shelters";
+					case "shelters" -> "all";
+					default -> "off";
+				};
+				try {
+					MinigameBotsClient.instance().profiles().store().save(fp);
+				} catch (java.io.IOException e) {
+					error = "Couldn't save: " + e.getMessage();
+				}
+				rebuildWidgets();
+			}).pos(x + 174, by - 24).width(150).tooltip(Tooltip.create(Component.literal("Whether it uses its own inventions "
+					+ "(Main menu > Inventions) while it plays: building one of its shelters at night when it has the blocks, "
+					+ "or setting one of its traps where enemies are expected. Traps only where that's allowed (your world, "
+					+ "servers made for it): never on someone else's base."))).build());
 		}
 		addRenderableWidget(Button.builder(Component.literal("Free play: " + (freePlay ? "on" : "off")), b -> {
 			freePlay = !freePlay;
@@ -291,7 +312,8 @@ public final class GoalsScreen extends Screen {
 				JsonObject sg = ps.getAsJsonObject("strategy");
 				String plan = str(sg, "plan").replace('_', ' ');
 				String lg = ps.has("long_goal") && !ps.get("long_goal").isJsonNull() ? " §7| long goal: §f" + ps.get("long_goal").getAsString() : "";
-				g.text(font, Component.literal(font.plainSubstrByWidth("§bPlan: §f" + plan + " §7(" + str(sg, "why") + ", "
+				String building = ps.has("building") && !ps.get("building").isJsonNull() ? " §a| building " + ps.get("building").getAsString() : "";
+				g.text(font, Component.literal(font.plainSubstrByWidth("§bPlan: §f" + plan + building + " §7(" + str(sg, "why") + ", "
 						+ (sg.has("experience") ? sg.get("experience").getAsInt() : 0) + " plans learned from)" + lg, width - 20)),
 						10, sy, Ui.TEXT, false);
 				sy += 12;

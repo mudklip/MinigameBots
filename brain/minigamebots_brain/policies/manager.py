@@ -31,9 +31,9 @@ SKILLS_FOR = {
     "survive": ("survival", "general"), "fight": ("combat", "general"), "flee": ("flee", "travel", "general"),
     "free_play": ("general",), "hunt_players": ("combat", "general"), "farm": ("farming", "general"),
     "build": ("building", "general"), "stash": ("general",), "ambush": ("general",),
-    "manhunt": ("combat", "general"), "kill_players": ("combat", "general"),
+    "manhunt": ("combat", "general"), "kill_players": ("combat", "general"), "invent_build": ("building", "general"),
 }
-TIMED = ("explore", "survive", "farm", "build", "stash", "hunt_players", "ambush")
+TIMED = ("explore", "survive", "farm", "build", "stash", "hunt_players", "ambush", "invent_build")
 LONG = ("manhunt", "kill_players")
 FOODS = ("cooked_beef", "cooked_porkchop", "golden_carrot", "cooked_mutton", "cooked_chicken", "cooked_salmon",
          "cooked_cod", "bread", "baked_potato", "carrot", "apple", "cooked_rabbit", "pumpkin_pie", "beef", "porkchop",
@@ -103,7 +103,7 @@ class ManagerPolicy(Policy):
     def __init__(self, profile: str, goals: list | None = None, free_play: bool = False, temperature: float = 1.0,
                  foundations: str | None = None, likes: dict | None = None, device: str | None = None,
                  mode: str = "neutral", after: str = "auto", strategy: bool | None = None, learn_strategy: bool = True,
-                 **_):
+                 inventions: str = "shelters", **_):
         from . import drives
         from .strategy import Strategist
 
@@ -122,6 +122,12 @@ class ManagerPolicy(Policy):
         # The strategist plans for free play and long goals (or when asked); a plain task list runs as given.
         self.strategy_on = strategy if strategy is not None else (self.free_play or any(g.type in LONG for g in self.queue))
         self.strategist = Strategist(profile, learn=learn_strategy)
+        # Its own inventions in play: "off", "shelters" (default) or "all" (traps too: only where allowed).
+        self.use_inventions = inventions if inventions in ("off", "shelters", "all") else "shelters"
+        self._kept = None
+        self._kept_at = -10 ** 9
+        self.builder = None
+        self.building = None  # (kind, design name)
         self.likes = dict(likes or DEFAULT_LIKES)
         if self.drives.mode != "neutral" or not likes:
             self.likes = dict(self.drives.cfg["likes"])
@@ -206,6 +212,78 @@ class ManagerPolicy(Policy):
                 self.sub = self._plan_goal() if self.strategy_on else self._pick_free_play()
             return self.sub
         return None
+
+    # --- its own inventions ---
+
+    def _inventions(self) -> dict:
+        """Its hall of fame (re-read every 5 minutes: inventing may run meanwhile)."""
+        if self._kept is None or self.tick - self._kept_at > 6000:
+            self._kept_at = self.tick
+            self._kept = {}
+            try:
+                from ..invent import Inventions
+
+                inv = Inventions(self.profile)
+                for kind, qs in inv.data.get("hall", {}).items():
+                    order = sorted(qs.items(), key=lambda q: q[0] != "overall")  # Best overall first.
+                    ids = [i for _, lst in order for i, _ in lst]
+                    self._kept[kind] = [inv.data["designs"][i] for i in dict.fromkeys(ids) if i in inv.data["designs"]]
+            except (OSError, ValueError, KeyError):
+                self._kept = {}
+        return self._kept
+
+    def _design_for(self, kind: str, obs: dict):
+        """A kept design of this kind it has all the items for, or None."""
+        if self.use_inventions == "off" or (kind == "trap" and self.use_inventions != "all"):
+            return None
+        have = {}
+        for it in obs.get("inventory") or []:
+            have[it.get("id")] = have.get(it.get("id"), 0) + int(it.get("count", 1))
+        for d in self._inventions().get(kind, []):
+            need = {}
+            for b in d.get("blocks", []):
+                block = d["palette"][b[3]].split("[")[0]
+                if block == "minecraft:air":
+                    continue
+                item = {"minecraft:lava": "minecraft:lava_bucket", "minecraft:water": "minecraft:water_bucket"}.get(block, block)
+                need[item] = need.get(item, 0) + 1
+            if "minecraft:oak_door" in need:
+                need["minecraft:oak_door"] = max(1, need["minecraft:oak_door"] // 2)
+            if all(have.get(k, 0) >= v for k, v in need.items()):
+                return d
+        return None
+
+    def _build_invention(self, obs: dict, goal) -> Action:
+        from .build import BuildPolicy
+
+        me = obs.get("self") or {}
+        if self.builder is None:
+            design = self._design_for(goal.spec.get("kind", "shelter"), obs)
+            if design is None:
+                goal.done = True
+                return Action()
+            # A few blocks ahead, at its feet's level.
+            yaw = math.radians(float(me.get("yaw", 0)))
+            dx, dz = -math.sin(yaw), math.cos(yaw)
+            ax = math.floor(float(me.get("x", 0)) + dx * 5)
+            az = math.floor(float(me.get("z", 0)) + dz * 5)
+            self.builder = BuildPolicy(design=design, anchor=[ax, math.floor(float(me.get("y", 0))), az])
+            self.building = (goal.spec.get("kind"), design.get("name", ""))
+        action = self.builder.act(obs, None)
+        self.skill = "building"
+        st = self.builder.status()
+        if st["finished"]:
+            kind = self.building[0] if self.building else ""
+            self.builder, self.building = None, None
+            goal.done = True
+            self.strategist.reward += 0.5 * st["placed"] / max(1, st["total"])
+            self.strategist.next_at = self.tick  # Rethink straight away.
+            if kind == "shelter":
+                action.mark = "base"  # Its new home: guarding home at night now means here.
+            elif kind == "trap":
+                self.strategist.plan = "ambush"  # Wait by it.
+                self.sub = Goal({"type": "ambush", "minutes": 1, "why": "waiting by its trap"}, self.tick)
+        return action
 
     def _plan_goal(self) -> Goal:
         """What the strategist's plan means right now ("roam" is ordinary free play)."""
@@ -399,7 +477,9 @@ class ManagerPolicy(Policy):
                                              lg.spec if lg else None)
             if wake or self.strategist.due(self.tick):
                 before = self.strategist.plan
-                self.strategist.decide(self.tick, obs, lg.spec if lg else None)
+                ready = {"trap": self._design_for("trap", obs) is not None,
+                         "shelter": self._design_for("shelter", obs) is not None}
+                self.strategist.decide(self.tick, obs, lg.spec if lg else None, ready=ready)
                 if self.strategist.plan != before or wake:
                     self.sub = None  # Work on the new plan now.
                 self.strategist.save()
@@ -433,6 +513,10 @@ class ManagerPolicy(Policy):
         if gtype is None:
             self.skill = "idle"
             return self._idle()
+        if gtype != "invent_build" and self.builder is not None:
+            self.builder, self.building = None, None  # Interrupted (a fight...): starts again next time.
+        if gtype == "invent_build":
+            return self._build_invention(obs, goal)
         if gtype == "ambush":
             # Keep still and low, and look about slowly: let them come (anyone close wakes the fight check).
             self.skill = "ambush"
@@ -658,4 +742,5 @@ class ManagerPolicy(Policy):
                 "after_fight": self.aftermath["mode"] if self.aftermath else None, "feelings": self.drives.feelings,
                 "judged": {str(k): f"{v[0]} ({v[1]})" for k, v in list(self.drives.judge.verdict.items())[-3:]},
                 "strategy": self.strategist.status() if self.strategy_on else None,
-                "long_goal": lg.label() if lg is not None else None}
+                "long_goal": lg.label() if lg is not None else None,
+                "building": f"{self.building[0]}: {self.building[1]}" if self.building else None}

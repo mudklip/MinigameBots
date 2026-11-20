@@ -262,7 +262,7 @@ class BuildPolicy(Policy):
     def act(self, obs, frame):
         self.tick += 1
         me = obs.get("self") or {}
-        if not me or me.get("dead"):
+        if not me or me.get("dead") or "x" not in me:
             return Action()
         feet = (math.floor(me["x"]), math.floor(me["y"]), math.floor(me["z"]))
         grid = decode_blocks(obs.get("blocks"))

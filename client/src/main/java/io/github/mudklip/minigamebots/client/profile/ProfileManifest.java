@@ -29,6 +29,8 @@ public final class ProfileManifest {
 
 	/** How fights it wins end: auto, mercy, fair, ruthless. */
 	public String afterFight = "auto";
+	/** Its own inventions in play: "off", "shelters" (default) or "all" (traps too: only where allowed). */
+	public String useInventions = "shelters";
 
 	/** Chat in character (optional, needs the mind). */
 	public Character character = new Character();

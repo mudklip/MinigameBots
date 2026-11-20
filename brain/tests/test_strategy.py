@@ -12,7 +12,7 @@ from minigamebots_brain.policies.strategy import PLANS, Strategist  # noqa: E402
 
 
 def obs(tick, entities=(), events=(), **me):
-    self_ = {"health": 20, "maxHealth": 20, "food": 20, "yaw": 0.0, "pitch": 0.0, "y": 64, "armor": 0}
+    self_ = {"health": 20, "maxHealth": 20, "food": 20, "yaw": 0.0, "pitch": 0.0, "x": 0.5, "y": 64, "z": 0.5, "armor": 0}
     self_.update(me)
     return {"tick": tick, "self": self_, "entities": list(entities), "inventory": [], "_events": list(events)}
 
@@ -88,3 +88,53 @@ class ManagerStrategyTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class InventionsInPlayTest(unittest.TestCase):
+    def _keep(self, d, kind, design):
+        from minigamebots_brain import invent
+
+        inv = invent.Inventions(d)
+        res = {"enclosed": True, "light": 14, "room": 9} if kind == "shelter" else {"damage": 20, "killed": True}
+        inv.record(design, res)
+        inv.save()
+
+    def test_builds_a_kept_shelter_at_night_and_makes_it_home(self):
+        from minigamebots_brain import invent
+
+        with tempfile.TemporaryDirectory() as d:
+            shelter = invent.shelter_from_genes({"w": 3, "l": 3, "h": 2, "mat": "minecraft:cobblestone", "roof": True,
+                                                 "roof_mat": "minecraft:cobblestone", "torch": True})
+            self._keep(d, "shelter", shelter)
+            m = create("manager", {"profile": d, "free_play": True, "learn_strategy": False})
+            o = obs(0, dark=True)
+            o["inventory"] = [{"slot": 0, "id": "minecraft:cobblestone", "count": 64},
+                              {"slot": 1, "id": "minecraft:torch", "count": 4}]
+            m.act(o, None)
+            self.assertEqual(m.status()["strategy"]["plan"], "build_shelter")
+            m.act(dict(o, tick=1), None)
+            self.assertIsNotNone(m.status()["building"])
+            # Without the blocks it can't, so it doesn't even consider it.
+            m2 = create("manager", {"profile": d, "free_play": True, "learn_strategy": False})
+            o2 = obs(0, dark=True)
+            m2.act(o2, None)
+            self.assertNotEqual(m2.status()["strategy"]["plan"], "build_shelter")
+
+    def test_traps_only_when_allowed(self):
+        from minigamebots_brain import invent
+
+        with tempfile.TemporaryDirectory() as d:
+            trap = invent.trap_from_genes({"at": 0, "plate": "minecraft:stone_pressure_plate", "tnt": 1, "web": 1})
+            self._keep(d, "trap", trap)
+            o = obs(0, armor=10)
+            o["risk"] = {"level": 1.0}
+            o["inventory"] = [{"slot": 0, "id": "minecraft:tnt", "count": 4},
+                              {"slot": 1, "id": "minecraft:stone_pressure_plate", "count": 2},
+                              {"slot": 2, "id": "minecraft:cobweb", "count": 2}]
+            careful = create("manager", {"profile": d, "free_play": True, "learn_strategy": False})
+            careful.act(o, None)
+            self.assertNotEqual(careful.status()["strategy"]["plan"], "set_trap")  # Default: shelters only.
+            allowed = create("manager", {"profile": d, "goals": [{"type": "kill_players", "count": 5}],
+                                         "learn_strategy": False, "inventions": "all"})
+            allowed.act(o, None)
+            self.assertEqual(allowed.status()["strategy"]["plan"], "set_trap")

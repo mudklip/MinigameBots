@@ -186,3 +186,11 @@ in the right cell (re-checked right before clicking, once the view has settled),
 the top of 2-high walls, and for shelters a "gate" (the door column) left open until last so blocks
 reachable only from inside (middle of a roof) are placed from inside. A clicked block is never
 clicked again (that stacked towers in-game). Tests: a fake world with ray-cast placement and jumps.
+
+## 1.25.0: creativity, part 3 (inventions in play)
+Strategist plans `set_trap` and `build_shelter` with features trap_ready / shelter_ready (the
+Manager has the items for a kept design and is allowed: profile `useInventions` off|shelters|all,
+default shelters; traps only with "all"). Not ready = score -9 (never picked, not even to explore).
+The plan's goal `invent_build` runs an embedded BuildPolicy 5 blocks ahead; finishing a shelter
+marks it "base"; finishing a trap switches to ambush by it; fights/fleeing interrupt (restart
+later; placed blocks count as done). strategist.json from older versions is reset (new features).
