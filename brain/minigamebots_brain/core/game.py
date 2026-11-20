@@ -43,7 +43,7 @@ class CoreGamePolicy(PracticePolicy):
         from ..learn import checkpoint
         from ..rl import skills
 
-        own = os.path.join(self.store, "nets", key)
+        own = os.path.join(self.base_profile, "skills", "game_" + key)  # Shared with watching's per-game training.
         start = None
         if checkpoint.read_info(own):
             start = own

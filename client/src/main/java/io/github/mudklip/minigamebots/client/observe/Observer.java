@@ -105,7 +105,8 @@ public final class Observer {
 	/** True states of nearby players, only while Watch & learn is on (see Observation.PrivilegedPlayer). */
 	private static java.util.@org.jspecify.annotations.Nullable List<Observation.PrivilegedPlayer> privileged(
 			net.minecraft.client.player.LocalPlayer me, net.minecraft.client.multiplayer.ClientLevel level) {
-		if (!io.github.mudklip.minigamebots.client.train.WatchLearn.on()) {
+		if (!io.github.mudklip.minigamebots.client.train.WatchLearn.on()
+				|| !io.github.mudklip.minigamebots.client.train.WatchLearn.allowed(net.minecraft.client.Minecraft.getInstance())) {
 			return null;
 		}
 		Vec3 eye = me.getEyePosition();

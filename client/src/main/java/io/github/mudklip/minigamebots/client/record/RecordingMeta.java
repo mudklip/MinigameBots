@@ -20,6 +20,8 @@ public final class RecordingMeta {
 	public String source = "human";
 	/** Singleplayer world name or server address. */
 	public String world = "";
+	/** Game the recording is from (sidebar title), e.g. for watched players' demos. */
+	public String game = "";
 	public String minecraftVersion = "";
 	public String modVersion = "";
 	public int frameSize;

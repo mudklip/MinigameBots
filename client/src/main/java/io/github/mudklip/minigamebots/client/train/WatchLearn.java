@@ -44,6 +44,72 @@ public final class WatchLearn {
 		return converting;
 	}
 
+	/** Same key as the brain's rule finder: a game's sidebar title, simplified. */
+	public static String gameKey(String title) {
+		String k = title.replaceAll("§.", "").toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9]+", "_").replaceAll("^_|_$", "");
+		return k.length() > 40 ? k.substring(0, 40) : k;
+	}
+
+	private record Job(String skill, java.util.List<io.github.mudklip.minigamebots.client.record.RecordingMeta> recs) {
+	}
+
+	private static final java.util.ArrayDeque<Job> queue = new java.util.ArrayDeque<>();
+	private static io.github.mudklip.minigamebots.client.profile.@org.jspecify.annotations.Nullable ProfileManifest queueFor;
+
+	/**
+	 * Trains on everything watched: the main network on all of it, and each game (Bedwars, duels...)
+	 * its own network on its own demos (the Core plays a known game with that network). One after
+	 * another, in the background. Returns what was queued, for the screen.
+	 */
+	public static String trainAll(io.github.mudklip.minigamebots.client.profile.ProfileManifest p) {
+		var mgb = MinigameBotsClient.instance();
+		var recs = mgb.recorder().store().list().stream().filter(m -> "player".equals(m.source)).toList();
+		if (recs.isEmpty()) {
+			return "Nothing watched yet: turn watching on, then spectate or play near others for a while";
+		}
+		queue.clear();
+		queueFor = p;
+		queue.add(new Job("general", recs));
+		java.util.Map<String, java.util.List<io.github.mudklip.minigamebots.client.record.RecordingMeta>> byGame = new java.util.TreeMap<>();
+		for (var m : recs) {
+			if (m.game != null && !m.game.isBlank()) {
+				byGame.computeIfAbsent(gameKey(m.game), k -> new java.util.ArrayList<>()).add(m);
+			}
+		}
+		int games = 0;
+		for (var e : byGame.entrySet()) {
+			if (e.getValue().size() >= 3 && !e.getKey().isEmpty()) {
+				queue.add(new Job("game_" + e.getKey(), e.getValue()));
+				games++;
+			}
+		}
+		return "§aTraining on " + recs.size() + " watched demo(s): the main network" + (games > 0 ? ", then " + games
+				+ " game network(s) (" + String.join(", ", byGame.keySet()) + ")" : "") + ". Runs in the background.";
+	}
+
+	public static int queued() {
+		return queue.size();
+	}
+
+	private static void runQueue() {
+		var mgb = MinigameBotsClient.instance();
+		if (queue.isEmpty() || queueFor == null || mgb.training().busy()) {
+			return;
+		}
+		Job j = queue.poll();
+		var p = queueFor;
+		try {
+			boolean lite = p.foundation == null || p.foundation.isBlank() || p.foundation.startsWith("lite");
+			mgb.training().start(p, j.recs(), TrainingManager.Plan.QUICK, TrainingManager.Resources.BALANCED,
+					!io.github.mudklip.minigamebots.client.profile.Skills.trained(mgb.profiles().store().dir(p.id), j.skill()),
+					lite ? null : p.foundation, j.skill());
+			status = "Training " + (j.skill().equals("general") ? "the main network" : j.skill().substring(5).replace('_', ' '))
+					+ " on watched demos" + (queue.isEmpty() ? "" : " (" + queue.size() + " more to go)");
+		} catch (Exception e) {
+			status = "Couldn't train " + j.skill() + ": " + e.getMessage();
+		}
+	}
+
 	private WatchLearn() {
 	}
 
@@ -63,13 +129,23 @@ public final class WatchLearn {
 		status = on ? "Watching: records others' fights, turns them into demos every 10 min" : "Off";
 	}
 
+	/**
+	 * Watching is allowed while you're in control (any game mode), or while the player is a real
+	 * spectator (then the AI may be in control, e.g. spectating games by itself). Never while the AI
+	 * plays as a non-spectator.
+	 */
+	public static boolean allowed(Minecraft c) {
+		return c.player != null && (!AgentControl.aiActive() || c.player.isSpectator());
+	}
+
 	public static void tick(Minecraft c) {
+		runQueue();
 		if (!on) {
 			return;
 		}
 		var rec = MinigameBotsClient.instance().recorder();
-		if (c.player == null || AgentControl.aiActive()) {
-			finishPart(c); // Not while the AI plays, nor outside a world.
+		if (!allowed(c)) {
+			finishPart(c); // Not while the AI plays (outside spectator mode), nor outside a world.
 			return;
 		}
 		if (ours && !rec.recording()) {

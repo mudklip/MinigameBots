@@ -475,6 +475,8 @@ public final class BrainManager {
 		m.addProperty("slot", slot);
 		m.addProperty("frameTick", frame == null ? -1 : frame.tick());
 		m.add("obs", RecordingCodec.GSON.toJsonTree(obs));
+		// Watching's extra knowledge is for recordings only: never handed to the AI that plays.
+		m.getAsJsonObject("obs").remove("privileged");
 		JsonArray mw = MultiWorldLink.take();
 		if (mw != null) {
 			m.getAsJsonObject("obs").add("multiworld", mw);

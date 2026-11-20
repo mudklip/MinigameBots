@@ -60,8 +60,8 @@
   normal chat like players do, without it they rely on judgement (no friendly fire, focus the
   same target when it makes sense, spread out).
 - **Spectator learning** (done in 1.12.0: Watch tab, ratings, action-only demos, counted health,
-  game/server tags, once-only conversion; next: train per game/kit automatically, live rating list
-  while watching). Spec: watch real players
+  game/server tags, once-only conversion; 1.13.0: watches when a human is in control or as a real
+  spectator (AI too), per-game networks trained from watched demos, ratings list). Spec: watch real players
   around you (e.g. random games of random PvP kits on a server) and learn from them as
   efficiently as possible. While learning it may use more than the player's eyes (exact
   positions and actions of everyone nearby, behind walls too), but **not exact health** (some
