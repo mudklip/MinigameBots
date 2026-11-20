@@ -257,3 +257,11 @@ screen shows AI vs you.
   strafe, spacing vs rushers, close in vs kiters, no swing into a block, back off from air crits,
   chase when low) + random strafe mixing spells (harder to read). Saved on opponent change and
   every 400 obs; MemoryScreen shows the summary per person.
+- Bluff resistance (opponent.py): counters scored per player by exchange outcome within 20 ticks
+  of use, relative to the player's baseline (r.base) -> counter_scale 0..1.3. Baiter = (deviation
+  rate at their hits - base deviation rate)/0.4 -> habits trusted less at high stakes. Hedge: counters
+  on in random 1-3 s spells (75%). Consistency (max trait gap vs start of fight) scales the prior.
+  Judgement: believed health (shown, else 4/hit dealt if the server always shows full; reset on a
+  fresh life) vs behaviour, only against established habit (n>=10), sustained 5..60 ticks, never in
+  the 12 ticks after either side's hit (knockback, S-tap). fake_retreat -> don't chase; bluff_strength
+  -> press. Judged ticks don't feed the habit.
