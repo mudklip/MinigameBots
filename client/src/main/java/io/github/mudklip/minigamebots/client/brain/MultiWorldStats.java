@@ -54,6 +54,9 @@ public final class MultiWorldStats {
 		}
 		for (JsonElement el : copies) {
 			JsonObject c = el.getAsJsonObject();
+			if (c.has("slot") && c.get("slot").getAsInt() > 0) {
+				continue; // Team worlds: the first learner's view stands for the world (the result is shared).
+			}
 			int i = c.get("copy").getAsInt();
 			World w = worlds.computeIfAbsent(i, k -> {
 				World n = new World();

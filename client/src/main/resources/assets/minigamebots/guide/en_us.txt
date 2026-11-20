@@ -36,7 +36,7 @@ The easiest way to make your AI better: pick a goal and a time, the Coach does t
 - Good moments count more, the ones that got them killed count nothing
 - The PvP plan trains on them automatically
 ! Only use Watch & learn where you're allowed to record other players.
-> Want full control? [Advanced...] opens all the detailed screens.
+> Want full control? [More...] (top right) opens all the detailed screens.
 
 === keys | Keys and controls
 # Hotkeys
@@ -352,6 +352,10 @@ The route to a strong fighter, with no PvP skill needed from you. Each step buil
 ! Baritone is not part of this: it's a walking/mining bot. The fighting teacher is built in.
 
 === multiworld | Multi-world training
+# Teams
+Pick [Teams: 2v2] (up to 4v4) and each training world holds a team of your AI against a team of opponents. Every teammate is steered by the same AI on its own and only knows what it can see: who's on its side (team colours), where they are, who is hitting them. There's no hidden link. The round is won or lost by the team, so a teammate knocked out early still learns from the win. It's rewarded for going after the same target as a teammate, for helping a teammate who's being hit, and for spreading out, and it loses points for hitting its own side.
+Outside training, with chat replies on (the language model), it calls things out in normal chat ("2 on me, help", "low, backing off") and answers a teammate's call for help, whether that teammate is a human or another copy. A stray hit from a teammate is remembered as an accident, not an attack.
+
 # Fast & light (singleplayer)
 With [Fast & light] on (the default), the brain steers the training worlds directly instead of through your player (you keep your own controls), the worlds run twice as fast, and the game draws as little as possible (10 FPS, short view) so you can minimise it and keep using your PC. Your settings and normal speed come back when you stop.
 

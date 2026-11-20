@@ -38,6 +38,9 @@ public final class MultiWorldLink {
 	}
 
 	public static void directStopped() {
+		if (!direct) {
+			return; // Nothing was running (a fresh start clears the old run first).
+		}
 		direct = false;
 		watching = -1;
 		var mc = net.minecraft.client.Minecraft.getInstance();

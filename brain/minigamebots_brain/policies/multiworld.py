@@ -28,14 +28,19 @@ class MultiWorldPolicy(PracticePolicy):
 
     def __init__(self, profile: str, objective="duel", **kw):
         super().__init__(profile, objective=objective, **kw)
-        self.copies: dict[int, _Copy] = {}
+        self.copies: dict[int | tuple, _Copy] = {}
 
-    def _copy(self, i: int) -> _Copy:
+    def _copy(self, i, team: bool = False) -> _Copy:
         from ..rl import objective as obj
         from ..rl.ppo import Rollout
 
         if i not in self.copies:
-            self.copies[i] = _Copy(obj.RewardEngine(self.objective), Rollout())
+            goal = self.objective
+            if team:
+                # Team worlds: the team fight rules (shared round result, focus, help, no friendly fire).
+                from .practice import load_objective
+                goal = load_objective(self.profile, "team_fight")
+            self.copies[i] = _Copy(obj.RewardEngine(goal), Rollout())
         return self.copies[i]
 
     def _with_buffer(self, c: _Copy, fn):
@@ -54,7 +59,9 @@ class MultiWorldPolicy(PracticePolicy):
         entries = obs.get("multiworld") or []
         live = []
         for e in entries:
-            c = self._copy(int(e.get("copy", 0)))
+            # Each learner body has its own memory and rollout: teammates share nothing but the world.
+            key = int(e.get("copy", 0)) if e.get("slot") is None else (int(e.get("copy", 0)), int(e.get("slot")))
+            c = self._copy(key, bool(e.get("team")))
             c.tick += 1
             events = e.get("events") or []
             if events:

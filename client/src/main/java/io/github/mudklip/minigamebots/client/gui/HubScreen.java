@@ -54,12 +54,12 @@ public final class HubScreen extends Screen {
 		addRenderableWidget(Button.builder(Component.literal("§cNever..."), b -> minecraft.gui.setScreen(new NeverScreen(this)))
 				.pos(rx + 14 + Math.min(130, rw - 84) + 66, cardsY + 64).width(50).tooltip(Tooltip.create(Component.literal("Actions this AI never uses, whatever it's "
 						+ "doing (e.g. never open its inventory, never drop items)"))).build());
-		addRenderableWidget(Button.builder(Component.literal("Advanced..."), b -> {
+		addRenderableWidget(Button.builder(Component.literal("More..."), b -> {
 			ProfileManifest p = MinigameBotsClient.instance().profiles().active();
 			if (p != null) {
 				minecraft.gui.setScreen(new TrainingScreen(this, p));
 			}
-		}).pos(width - 140, 6).width(70).tooltip(Tooltip.create(Component.literal("The detailed screens: training, practice, "
+		}).pos(width - 112, 6).width(48).tooltip(Tooltip.create(Component.literal("The detailed screens: training, practice, "
 				+ "exams, versions, realism, teacher demos"))).build());
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(width - 66, 6).width(58).build());
 		int by = cardsY + 40;

@@ -25,6 +25,8 @@ public final class WorldsScreen extends Screen {
 	private static final int CARD_H = 66;
 	private static int count = 2;
 	private static int opponent = 1;
+	private static int team = 0;
+	private static final String[] TEAMS = {"1v1", "2v2", "3v3", "4v4"};
 	private static boolean fast = true;
 
 	private final @Nullable Screen parent;
@@ -62,7 +64,7 @@ public final class WorldsScreen extends Screen {
 					Coach.stop("Stopped for training worlds");
 				}
 				io.github.mudklip.minigamebots.client.profile.Backups.auto(mgb.profiles().store().dir(p.id), "Before training worlds");
-				cmd("tg multitrain here " + COUNTS[count] + " " + OPPONENTS[opponent]);
+				cmd("tg multitrain here " + COUNTS[count] + " " + OPPONENTS[opponent] + (team > 0 ? " " + (team + 1) : ""));
 				if (fast && minecraft.getSingleplayerServer() != null) {
 					io.github.mudklip.minigamebots.client.brain.FastTraining.start(minecraft);
 				}
@@ -115,8 +117,10 @@ public final class WorldsScreen extends Screen {
 			if (Ui.inside(event.x(), event.y(), c[0], c[1], c[2], 13)) {
 				if (c[3] == 0) {
 					count = c[4];
-				} else {
+				} else if (c[3] == 1) {
 					opponent = c[4];
+				} else {
+					team = c[4];
 				}
 				rebuildWidgets();
 				return true;
@@ -252,8 +256,20 @@ public final class WorldsScreen extends Screen {
 				chips.add(new int[] {x, rowY[row], w, row, i});
 				x += w + 3;
 			}
+			if (row == 0) {
+				// Teams: copies of the same AI side by side, each seeing only what it sees (no shared link).
+				x += 14;
+				g.text(font, Component.literal("§fTeams:"), x, rowY[0] + 3, Ui.TEXT, false);
+				x += font.width("Teams:") + 6;
+				for (int i = 0; i < TEAMS.length; i++) {
+					int w = font.width(TEAMS[i]) + 14;
+					Ui.chip(g, font, TEAMS[i], x, rowY[0], w, i == team, Ui.inside(mouseX, mouseY, x, rowY[0], w, 13), Ui.ACCENT);
+					chips.add(new int[] {x, rowY[0], w, 2, i});
+					x += w + 3;
+				}
+			}
 		}
-		g.text(font, Component.literal("§7Tip: 4-6 worlds suit most PCs. Arenas are built around you and removed when you stop."),
+		g.text(font, Component.literal("§7Tip: 4-6 worlds suit most PCs. The arenas go when you stop."),
 				8, 136, Ui.MUTED, false);
 		if (message != null) {
 			g.text(font, Component.literal(font.plainSubstrByWidth(message, width - 16)), 8, 150, Ui.WARN, false);

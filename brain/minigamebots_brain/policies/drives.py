@@ -267,6 +267,49 @@ AFTER = ("auto", "mercy", "fair", "ruthless")
 AFTER_BY_ATTITUDE = {"peaceful": "mercy", "neutral": "fair", "guard": "fair", "hunter": "ruthless"}
 
 
+class TeamTalk:
+    """Teams of the same AI talk the way players do: only through normal chat. Callouts go out as
+    plain chat (the game only sends them when chat replies are on, i.e. the language model is in
+    use), and a teammate's chat is read back exactly as a human teammate's would be. No hidden link."""
+
+    HELP = re.compile(r"\b(help|on me|need (a )?hand|backup)\b", re.I)
+    LINE = re.compile(r"^(?:\[[^\]]*\]\s*)*<?([A-Za-z0-9_]{2,16})>?:?\s+(.*)$")
+    EVERY = 400  # At most one callout every 20 s.
+
+    def __init__(self):
+        self.help_from: str | None = None
+        self.help_until = -1
+        self.last_said = -10 ** 9
+
+    @staticmethod
+    def mates(obs: dict) -> list:
+        return [e for e in obs.get("entities") or [] if e.get("player") and (e.get("sameTeam") or e.get("relation", 0) > 0)]
+
+    def heard(self, tick: int, text: str, obs: dict) -> None:
+        m = self.LINE.match(re.sub("§.", "", text or "").strip())
+        if not m:
+            return
+        names = {e.get("name") for e in self.mates(obs)}
+        if m.group(1) in names and self.HELP.search(m.group(2)):
+            self.help_from, self.help_until = m.group(1), tick + 200
+
+    def helping(self, tick: int, obs: dict):
+        """The teammate who called for help (still in sight), for the next 10 s."""
+        if self.help_from is None or tick > self.help_until:
+            return None
+        return next((e for e in self.mates(obs) if e.get("name") == self.help_from), None)
+
+    def callout(self, tick: int, mode: str, obs: dict, chase: int = 60) -> str | None:
+        if not self.mates(obs) or tick - self.last_said < self.EVERY:
+            return None
+        on_me = sum(1 for e in obs.get("entities") or [] if 0 <= e.get("hitMe", -1) < chase and e.get("relation", 0) <= 0
+                    and not e.get("sameTeam"))
+        msg = "low, backing off" if mode == "flee" else f"{on_me} on me, help" if on_me >= 2 else None
+        if msg:
+            self.last_said = tick
+        return msg
+
+
 def after_mode(setting: str, attitude: str, kind: str) -> str:
     """How a fight ends. Fights that started from jokes going too far always end mercifully;
     agreed fights are left to the game."""

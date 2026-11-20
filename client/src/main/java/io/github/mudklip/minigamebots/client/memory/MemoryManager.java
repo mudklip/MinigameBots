@@ -335,6 +335,12 @@ public final class MemoryManager {
 			dirty = true;
 			return;
 		}
+		var me = net.minecraft.client.Minecraft.getInstance().player;
+		if (me != null && living.isAlliedTo(me) && hits.size() < 3) {
+			// A teammate (same scoreboard team): a stray hit in the middle of a fight, not an attack.
+			dirty = true;
+			return;
+		}
 		boolean grudge = who != null && (who.betrayals > 0 || who.like() < -0.3);
 		boolean real = armed || hits.size() >= 2 || known == Relation.ENEMY || grudge;
 		if (!real) {

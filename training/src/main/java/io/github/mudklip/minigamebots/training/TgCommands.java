@@ -140,7 +140,17 @@ final class TgCommands {
 											ok(ctx, tg.multi().startAround(ctx.getSource().getPlayerOrException(),
 													IntegerArgumentType.getInteger(ctx, "count"), style));
 											return 1;
-										}))))
+										})
+										.then(Commands.argument("team", IntegerArgumentType.integer(1, 4)).executes(ctx -> {
+											String style = StringArgumentType.getString(ctx, "opponent");
+											if (!DummySettings.STYLES.contains(style) || style.equals("self")) {
+												fail(ctx, "Opponent styles: L1-L5, rusher, blocker, critter, w_tapper, kiter, godly");
+												return 0;
+											}
+											ok(ctx, tg.multi().startAround(ctx.getSource().getPlayerOrException(),
+													IntegerArgumentType.getInteger(ctx, "count"), style, IntegerArgumentType.getInteger(ctx, "team")));
+											return 1;
+										})))))
 						.then(Commands.literal("stop").executes(ctx -> {
 							tg.multi().stop(ctx.getSource().getServer());
 							ok(ctx, "Stopped multi-world training");

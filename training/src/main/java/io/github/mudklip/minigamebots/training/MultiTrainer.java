@@ -31,19 +31,47 @@ public final class MultiTrainer {
 	private static final int GAP = 24;
 	private static final int RESPAWN_DELAY = 20;
 
+	/**
+	 * One training world: a team of learners (1-4 bodies, each steered by the same AI on its own,
+	 * with no shared link: each only sees what it sees) against as many opponents.
+	 */
 	private static final class Copy {
 		final int index;
 		final Vec3 a;
 		final Vec3 b;
-		@Nullable UUID learner;
-		@Nullable UUID opponent;
+		final int size;
+		final List<UUID> learners = new ArrayList<>();
+		final List<UUID> opponents = new ArrayList<>();
+		final List<JsonArray> events = new ArrayList<>();
+		/** Per opponent: {learner slot that hit it last, tick}. For focus fire and kill credit. */
+		final java.util.Map<UUID, long[]> lastHitOn = new java.util.HashMap<>();
+		/** Per opponent: {learner slot it hit last, tick}. For helping a teammate. */
+		final java.util.Map<UUID, long[]> lastAttackBy = new java.util.HashMap<>();
 		int restartIn = -1;
-		final JsonArray events = new JsonArray();
 
-		Copy(int index, Vec3 a, Vec3 b) {
+		Copy(int index, Vec3 a, Vec3 b, int size) {
 			this.index = index;
 			this.a = a;
 			this.b = b;
+			this.size = size;
+			for (int k = 0; k < size; k++) {
+				events.add(new JsonArray());
+			}
+		}
+
+		int slot(UUID id) {
+			return learners.indexOf(id);
+		}
+
+		/** The first learner still alive (the one a spectator follows). */
+		@Nullable UUID learner(java.util.function.Function<UUID, LivingEntity> get) {
+			for (UUID u : learners) {
+				LivingEntity l = get.apply(u);
+				if (l != null && l.isAlive()) {
+					return u;
+				}
+			}
+			return learners.isEmpty() ? null : learners.get(0);
 		}
 	}
 
@@ -55,6 +83,8 @@ public final class MultiTrainer {
 	private @Nullable ServerLevel level;
 	private String style = "L3";
 	private int rounds;
+	private int teamSize = 1;
+	private long now;
 	/** Watching a learner (spectating it): which copy, and how to put the player back after. */
 	private int watching = -1;
 	private net.minecraft.world.level.@Nullable GameType watchMode;
@@ -100,7 +130,13 @@ public final class MultiTrainer {
 	 * running; the blocks they replace are put back exactly when training stops.
 	 */
 	public String startAround(ServerPlayer p, int count, String opponentStyle) {
+		return startAround(p, count, opponentStyle, 1);
+	}
+
+	/** As above, with teams of {@code team} learners against as many opponents in each world. */
+	public String startAround(ServerPlayer p, int count, String opponentStyle, int team) {
 		stop(p.level().getServer());
+		teamSize = Math.max(1, Math.min(4, team));
 		if (!truth.supports(p, io.github.mudklip.minigamebots.common.Protocol.Features.PUPPET)) {
 			return "Join with the MinigameBots client mod to steer the learners";
 		}
@@ -125,13 +161,14 @@ public final class MultiTrainer {
 				build(lv, new BlockPos(cx, c.getY(), cz));
 				Vec3 sa = new Vec3(cx - 4 + 0.5, c.getY(), cz + 0.5);
 				Vec3 sb = new Vec3(cx + 4 + 0.5, c.getY(), cz + 0.5);
-				Copy cp = new Copy(made, sa, sb);
+				Copy cp = new Copy(made, sa, sb, teamSize);
 				copies.add(cp);
 				spawn(cp);
 				made++;
 			}
 		}
-		return "Started " + made + " training worlds around you (opponent: " + style + "); they're removed when you stop";
+		return "Started " + made + " training worlds around you (" + (teamSize > 1 ? teamSize + "v" + teamSize + ", " : "")
+				+ "opponent: " + style + "); they're removed when you stop";
 	}
 
 	/** One small arena centred at c (floor at c.y - 1, glass walls), remembering what was there. */
@@ -174,6 +211,7 @@ public final class MultiTrainer {
 		}
 		level = arenas.level(arena);
 		style = opponentStyle;
+		teamSize = 1;
 		owner = p.getUUID();
 		var box = arena.box();
 		int step = (int) Math.ceil(box.getXsize()) + GAP;
@@ -192,7 +230,7 @@ public final class MultiTrainer {
 				sa = new Vec3(c.x - Math.min(4, box.getXsize() / 3), y, c.z);
 				sb = new Vec3(c.x + Math.min(4, box.getXsize() / 3), y, c.z);
 			}
-			Copy cp = new Copy(i - 1, sa, sb);
+			Copy cp = new Copy(i - 1, sa, sb, 1);
 			copies.add(cp);
 			spawn(cp);
 		}
@@ -207,20 +245,31 @@ public final class MultiTrainer {
 		var scoreboard = lv.getServer().getScoreboard();
 		var learnTeam = team(scoreboard, "mgb_mw_learn");
 		var oppTeam = team(scoreboard, "mgb_mw_opp");
-		DummySettings ls = DummySettings.style("self");
-		Mannequin l = dummies.spawnAt(lv, c.a, -90, ls, false);
-		Mannequin o = dummies.spawnAt(lv, c.b, 90, DummySettings.style(style), false);
-		if (l != null) {
-			dummies.setPuppetOwner(l.getUUID(), owner);
-			scoreboard.addPlayerToTeam(l.getScoreboardName(), learnTeam);
-			c.learner = l.getUUID();
+		c.learners.clear();
+		c.opponents.clear();
+		c.lastHitOn.clear();
+		c.lastAttackBy.clear();
+		for (int k = 0; k < c.size; k++) {
+			// Teams line up side by side, 2 blocks apart, facing each other.
+			Vec3 side = new Vec3(0, 0, (k - (c.size - 1) / 2.0) * 2);
+			Mannequin l = dummies.spawnAt(lv, c.a.add(side), -90, DummySettings.style("self"), false);
+			Mannequin o = dummies.spawnAt(lv, c.b.add(side), 90, DummySettings.style(style), false);
+			if (l != null) {
+				dummies.setPuppetOwner(l.getUUID(), owner);
+				scoreboard.addPlayerToTeam(l.getScoreboardName(), learnTeam);
+				c.learners.add(l.getUUID());
+			}
+			if (o != null) {
+				dummies.byId(o.getUUID()).settings.infiniteHealth = false;
+				scoreboard.addPlayerToTeam(o.getScoreboardName(), oppTeam);
+				c.opponents.add(o.getUUID());
+			}
 		}
-		if (o != null) {
-			o.getAttributes();
-			dummies.byId(o.getUUID()).settings.infiniteHealth = false;
-			scoreboard.addPlayerToTeam(o.getScoreboardName(), oppTeam);
-			c.opponent = o.getUUID();
-		}
+	}
+
+	private void removeBodies(Copy c) {
+		c.learners.forEach(dummies::remove);
+		c.opponents.forEach(dummies::remove);
 	}
 
 	private static net.minecraft.world.scores.PlayerTeam team(net.minecraft.world.scores.Scoreboard sb, String name) {
@@ -241,7 +290,7 @@ public final class MultiTrainer {
 		}
 		watching = index;
 		p.setGameMode(net.minecraft.world.level.GameType.SPECTATOR);
-		LivingEntity l = entity(copies.get(index).learner);
+		LivingEntity l = entity(copies.get(index).learner(this::entity));
 		if (l != null) {
 			p.setCamera(l);
 		}
@@ -271,12 +320,7 @@ public final class MultiTrainer {
 			}
 		}
 		for (Copy c : copies) {
-			if (c.learner != null) {
-				dummies.remove(c.learner);
-			}
-			if (c.opponent != null) {
-				dummies.remove(c.opponent);
-			}
+			removeBodies(c);
 		}
 		if (owner != null && server != null) {
 			ServerPlayer p = server.getPlayerList().getPlayer(owner);
@@ -285,7 +329,7 @@ public final class MultiTrainer {
 			}
 		}
 		copies.clear();
-		if (System.getProperties().get("minigamebots.worldStop") instanceof Runnable r) {
+		if (owner != null && System.getProperties().get("minigamebots.worldStop") instanceof Runnable r) {
 			r.run();
 		}
 		if (owner != null && server != null && level != null && !replaced.isEmpty()) {
@@ -305,7 +349,7 @@ public final class MultiTrainer {
 
 	private @Nullable Copy copyOf(Entity e) {
 		for (Copy c : copies) {
-			if (e.getUUID().equals(c.learner) || e.getUUID().equals(c.opponent)) {
+			if (c.learners.contains(e.getUUID()) || c.opponents.contains(e.getUUID())) {
 				return c;
 			}
 		}
@@ -328,8 +372,37 @@ public final class MultiTrainer {
 		if (c == null) {
 			return;
 		}
-		boolean learnerHurt = victim.getUUID().equals(c.learner);
-		c.events.add(event(learnerHurt ? "damage_taken" : "damage_dealt", "amount", taken));
+		Entity by = source.getEntity();
+		int attacker = by == null ? -1 : c.slot(by.getUUID());
+		int hurt = c.slot(victim.getUUID());
+		if (hurt >= 0) {
+			c.events.get(hurt).add(event("damage_taken", "amount", taken));
+			if (attacker >= 0 && attacker != hurt) {
+				c.events.get(attacker).add(event("friendly_fire", "amount", taken)); // Hit its own teammate.
+			} else if (by != null && c.opponents.contains(by.getUUID())) {
+				c.lastAttackBy.put(by.getUUID(), new long[] {hurt, now});
+			}
+			return;
+		}
+		if (c.size == 1) {
+			attacker = 0; // 1v1: whatever hurts the opponent is the learner's doing (as before).
+		}
+		if (attacker < 0) {
+			return;
+		}
+		JsonArray ev = c.events.get(attacker);
+		ev.add(event("damage_dealt", "amount", taken));
+		if (c.size > 1) {
+			long[] hit = c.lastHitOn.get(victim.getUUID());
+			if (hit != null && hit[0] != attacker && now - hit[1] <= 60) {
+				ev.add(event("team_focus", null, 0)); // Same target as a teammate.
+			}
+			long[] att = c.lastAttackBy.get(victim.getUUID());
+			if (att != null && att[0] != attacker && now - att[1] <= 40) {
+				ev.add(event("team_help", null, 0)); // Took on whoever was hitting a teammate.
+			}
+		}
+		c.lastHitOn.put(victim.getUUID(), new long[] {attacker, now});
 	}
 
 	public void onDeath(LivingEntity victim) {
@@ -337,11 +410,34 @@ public final class MultiTrainer {
 		if (c == null || c.restartIn >= 0) {
 			return;
 		}
-		boolean learnerDied = victim.getUUID().equals(c.learner);
-		c.events.add(event(learnerDied ? "death" : "kill", null, 0));
-		JsonObject end = event("tg_episode_end", null, 0);
-		end.getAsJsonObject("data").addProperty("result", learnerDied ? "loss" : "win");
-		c.events.add(end);
+		int died = c.slot(victim.getUUID());
+		if (died >= 0) {
+			c.events.get(died).add(event("death", null, 0));
+		} else {
+			long[] hit = c.lastHitOn.get(victim.getUUID());
+			int killer = c.size == 1 ? 0 : hit == null ? -1 : (int) hit[0];
+			for (int k = 0; k < c.size; k++) {
+				c.events.get(k).add(event(k == killer ? "kill" : "team_kill", null, 0));
+			}
+		}
+		boolean learnersLeft = false;
+		boolean opponentsLeft = false;
+		for (UUID u : c.learners) {
+			LivingEntity l = entity(u);
+			learnersLeft |= l != null && l.isAlive() && l != victim;
+		}
+		for (UUID u : c.opponents) {
+			LivingEntity o = entity(u);
+			opponentsLeft |= o != null && o.isAlive() && o != victim;
+		}
+		if (learnersLeft && opponentsLeft) {
+			return; // The round goes on.
+		}
+		for (int k = 0; k < c.size; k++) {
+			JsonObject end = event("tg_episode_end", null, 0);
+			end.getAsJsonObject("data").addProperty("result", learnersLeft ? "win" : "loss"); // Shared: the team wins or loses.
+			c.events.get(k).add(end);
+		}
 		c.restartIn = RESPAWN_DELAY;
 		rounds++;
 	}
@@ -355,8 +451,9 @@ public final class MultiTrainer {
 			stop(server);
 			return;
 		}
+		now++;
 		if (watching >= 0 && watching < copies.size()) {
-			LivingEntity l = entity(copies.get(watching).learner);
+			LivingEntity l = entity(copies.get(watching).learner(this::entity));
 			if (l != null && p.getCamera() != l) {
 				p.setCamera(l); // A new round: a new learner body.
 			}
@@ -364,33 +461,41 @@ public final class MultiTrainer {
 		JsonArray out = new JsonArray();
 		for (Copy c : copies) {
 			if (c.restartIn >= 0 && --c.restartIn < 0) {
-				if (c.learner != null) {
-					dummies.remove(c.learner);
-				}
-				if (c.opponent != null) {
-					dummies.remove(c.opponent);
-				}
+				removeBodies(c);
 				spawn(c);
 			}
-			LivingEntity l = entity(c.learner);
-			LivingEntity o = entity(c.opponent);
-			if (l == null || !l.isAlive()) {
-				if (c.events.size() > 0) {
-					JsonObject only = new JsonObject();
-					only.addProperty("copy", c.index);
-					only.add("events", c.events.deepCopy());
-					out.add(only);
-					clear(c.events);
+			for (int k = 0; k < c.learners.size(); k++) {
+				LivingEntity l = entity(c.learners.get(k));
+				JsonArray ev = c.events.get(k);
+				JsonObject o1 = new JsonObject();
+				o1.addProperty("copy", c.index);
+				if (c.size > 1) {
+					o1.addProperty("slot", k);
+					o1.addProperty("team", true);
 				}
-				continue;
+				if (l == null || !l.isAlive()) {
+					if (ev.size() > 0) {
+						o1.add("events", ev.deepCopy());
+						out.add(o1);
+						clear(ev);
+					}
+					continue;
+				}
+				if (c.size > 1 && now % 20 == 0) {
+					for (UUID u : c.learners) {
+						LivingEntity mate = entity(u);
+						if (mate != null && mate != l && mate.isAlive() && mate.distanceTo(l) < 1.5) {
+							ev.add(event("team_clump", null, 0)); // Bunched up: easy to hit both, hard to flank.
+							break;
+						}
+					}
+				}
+				o1.addProperty("puppet_id", l.getId());
+				o1.add("obs", observe(l, c));
+				o1.add("events", ev.deepCopy());
+				clear(ev);
+				out.add(o1);
 			}
-			JsonObject o1 = new JsonObject();
-			o1.addProperty("copy", c.index);
-			o1.addProperty("puppet_id", l.getId());
-			o1.add("obs", observe(l, o, c));
-			o1.add("events", c.events.deepCopy());
-			clear(c.events);
-			out.add(o1);
 		}
 		JsonObject d = new JsonObject();
 		d.add("copies", out);
@@ -444,7 +549,7 @@ public final class MultiTrainer {
 		}
 	}
 
-	private JsonObject observe(LivingEntity l, @Nullable LivingEntity o, Copy c) {
+	private JsonObject observe(LivingEntity l, Copy c) {
 		JsonObject self = new JsonObject();
 		Vec3 v = l.getDeltaMovement();
 		self.addProperty("health", l.getHealth());
@@ -461,7 +566,18 @@ public final class MultiTrainer {
 		JsonObject obs = new JsonObject();
 		obs.add("self", self);
 		JsonArray ents = new JsonArray();
-		if (o != null && o.isAlive()) {
+		// Opponents first (the nearest first), then teammates: only what a player standing there could see.
+		List<LivingEntity> seen = new ArrayList<>();
+		c.opponents.stream().map(this::entity).filter(x -> x != null && x.isAlive())
+				.sorted(java.util.Comparator.comparingDouble(x -> x.distanceToSqr(l))).forEach(seen::add);
+		for (UUID u : c.learners) {
+			LivingEntity mate = entity(u);
+			if (mate != null && mate != l && mate.isAlive()) {
+				seen.add(mate);
+			}
+		}
+		for (LivingEntity o : seen) {
+			boolean mate = c.learners.contains(o.getUUID());
 			JsonObject e = new JsonObject();
 			Vec3 eye = l.getEyePosition();
 			Vec3 ov = o.getDeltaMovement();
@@ -481,7 +597,11 @@ public final class MultiTrainer {
 			e.addProperty("hurtTime", o.hurtTime);
 			e.addProperty("blocking", o.isBlocking());
 			e.addProperty("armor", o.getArmorValue());
-			e.addProperty("hostile", true);
+			e.addProperty("hostile", !mate);
+			if (mate) {
+				e.addProperty("sameTeam", true);
+				e.addProperty("relation", 1);
+			}
 			e.addProperty("heldItem", BuiltInRegistries.ITEM.getKey(o.getMainHandItem().getItem()).toString());
 			ents.add(e);
 		}

@@ -110,3 +110,14 @@ the player's own client is no longer the relay and stays in the human's hands. L
 servers keep the old relay. "Fast & light" (Worlds tab, on by default) also runs the built-in
 server at 40 TPS and drops the client to 10 FPS / 2-chunk view; everything is restored on stop
 or when leaving the world.
+
+## 1.19.0: teams of the same AI
+Training worlds take a team size (1v1-4v4; `/tg multitrain here <n> <style> <team>`). Each learner
+body is steered on its own (own recurrent state and rollout, key (world, slot) in the brain);
+teammates appear in each other's observation as `sameTeam`/`relation: 1`, nothing else is shared.
+Round result is shared (knocked-out teammates still get the win/loss). `team_fight` objective adds
+team_kill, friendly_fire, team_focus, team_help, team_clump. Real play: `TeamTalk` sends callouts
+only via `say` (so only with chat replies on) and reads a teammate's "help"/"on me" chat to
+prioritise enemies near them; scoreboard-teammate hits (<3 in 10 s) are accidents in memory.
+Fixed: starting worlds no longer cancels Fast & light; Plans tab "Advanced..." no longer overlaps
+the tabs (now "More...").

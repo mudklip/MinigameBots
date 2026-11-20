@@ -471,5 +471,107 @@
         "note": "picked something up"
       }
     ]
+  },
+  "team_fight": {
+    "name": "Team fight",
+    "description": "Win as a team: the team's round counts for everyone (even those knocked out), focus the same target, help teammates who are being hit, don't hit your own side, don't bunch up.",
+    "rules": [
+      {
+        "event": "tg_episode_end",
+        "where": {
+          "result": "win"
+        },
+        "value": 10,
+        "tier": 1,
+        "note": "round won"
+      },
+      {
+        "event": "tg_episode_end",
+        "where": {
+          "result": "loss"
+        },
+        "value": -5,
+        "tier": 1,
+        "note": "round lost"
+      },
+      {
+        "event": "kill",
+        "value": 3,
+        "tier": 1,
+        "note": "kill"
+      },
+      {
+        "event": "damage_dealt",
+        "value": 0.1,
+        "per": "amount",
+        "cap": 6,
+        "tier": 2,
+        "note": "hit"
+      },
+      {
+        "event": "damage_taken",
+        "value": -0.05,
+        "per": "amount",
+        "tier": 3,
+        "note": "hurt",
+        "forgive": {
+          "by": [
+            "kill",
+            {
+              "event": "tg_episode_end",
+              "where": {
+                "result": "win"
+              }
+            }
+          ],
+          "within": 20
+        }
+      },
+      {
+        "event": "death",
+        "value": -3,
+        "tier": 1,
+        "note": "died"
+      },
+      {
+        "event": "second",
+        "value": -0.002,
+        "tier": 4,
+        "note": "stalling"
+      },
+      {
+        "event": "team_kill",
+        "value": 1.5,
+        "tier": 1,
+        "note": "teammate's kill"
+      },
+      {
+        "event": "friendly_fire",
+        "value": -0.3,
+        "per": "amount",
+        "tier": 1,
+        "note": "hit a teammate"
+      },
+      {
+        "event": "team_focus",
+        "value": 0.05,
+        "cap": 3,
+        "tier": 2,
+        "note": "same target as a teammate"
+      },
+      {
+        "event": "team_help",
+        "value": 0.1,
+        "cap": 3,
+        "tier": 2,
+        "note": "helped a teammate"
+      },
+      {
+        "event": "team_clump",
+        "value": -0.01,
+        "tier": 3,
+        "note": "bunched up"
+      }
+    ]
   }
 }

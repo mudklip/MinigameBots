@@ -98,6 +98,7 @@ class ManagerPolicy(Policy):
         if mode == "personality":
             mode = drives.load(profile).get("from_personality", "neutral")
         self.drives = drives.Drives(mode)
+        self.talk = drives.TeamTalk()
         self.profile = profile
         self.foundations = foundations
         self._aim = FollowPolicy()
@@ -230,8 +231,8 @@ class ManagerPolicy(Policy):
         """The most pressing opponent: who hit me recently, or a hostile mob close by."""
         best, best_score = None, 0.0
         for e in self._obs.get("entities") or []:
-            if not e.get("visible", True) or e.get("relation", 0) > 0:
-                continue
+            if not e.get("visible", True) or e.get("relation", 0) > 0 or e.get("sameTeam"):
+                continue  # Never a teammate (a stray hit from one is an accident).
             d = math.sqrt(e.get("dx", 0) ** 2 + e.get("dy", 0) ** 2 + e.get("dz", 0) ** 2)
             hit = e.get("hitMe", -1)
             score = 0.0
@@ -245,6 +246,12 @@ class ManagerPolicy(Policy):
                 score = 2.0
             elif e.get("relation", 0) < 0 and d < 8:
                 score = 1.5
+            mate = self.talk.helping(self.tick, self._obs)
+            if mate is not None and not e.get("sameTeam") and (e.get("hostile") or e.get("relation", 0) < 0 or e.get("player")):
+                # A teammate called for help: whoever is near them comes first.
+                near = math.hypot(e.get("dx", 0) - mate.get("dx", 0), e.get("dz", 0) - mate.get("dz", 0))
+                if near < 5 and d < 24:
+                    score = max(score, 2.5)
             if score and score / (1 + d * 0.05) > best_score:
                 best, best_score = e, score / (1 + d * 0.05)
         return best
@@ -341,6 +348,14 @@ class ManagerPolicy(Policy):
     # --- acting ---
 
     def act(self, obs, frame):
+        action = self._act(obs, frame)
+        if self.mode in ("fight", "flee") and not getattr(action, "say", None):
+            line = self.talk.callout(self.tick, self.mode, obs, self._chase_ticks())
+            if line:
+                action.say = line
+        return action
+
+    def _act(self, obs, frame):
         self._obs = obs
         self.tick = int(obs.get("tick", self.tick + 1))
         self.drives.judge.update(self.tick, obs, obs.get("_events") or [])
@@ -350,6 +365,8 @@ class ManagerPolicy(Policy):
                 g.on_event(ev)
             if ev.get("type") == "stuck":
                 self._on_stuck()
+            if ev.get("type") == "chat":
+                self.talk.heard(self.tick, (ev.get("data") or {}).get("text", ""), obs)
         goal = self.current()
         if goal is not None:
             goal.check_time(self.tick)
