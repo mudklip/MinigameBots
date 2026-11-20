@@ -116,6 +116,29 @@ public final class BrainManager {
 		return system;
 	}
 
+	private @Nullable String toastedError;
+
+	/** A practice learning error pops up wherever you are (once per error), not only on the Practice screen. */
+	private void learningErrorCheck(JsonObject m) {
+		if (!m.has("policy_status") || !m.get("policy_status").isJsonObject()) {
+			return;
+		}
+		JsonObject ps = m.getAsJsonObject("policy_status");
+		if (!ps.has("last_error")) {
+			return;
+		}
+		String err = ps.get("last_error").getAsString();
+		io.github.mudklip.minigamebots.client.coach.Watchdog.learningError(err);
+		if (!err.equals(toastedError)) {
+			toastedError = err;
+			var mc = net.minecraft.client.Minecraft.getInstance();
+			mc.execute(() -> net.minecraft.client.gui.components.toasts.SystemToast.addOrUpdate(mc.gui.toastManager(),
+					new net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId(),
+					net.minecraft.network.chat.Component.literal("Practice: learning error"),
+					net.minecraft.network.chat.Component.literal(err.length() > 80 ? err.substring(0, 80) + "..." : err)));
+		}
+	}
+
 	public @Nullable JsonObject lastStatus() {
 		return lastStatus;
 	}
@@ -439,7 +462,10 @@ public final class BrainManager {
 					s.offer(m);
 				}
 			}
-			case "status" -> lastStatus = m;
+			case "status" -> {
+				lastStatus = m;
+				learningErrorCheck(m);
+			}
 			case "world_step_result" -> lastWorldStep = m.has("puppets") ? m.get("puppets").toString() : "[]";
 			case "command_result" -> onCommandResult(m);
 			case "speech" -> Voice.play(m.get("path").getAsString());

@@ -42,6 +42,9 @@ public final class ExamsScreen extends Screen {
 				.pos(104, 28).width(110).tooltip(Tooltip.create(Component.translatable("minigamebots.exams.start_help"))).build());
 		addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), b -> MinigameBotsClient.instance().exams().cancel())
 				.pos(218, 28).width(60).build());
+		addRenderableWidget(Button.builder(Component.literal("Progress ▸"), b -> minecraft.gui.setScreen(new ProgressScreen(this, profile)))
+				.pos(282, 28).width(70).tooltip(Tooltip.create(Component.literal("Is training paying off? A chart of these exams "
+						+ "across trained versions, and a warning with the likely reason when it stops improving."))).build());
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(width - 70, height - 28).width(60).build());
 		// The human floor: measure yourself on the same tests.
 		addRenderableWidget(Button.builder(Component.literal("Measure me: duel"), b -> {

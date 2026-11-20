@@ -297,6 +297,11 @@ Bluffs: it keeps its own idea of how hurt they are (the health shown, or the hit
 It also checks its own counters: one that keeps going worse than usual against a player is treated as bait and dropped for them. Players whose breaks from habit come exactly when they land hits are marked as baiters, and their habits count for less when it matters. It uses its counters in random spells so they can't be timed, and players who fight differently every time get a lighter first impression.
 ! It reads habits, not minds: a good bluff can work once or twice, then stops paying off. Players who layer fakes can still out-think it.
 
+# Is it improving?
+Exams screen > [Progress]: a chart of its exam results across its trained versions (Score, Win rate or Damage share; point at a version for details), with the stretch the verdict looks at highlighted and a trend line. On top, a verdict: Improving, Not improving or Getting worse, with the most likely reason and what to do. Reasons, in order: a learning error in practice, hardly any new recordings, a recent reward change, or a real plateau.
+When it stops improving, the main menu shows a warning until it does again. Practice learning errors also pop up wherever you are.
+! Run an exam after each training (same match each time); the verdict needs at least 4 trained versions with exams.
+
 # You vs the AI (the human floor)
 On the Exams screen (Training Hub > More... > Exams), [Measure me: duel] counts your own win rate over the next 10 rounds of the match you're in (the same test the AI's exams use), and [Measure me: aim] runs a 60-second aim test for you. The line above the buttons then shows the AI's latest results next to yours, so you can see when it gets to your level and past it.
 

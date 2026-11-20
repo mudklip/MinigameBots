@@ -29,6 +29,18 @@ public final class MainScreen extends Screen {
 				.tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(
 						"Plans, skills, training worlds and backups: everything for making your AI better."))).build());
 
+		// Training stopped paying off: say so up front, with a way to see why.
+		var active = MinigameBotsClient.instance().profiles().active();
+		if (active != null) {
+			var v = io.github.mudklip.minigamebots.client.coach.Watchdog.check(
+					MinigameBotsClient.instance().profiles().store().dir(active.id));
+			if (v.state() == io.github.mudklip.minigamebots.client.coach.Watchdog.State.FLAT
+					|| v.state() == io.github.mudklip.minigamebots.client.coach.Watchdog.State.DROPPING) {
+				body.addChild(Button.builder(Component.literal("§6⚠ " + v.state().label + ": see why"),
+						b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.ProgressScreen(this, active))).width(204)
+						.tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(v.why()))).build());
+			}
+		}
 		Button control = body.addChild(Button.builder(Component.translatable("minigamebots.menu.start_idle"), b -> {
 			onClose();
 			AgentControl.get().start(minecraft, io.github.mudklip.minigamebots.client.control.ActionSource.IDLE);

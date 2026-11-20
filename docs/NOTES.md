@@ -265,3 +265,10 @@ screen shows AI vs you.
   fresh life) vs behaviour, only against established habit (n>=10), sustained 5..60 ticks, never in
   the 12 ticks after either side's hit (knockback, S-tap). fake_retreat -> don't chase; bluff_strength
   -> press. Judged ticks don't feed the habit.
+- Progress watchdog (coach/Watchdog.java): exams.json grouped by checkpointStep for the most-run
+  scenario; score = 100*(0.6*winRate + 0.4*damageShare); last 3 versions vs the 3 before:
+  > +4 improving, < -4 getting worse, else flat. Reason order: practice learning error (from brain
+  status policy_status.last_error, also toasted once by BrainManager), < 2 recordings since the stall
+  began, objectives/ changed since, else plateau/drop advice. ProgressScreen: status card, chart
+  (series chips, highlighted compare stretch, least-squares trend, "you" line for win rate, hover
+  card), tiles. Main menu warning button when flat/dropping; Exams screen "Progress" button.
