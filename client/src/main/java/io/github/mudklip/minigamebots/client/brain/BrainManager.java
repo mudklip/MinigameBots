@@ -443,7 +443,7 @@ public final class BrainManager {
 			case "world_step_result" -> lastWorldStep = m.has("puppets") ? m.get("puppets").toString() : "[]";
 			case "command_result" -> onCommandResult(m);
 			case "speech" -> Voice.play(m.get("path").getAsString());
-			case "chat_reply", "character" -> {
+			case "chat_reply", "character", "lessons_result" -> {
 				var cb = m.has("id") ? asks.remove(m.get("id").getAsInt()) : null;
 				if (cb != null) {
 					Minecraft.getInstance().execute(() -> cb.accept(m));

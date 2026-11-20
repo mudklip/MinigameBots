@@ -109,15 +109,109 @@ public final class SleepMode {
 			report.add("Memories: let go of " + gone + " small moments, kept " + (before - gone) + " (and what it learned about "
 					+ wm.mind.people.size() + " people)");
 		}, () -> true));
-		List<RecordingMeta> today = since(MgbConfig.get().lastSleep);
-		List<RecordingMeta> play = today.stream().filter(m -> "human".equals(m.source) || "player".equals(m.source)).toList();
+		// Daily lessons: what the day's memories show, put into words (by the mind if installed).
+		boolean[] lessonsDone = {false};
+		long[] lessonsAsked = {0};
+		steps.add(new Step("Thinking over the day", () -> {
+			lessonsAsked[0] = System.currentTimeMillis();
+			var wm = mgb.memory().memory();
+			if (wm == null) {
+				lessonsDone[0] = true;
+				return;
+			}
+			long now = System.currentTimeMillis();
+			int before = wm.mind.lessons.size();
+			wm.mind.checkLessons(now);
+			long trusted = wm.mind.lessons.stream().filter(io.github.mudklip.minigamebots.client.memory.Mind.Lesson::trusted).count();
+			var facts = wm.mind.lessonFacts(key -> {
+				String[] k = key.split(":");
+				try {
+					return "around " + (Integer.parseInt(k[k.length - 2]) * 16 + 8) + ", " + (Integer.parseInt(k[k.length - 1]) * 16 + 8);
+				} catch (RuntimeException e) {
+					return "in one place";
+				}
+			});
+			if (facts.isEmpty()) {
+				report.add("Lessons: nothing new to learn from today (" + wm.mind.lessons.size() + " kept, " + trusted + " trusted)");
+				lessonsDone[0] = true;
+				mgb.memory().save();
+				return;
+			}
+			var req = new com.google.gson.JsonObject();
+			req.addProperty("type", "lessons");
+			var arr = new com.google.gson.JsonArray();
+			for (String[] f : facts) {
+				var o = new com.google.gson.JsonObject();
+				o.addProperty("type", f[0]);
+				o.addProperty("subject", f.length > 3 ? f[3] : f[1]);
+				o.addProperty("facts", f[2]);
+				arr.add(o);
+			}
+			req.add("facts", arr);
+			mgb.brain().ask(req, r -> {
+				var texts = r.has("lessons") ? r.getAsJsonArray("lessons") : null;
+				for (int i = 0; i < facts.size(); i++) {
+					var l = new io.github.mudklip.minigamebots.client.memory.Mind.Lesson();
+					l.type = facts.get(i)[0];
+					l.subject = facts.get(i)[1];
+					l.text = texts != null && i < texts.size() ? texts.get(i).getAsString() : facts.get(i)[2];
+					l.made = now;
+					int[] e = wm.mind.evidence(l);
+					l.confirm0 = e[0];
+					l.contradict0 = e[1];
+					wm.mind.lessons.add(l);
+				}
+				if (r.has("idea") && !r.get("idea").getAsString().isBlank()) {
+					var l = new io.github.mudklip.minigamebots.client.memory.Mind.Lesson();
+					l.type = "idea";
+					l.text = r.get("idea").getAsString();
+					l.made = now;
+					wm.mind.lessons.add(l);
+				}
+				mgb.memory().save();
+				report.add("Lessons: " + facts.size() + " new (" + (wm.mind.lessons.size() - before) + " written), " + trusted
+						+ " trusted so far. See them on the Memory screen.");
+				lessonsDone[0] = true;
+			});
+		}, () -> lessonsDone[0] || System.currentTimeMillis() - lessonsAsked[0] > 120_000));
+		String sinceIso = MgbConfig.get().lastSleep;
+		// Dreaming: the day's hard moments, replayed in its head with other choices (dream.py).
+		boolean[] dreamt = {false};
+		steps.add(new Step("Dreaming: going over hard moments in its head", () -> {
+			Thread t = new Thread(() -> {
+				try {
+					double since;
+					try {
+						since = OffsetDateTime.parse(sinceIso).toEpochSecond();
+					} catch (RuntimeException e) {
+						since = System.currentTimeMillis() / 1000.0 - 86400;
+					}
+					var r = io.github.mudklip.minigamebots.client.video.VideoLab.run(List.of("dream", "--recordings",
+							mgb.recorder().store().root().toString(), "--since", String.valueOf(since)), m -> { });
+					int better = r.has("better") ? r.get("better").getAsInt() : 0;
+					int moments = r.has("moments") ? r.get("moments").getAsInt() : 0;
+					report.add(better > 0 ? "Dreams: went over " + moments + " hard moments, found a better choice for " + better
+							+ (r.has("tried") ? " " + r.get("tried") : "") + " (practised at low weight)"
+							: "Dreams: " + (r.has("why") ? r.get("why").getAsString() : "nothing better found"));
+				} catch (Exception e) {
+					report.add("Dreams: couldn't (" + e.getMessage() + ")");
+				}
+				dreamt[0] = true;
+			}, "MinigameBots dreaming");
+			t.setDaemon(true);
+			t.start();
+		}, () -> dreamt[0]));
+		steps.add(new Step("Replaying the day", () -> {
+			List<RecordingMeta> play = since(sinceIso).stream()
+					.filter(m -> "human".equals(m.source) || "player".equals(m.source) || "dream".equals(m.source)).toList();
+			if (play.isEmpty()) {
+				report.add("Replay: nothing new recorded since it last slept");
+			} else {
+				train(p, play, "general");
+			}
+		}, () -> !mgb.training().busy()));
+		List<RecordingMeta> today = since(sinceIso);
 		List<RecordingMeta> builds = today.stream().filter(m -> "teacher".equals(m.source) && m.name.startsWith("Build: ")).toList();
-		if (!play.isEmpty()) {
-			steps.add(new Step("Replaying the day: " + play.size() + " recording(s)", () -> train(p, play, "general"),
-					() -> !mgb.training().busy()));
-		} else {
-			report.add("Replay: nothing new recorded since it last slept");
-		}
 		if (!builds.isEmpty()) {
 			steps.add(new Step("Going over its own builds (" + builds.size() + ")", () -> train(p, builds, "building"),
 					() -> !mgb.training().busy()));

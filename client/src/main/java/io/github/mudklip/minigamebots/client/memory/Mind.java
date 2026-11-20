@@ -99,6 +99,87 @@ public final class Mind {
 
 	public Map<String, Place> places = new LinkedHashMap<>();
 
+	/**
+	 * A daily lesson (written while it sleeps). Each kind is checked against what happens next:
+	 * "careful_with" (someone keeps beating it), "can_beat" (it keeps beating someone),
+	 * "avoid_place" (bad things keep happening somewhere); "idea" (the mind's own suggestion) is
+	 * shown but never trusted. Trust starts low; new evidence raises or lowers it. Only trusted
+	 * lessons (0.6 and up) change what it does.
+	 */
+	public static final class Lesson {
+		public String type = "";
+		public String subject = "";
+		public String text = "";
+		public double trust = 0.3;
+		public long made;
+		/** The evidence counters when it was made, to measure what happened since. */
+		public int confirm0;
+		public int contradict0;
+
+		public boolean trusted() {
+			return !"idea".equals(type) && trust >= 0.6;
+		}
+	}
+
+	public List<Lesson> lessons = new ArrayList<>();
+
+	/** {confirming, contradicting} evidence for a lesson, as running totals. */
+	public int[] evidence(Lesson l) {
+		switch (l.type) {
+			case "careful_with", "can_beat" -> {
+				Person p = people.get(l.subject);
+				if (p == null) {
+					return new int[] {0, 0};
+				}
+				int beatsMe = p.knockedMeOut;
+				int iBeat = p.iKnockedOut;
+				return "careful_with".equals(l.type) ? new int[] {beatsMe, iBeat} : new int[] {iBeat, beatsMe};
+			}
+			case "avoid_place" -> {
+				Place pl = places.get(l.subject);
+				return pl == null ? new int[] {0, 0} : new int[] {pl.bad, pl.good};
+			}
+			default -> {
+				return new int[] {0, 0};
+			}
+		}
+	}
+
+	/** Re-checks every lesson against what has happened since it was made; drops disproven ones and old ideas. */
+	public void checkLessons(long nowMs) {
+		for (Lesson l : lessons) {
+			int[] e = evidence(l);
+			int c = e[0] - l.confirm0;
+			int k = e[1] - l.contradict0;
+			l.trust = Math.max(0, Math.min(1, 0.3 + 0.2 * c - 0.3 * k));
+		}
+		lessons.removeIf(l -> ("idea".equals(l.type) && nowMs - l.made > 7L * 86_400_000L) || (!"idea".equals(l.type) && l.trust <= 0.0));
+		while (lessons.size() > 40) {
+			lessons.remove(0);
+		}
+	}
+
+	/** New lessons the facts suggest (not already learned): {type, subject, facts in words}. */
+	public List<String[]> lessonFacts(java.util.function.Function<String, String> placeName) {
+		List<String[]> out = new ArrayList<>();
+		java.util.Set<String> have = new HashSet<>();
+		lessons.forEach(l -> have.add(l.type + "|" + l.subject));
+		people.forEach((name, p) -> {
+			if (p.knockedMeOut >= 2 && p.knockedMeOut > p.iKnockedOut && !have.contains("careful_with|" + name)) {
+				out.add(new String[] {"careful_with", name, "knocked me out " + p.knockedMeOut + " times, I got them " + p.iKnockedOut
+						+ (p.usualWeapon().isEmpty() ? "" : ", usually with a " + p.usualWeapon().replace('_', ' '))});
+			} else if (p.iKnockedOut >= 2 && p.iKnockedOut > p.knockedMeOut && !have.contains("can_beat|" + name)) {
+				out.add(new String[] {"can_beat", name, "I knocked them out " + p.iKnockedOut + " times, they got me " + p.knockedMeOut});
+			}
+		});
+		places.forEach((key, pl) -> {
+			if (pl.bad >= 2 && pl.bad > pl.good && !have.contains("avoid_place|" + key)) {
+				out.add(new String[] {"avoid_place", key, pl.bad + " bad moments there, " + pl.good + " good ones", placeName.apply(key)});
+			}
+		});
+		return out.size() > 3 ? out.subList(0, 3) : out;
+	}
+
 	// --- How dangerous this server is, overall ---
 	/** Attacks it didn't agree to (not duels, matches or games). */
 	public int unprovokedAttacks;

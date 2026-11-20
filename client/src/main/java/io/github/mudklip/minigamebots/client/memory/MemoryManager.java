@@ -494,7 +494,14 @@ public final class MemoryManager {
 					var o = new com.google.gson.JsonObject();
 					o.addProperty("dx", (cx + dx) * 16 + 8 - client.player.getX());
 					o.addProperty("dz", (cz + dz) * 16 + 8 - client.player.getZ());
-					o.addProperty("feeling", Math.round(pl.feeling() * 100) / 100.0);
+					String key = dim + ":" + (cx + dx) + ":" + (cz + dz);
+					double feel = pl.feeling();
+					for (Mind.Lesson l : m.mind.lessons) {
+						if (l.trusted() && "avoid_place".equals(l.type) && l.subject.equals(key)) {
+							feel = Math.max(-1, feel - 0.5); // A trusted lesson: it really is a bad place.
+						}
+					}
+					o.addProperty("feeling", Math.round(feel * 100) / 100.0);
 					o.addProperty("here", dx == 0 && dz == 0);
 					out.add(o);
 				}
@@ -551,7 +558,13 @@ public final class MemoryManager {
 			var o = new com.google.gson.JsonObject();
 			o.addProperty("id", p.getId());
 			o.addProperty("name", p.getGameProfile().name());
-			o.addProperty("danger", Math.round(who.danger() * 100) / 100.0);
+			double danger = who.danger();
+			for (Mind.Lesson l : m.mind.lessons) {
+				if (l.trusted() && l.subject.equals(p.getGameProfile().name())) {
+					danger += "careful_with".equals(l.type) ? 0.3 : "can_beat".equals(l.type) ? -0.2 : 0; // Trusted lessons.
+				}
+			}
+			o.addProperty("danger", Math.round(Math.max(0, Math.min(1, danger)) * 100) / 100.0);
 			o.addProperty("like", Math.round(who.like() * 100) / 100.0);
 			o.addProperty("betrayals", who.betrayals);
 			o.addProperty("knockedMeOut", who.knockedMeOut);

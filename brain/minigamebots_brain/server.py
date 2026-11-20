@@ -43,6 +43,8 @@ class Brain:
             self.set_policy(message.get("name", "idle"), message.get("args") or {})
         elif kind in ("chat", "make_character"):
             threading.Thread(target=self.on_chat, args=(message,), daemon=True).start()
+        elif kind == "lessons":
+            threading.Thread(target=self.on_lessons, args=(message,), daemon=True).start()
         elif kind in ("voice", "speak"):
             threading.Thread(target=self.on_voice, args=(message,), daemon=True).start()
         elif kind == "command":
@@ -197,6 +199,22 @@ class Brain:
             self.llm = llm_mod.LLM(root)
         return getattr(self, "llm", None)
 
+    def on_lessons(self, message: dict) -> None:
+        """Daily lessons from the day's facts (the mind phrases them; plain sentences without it)."""
+        from .mind import lessons
+
+        out = {"type": "lessons_result", "id": message.get("id")}
+        try:
+            model = None
+            try:
+                model = self._mind()
+            except Exception:
+                model = None
+            out.update(lessons.write(model, list(message.get("facts") or [])))
+        except Exception as e:
+            out["error"] = str(e)
+        self.channel.send(out)
+
     def on_chat(self, message: dict) -> None:
         """Chat in character, or make a character: needs the mind (Brain > Install mind)."""
         from .mind import chat
@@ -260,6 +278,10 @@ def main(argv=None) -> int:
         from .mind import cli
 
         return cli.main(argv[1:])
+    if argv and argv[0] == "dream":
+        from . import dream
+
+        return dream.main(argv[1:])
     if argv and argv[0] == "invent":
         from . import invent
 
