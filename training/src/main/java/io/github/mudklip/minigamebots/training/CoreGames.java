@@ -178,6 +178,12 @@ public final class CoreGames {
 					}
 				}
 				foes.add(m.getUUID());
+				// A bot that plays this game properly (digs in Spleef, runs in TNT Run, pushes in Sumo...).
+				final String game = kind;
+				dummies.setBrain(m.getUUID(), io.github.mudklip.minigamebots.training.dummy.ModeBots.of(
+						new io.github.mudklip.minigamebots.training.dummy.ModeBots.Field(centre,
+								"sumo".equals(game) ? 5 : fallGame() ? 7 : HALF - 1, game,
+								b -> crumbling.containsKey(b))));
 			}
 		}
 		p.setGameMode(GameType.SURVIVAL);
@@ -274,8 +280,8 @@ public final class CoreGames {
 		if (lv == null) {
 			return;
 		}
-		if ("tnt_run".equals(kind)) {
-			crumble(lv, p);
+		if ("tnt_run".equals(kind) && age > 60) {
+			crumble(lv, p); // 3 seconds' grace at the start, like on servers.
 		}
 		if (fallGame()) {
 			if (!ownerOut && p.getY() < centre.getY() - 0.8) {

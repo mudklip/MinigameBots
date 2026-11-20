@@ -211,7 +211,7 @@ public final class TrainingGrounds implements ModInitializer {
 				scenarios.allowDeath(entity, source) && dummies.allowDeath(entity));
 		ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, base, taken, blocked) -> {
 			truth.onDamage(entity, source, taken, blocked);
-			dummies.afterDamage(entity, source, taken, blocked);
+			dummies.afterDamage(entity, source, base, taken, blocked);
 			if (multi != null) {
 				multi.onDamage(entity, source, blocked ? 0 : taken);
 			}

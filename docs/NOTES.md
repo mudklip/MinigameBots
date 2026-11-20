@@ -121,3 +121,13 @@ only via `say` (so only with chat replies on) and reads a teammate's "help"/"on 
 prioritise enemies near them; scoreboard-teammate hits (<3 in 10 s) are accidents in memory.
 Fixed: starting worlds no longer cancels Fast & light; Plans tab "Advanced..." no longer overlaps
 the tabs (now "More...").
+
+## 1.20.0: game-mode bots, dummy shields wear out
+`training.dummy.ModeBots`: server-side bots for the Core minigames (registered per foe through
+`DummyManager.setBrain`). BFS paths over the remaining floor (no holes, no crumbling blocks, no
+corner-cutting, 2-block straight jumps over 1-block gaps). Spleef digs under/ahead of the target,
+TNT Run seeks the largest intact patch and avoids recently visited cells, Sumo/King position on the
+centre side and sprint-hit outwards, Snowball strafes, dodges and throws with lead and drop.
+Skill from the dummy level. Baritone itself only drives a player's client, so it can't steer these.
+Vanilla `BlocksAttacks.hurtBlockingItem` only wears players' shields: `afterDamage` now wears and
+breaks a mannequin's shield the same way. TNT Run: 3 s grace before crumbling.

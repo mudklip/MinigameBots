@@ -205,6 +205,7 @@ The Core is the first card in the Skills list (the light block). It's common sen
 
 # Core plan (no setup)
 Training Hub > Plans > [Core] > [Start coaching]: it builds a random little minigame around you (Snowball Fight, One Hit, Sumo, King of the Hill, Spleef, TNT Run), learns it for a while, then switches to a new random game, again and again. Every game teaches it to pick up new games faster. The ground goes back as it was when the plan ends.
+The opponents in these games play them properly, like a good bot would: in Spleef they keep a safe distance and dig the snow out from under you, in TNT Run they never stop running and head for the biggest patch of floor left, in Sumo they get between you and the middle and knock you outwards, in King of the Hill they take the gold and knock others off, and in Snowball Fight they strafe, dodge and throw ahead of where you're going. They find their way around holes and jump single gaps. TNT Run gives everyone 3 seconds at the start before the floor starts to fall.
 - Each game gets its own network: a new game starts from the AI's skill that fits the rules best (e.g. its combat network), a game it knows continues where it left off. Its main network is never overwritten.
 > Command: /tg coregame <snowball|one_hit|sumo|king|spleef|tnt_run|random>, /tg coregame stop.
 - The Core screen shows, for every game it knows, how many rounds it needed to play well (3 of 5 won) and how often it wins now. That number dropping over new games means it's getting better at learning games.

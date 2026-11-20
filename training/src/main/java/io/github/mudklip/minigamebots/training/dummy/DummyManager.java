@@ -219,7 +219,24 @@ public final class DummyManager {
 	}
 
 	/** Removes a dummy by id (loaded or not). */
+	/** A game-mode brain steering a dummy instead of the usual fighting (see {@link ModeBots}). */
+	public interface Brain {
+		/** Moves and acts for this tick; true = handled (skip the normal fighting). */
+		boolean tick(Mannequin m, Dummy d, @Nullable LivingEntity target, ServerLevel level);
+	}
+
+	private final java.util.Map<UUID, Brain> brains = new java.util.HashMap<>();
+
+	public void setBrain(UUID id, @Nullable Brain brain) {
+		if (brain == null) {
+			brains.remove(id);
+		} else {
+			brains.put(id, brain);
+		}
+	}
+
 	public void remove(UUID id) {
+		brains.remove(id);
 		Dummy d = dummies.remove(id);
 		if (d != null) {
 			Entity e = entity(d);
@@ -358,6 +375,13 @@ public final class DummyManager {
 				continue;
 			}
 			LivingEntity target = d.paused ? null : target(m, level);
+			Brain brain = brains.get(d.id);
+			if (brain != null && !d.paused && brain.tick(m, d, target, level)) {
+				if (tick % 5 == 0) {
+					updateName(m, d);
+				}
+				continue;
+			}
 			move(m, d, target, level);
 			defend(m, d, target);
 			if (target != null && d.settings.fightsBack) {
@@ -694,10 +718,25 @@ public final class DummyManager {
 		return true;
 	}
 
-	public void afterDamage(LivingEntity e, DamageSource source, float taken, boolean blocked) {
+	public void afterDamage(LivingEntity e, DamageSource source, float base, float taken, boolean blocked) {
 		Dummy d = dummies.get(e.getUUID());
 		if (d == null || !(e.level() instanceof ServerLevel level)) {
 			return;
+		}
+		if (blocked && e instanceof Mannequin) {
+			// Vanilla only wears down a player's shield; a dummy's wears and breaks the same way.
+			ItemStack shield = e.getUseItem().isEmpty() ? e.getOffhandItem() : e.getUseItem();
+			var blocks = shield.get(net.minecraft.core.component.DataComponents.BLOCKS_ATTACKS);
+			if (blocks != null) {
+				int wear = blocks.itemDamage().apply(base);
+				if (wear > 0) {
+					shield.hurtAndBreak(wear, e, EquipmentSlot.OFFHAND);
+				}
+				if (shield.isEmpty() || !e.getOffhandItem().is(Items.SHIELD)) {
+					e.stopUsingItem();
+					d.shieldUp = false;
+				}
+			}
 		}
 		float amount = blocked ? 0 : taken;
 		d.stats.hit(tick, amount);
