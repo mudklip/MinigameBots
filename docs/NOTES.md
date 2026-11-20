@@ -86,6 +86,11 @@
   guard, menu-minigame skill type, more arena types (bridge, void, parkour, mining, farm,
   build) with kits, AI vs AI tournaments, privileged training critic, restyle older screens.
 
+## Reaching further (agreed, all fit this PC; docs/MIND_DESIGN.md section 12)
+
+Sleep with daily reflection -> cause-and-effect rules -> rules told in words -> more generated
+games for faster learning -> learned strategist (after headless worlds).
+
 ## Done from earlier reports (for reference)
 
 Spectating a training world; per-skill restore from backups; locks shown clearly and held

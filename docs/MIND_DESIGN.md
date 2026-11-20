@@ -263,3 +263,32 @@ is counting and lookups; pretraining and the minigame generator use idle/overnig
 Make it the first big feature: Core (shared network + self-taught pretraining) -> rule finder ->
 automatic objectives and skill borrowing -> minigame generator -> per-game memory. The memory
 and sleep parts (sections 2 and 5) and the headless worlds (10.2) support it.
+
+## 12. Reaching further (all run on an RTX 2060 6 GB, 16 GB RAM)
+
+Narrow, Minecraft-only versions of abilities the AI lacks. Only things that work on this PC are
+listed; anything needing data-centre scale is left out on purpose.
+
+1. **Cause-and-effect rules.** Extend the Core's rule finder from "X tends to follow Y" to "X
+   causes Y" by testing: in a Training Grounds sandbox, do the cause or leave it out and see
+   whether the effect still happens. Rules become explainable ("I was knocked out because the
+   floor vanished after I stood still") and carry over to similar games. Cost: counting plus a
+   few short sandbox tests during idle time.
+2. **Learned strategist.** The strategist layer (section 1) learns its choices (gear up, travel,
+   fight, retreat, ambush) by playing whole sessions in sped-up headless training worlds; the
+   plan structure stays hand-written, the choices are learned. A decision every 30-60 s is small
+   enough to train overnight on this PC.
+3. **Rules told in words.** "Snowballs knock you out", typed or said, is turned by the mind
+   (language model, optional) or by keyword patterns into a rule-finder rule, so a new game starts
+   with that rule instead of discovering it. Runs once per sentence.
+4. **Faster learning of new games.** More generated games and kits in the minigame generator, so
+   practice across many games makes it quicker at the next one (measured by the Core exam:
+   rounds until it plays well). Uses idle/overnight time.
+5. **Sleep with daily reflection.** While idle or overnight: replay the day's important moments to
+   train; consolidate memories into person and place profiles; once a day the mind (if installed)
+   reads the day's memories and writes a few lessons ("Steve runs at low health: chase him").
+   Each lesson is only trusted after what actually happens confirms it. One short language-model
+   run per day.
+
+Order: 5 (sleep, builds on memory) -> 1 (cause and effect, builds on the Core) -> 3 -> 4 -> 2
+(needs headless worlds first).
