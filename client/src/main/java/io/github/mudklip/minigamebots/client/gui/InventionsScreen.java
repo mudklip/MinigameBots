@@ -65,7 +65,7 @@ public final class InventionsScreen extends Screen {
 		addRenderableWidget(Button.builder(Component.literal("§aBuild it here"), b -> {
 			if (selected != null) {
 				message = io.github.mudklip.minigamebots.client.invent.BuildRunner.build(minecraft, selected);
-				onClose();
+				minecraft.gui.setScreen(null); // Back to the game: it can't build behind a menu.
 			}
 		}).pos(width - 92, height - 26).width(84).tooltip(Tooltip.create(Component.literal("The AI builds it a few blocks in front of "
 				+ "you with its own hands (walking, picking blocks, looking, clicking), from what it has in its hotbar. It's recorded as "
@@ -192,7 +192,9 @@ public final class InventionsScreen extends Screen {
 			lines.add("§7In the test: " + (r.has("enclosed") && r.get("enclosed").getAsBoolean() ? "closed in" : "§copen§7") + ", room "
 					+ (r.has("room") ? r.get("room").getAsInt() : 0) + ", light " + (r.has("light") ? r.get("light").getAsInt() : 0));
 		}
-		lines.add("§8Yellow line: where the victim walks. Black: holes.");
+		if (d.has("path")) {
+			lines.add("§8Yellow line: where the victim walks. Black: holes.");
+		}
 		for (String s : lines) {
 			g.text(font, Component.literal(font.plainSubstrByWidth(s, width - x0 - 8)), x0, ty, Ui.TEXT, false);
 			ty += 10;

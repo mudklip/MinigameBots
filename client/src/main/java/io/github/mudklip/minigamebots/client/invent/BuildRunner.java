@@ -81,7 +81,11 @@ public final class BuildRunner {
 		boolean finished = ps != null && "build".equals(brain.policy()) && ps.has("finished") && ps.get("finished").getAsBoolean();
 		if (ps != null && ps.has("placed")) {
 			status = "Building: " + ps.get("placed").getAsInt() + "/" + ps.get("total").getAsInt()
+					+ (ps.has("doing") && !ps.get("doing").isJsonNull() ? ", " + ps.get("doing").getAsString() : "")
 					+ (ps.has("missing") && !ps.getAsJsonArray("missing").isEmpty() ? " (missing: " + ps.getAsJsonArray("missing") + ")" : "");
+			if (mc.player != null && mc.level != null && mc.level.getGameTime() % 10 == 0) {
+				mc.player.sendOverlayMessage(Component.literal(status));
+			}
 		}
 		if (finished || !AgentControl.aiActive()) {
 			active = false;

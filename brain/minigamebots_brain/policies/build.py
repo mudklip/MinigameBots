@@ -43,6 +43,13 @@ class BuildPolicy(Policy):
         places = sorted([s for s in steps if not s["dig"]], key=lambda s: (s["pos"][1], abs(s["pos"][0] - self.anchor[0])
                                                                            + abs(s["pos"][2] - self.anchor[2])))
         self.steps = digs + places
+        xs = [s["pos"][0] for s in self.steps] or [self.anchor[0]]
+        zs = [s["pos"][2] for s in self.steps] or [self.anchor[2]]
+        self.box = (min(xs), max(xs), min(zs), max(zs))
+        # Where to stand: a ring two blocks outside the design (a builder doesn't wall itself in).
+        x0, x1, z0, z1 = self.box[0] - 2, self.box[1] + 2, self.box[2] - 2, self.box[3] + 2
+        self.ring = [(x, z) for x in range(x0, x1 + 1) for z in range(z0, z1 + 1) if x in (x0, x1) or z in (z0, z1)]
+        self.idle = 0
         self.done = set()
         self.failed = set()
         self.missing = set()
@@ -50,6 +57,10 @@ class BuildPolicy(Policy):
         self.wait = 0
         self.current = None
         self.tick = 0
+        # Turns ordered but not seen in the camera yet (the humanizer smooths them over a few ticks).
+        self.ordered = [0.0, 0.0]
+        self.observed = [0.0, 0.0]
+        self.previous = None
 
     # --- seeing ---
 
@@ -83,15 +94,31 @@ class BuildPolicy(Policy):
 
     # --- acting ---
 
+    def _pending(self, me):
+        if self.previous is not None:
+            self.observed[0] += wrap_degrees(float(me.get("yaw", 0)) - self.previous[0])
+            self.observed[1] += float(me.get("pitch", 0)) - self.previous[1]
+        self.previous = (float(me.get("yaw", 0)), float(me.get("pitch", 0)))
+        pending = [self.ordered[i] - self.observed[i] for i in range(2)]
+        for i in range(2):
+            self.ordered[i] -= 0.15 * pending[i]  # Forget slowly what never showed up.
+        return pending
+
     def _look(self, me, point, keys=None, speed=14.0):
         eye = (me["x"], me["y"] + 1.62, me["z"])
+        pending = getattr(self, "_pend", [0.0, 0.0])
         dx, dy, dz = point[0] - eye[0], point[1] - eye[1], point[2] - eye[2]
         yaw = math.degrees(math.atan2(-dx, dz))
         pitch = -math.degrees(math.atan2(dy, math.hypot(dx, dz)))
         dyaw = wrap_degrees(yaw - float(me.get("yaw", 0)))
         dpitch = pitch - float(me.get("pitch", 0))
-        turn = (max(-speed, min(speed, dyaw * 0.6)), max(-speed, min(speed, dpitch * 0.6)))
-        return Action(keys=set(keys or ()), yaw=turn[0], pitch=turn[1]), abs(dyaw) < 4 and abs(dpitch) < 4
+        on = abs(dyaw) < 4 and abs(dpitch) < 4
+        # Only order what isn't already on its way.
+        want = (dyaw - pending[0], dpitch - pending[1])
+        turn = (max(-speed, min(speed, want[0] * 0.6)), max(-speed, min(speed, want[1] * 0.6)))
+        self.ordered[0] += turn[0]
+        self.ordered[1] += turn[1]
+        return Action(keys=set(keys or ()), yaw=turn[0], pitch=turn[1]), on
 
     def _walk_to(self, me, pos, stop=2.6):
         dx, dz = pos[0] + 0.5 - me["x"], pos[2] + 0.5 - me["z"]
@@ -109,6 +136,7 @@ class BuildPolicy(Policy):
             return Action()
         feet = (math.floor(me["x"]), math.floor(me["y"]), math.floor(me["z"]))
         grid = decode_blocks(obs.get("blocks"))
+        self._pend = self._pending(me)
         if self.wait > 0:
             self.wait -= 1
             return Action()
@@ -133,7 +161,9 @@ class BuildPolicy(Policy):
             break
         self.current = step
         if step is None:
+            self.idle += 1  # Nothing it can place right now (missing items or out of reach for good).
             return Action()
+        self.idle = 0
         pos = step["pos"]
         centre = (pos[0] + 0.5, pos[1] + 0.5, pos[2] + 0.5)
         eye = (me["x"], me["y"] + 1.62, me["z"])
@@ -143,8 +173,20 @@ class BuildPolicy(Policy):
             a, _ = self._look(me, centre)
             a.keys.add("back")
             return a
-        if dist > REACH:
-            return self._walk_to(me, pos)
+        inside = self.box[0] <= feet[0] <= self.box[1] and self.box[2] <= feet[2] <= self.box[3]
+        if dist > REACH or inside:
+            # Go to the closest standing spot outside the design that is within reach of this block.
+            spots = sorted(self.ring, key=lambda c: math.hypot(c[0] + 0.5 - centre[0], c[1] + 0.5 - centre[2]))
+            spot = spots[0]
+            for c in spots:
+                if math.dist((c[0] + 0.5, feet[1] + 1.62, c[1] + 0.5), centre) <= REACH - 0.3:
+                    spot = c
+                    break
+            if (feet[0], feet[2]) != spot:
+                return self._walk_to(me, (spot[0], feet[1], spot[1]), stop=0.4)
+            if dist > REACH:
+                self.failed.add((pos, step["dig"]))  # Can't be reached from outside: skip it.
+                return Action()
         if step["dig"]:
             a, on = self._look(me, centre)
             if on:
@@ -182,4 +224,4 @@ class BuildPolicy(Policy):
         return {"placed": len(self.done), "total": total, "failed": len(self.failed), "missing": sorted(self.missing),
                 "doing": None if self.current is None else
                 ("dig " if self.current["dig"] else "place ") + self.current["block"].split("[")[0].split(":")[-1],
-                "finished": self.current is None and len(self.done) + len(self.failed) >= total}
+                "finished": self.current is None and (len(self.done) + len(self.failed) >= total or self.idle > 100)}

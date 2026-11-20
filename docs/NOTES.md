@@ -170,3 +170,13 @@ victim dummy walks the path for 10 s (walker brain), shelters flood-filled; resu
 `sandbox_result`; the space is cleared to air with entities removed. Client: InventSession loop,
 Inventions screen (main menu) with top-down pictures. Next: its own building skill, then the
 strategist using inventions.
+
+## 1.24.0: creativity, part 2 (its own building skill)
+`policies/build.py` ("build"): places a design by real input: digs first (top-down, and makes
+room for blocks set into the ground), then places bottom-up against filled neighbours; walks
+within reach (4.3), selects the hotbar slot, aims at the support face, `use`; verifies in the
+block sense cube; 4 tries per block, missing items reported. Turns account for ordered-but-not-
+yet-seen rotation (humanizer smoothing) like FollowPolicy. Client `BuildRunner`: anchor 6 blocks
+ahead, overlay progress line, records the session as a teacher demo "Build: <name>" for a
+building skill; `design_kit` request gives the blocks (Training Grounds managers). Not yet:
+block orientation (dispensers face the builder), filling dispensers, Baritone build demos.
