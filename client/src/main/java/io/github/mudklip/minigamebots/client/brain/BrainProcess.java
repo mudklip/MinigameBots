@@ -92,6 +92,16 @@ public final class BrainProcess {
 		return process.isAlive() ? -1 : process.exitValue();
 	}
 
+	/** Waits up to {@code ms} for the process to end by itself; true if it did. */
+	public boolean awaitExit(long ms) {
+		try {
+			return process.waitFor(ms, java.util.concurrent.TimeUnit.MILLISECONDS);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			return !process.isAlive();
+		}
+	}
+
 	public void kill() {
 		process.destroy();
 		try {

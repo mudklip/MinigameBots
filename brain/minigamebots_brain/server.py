@@ -32,6 +32,9 @@ class Brain:
         self.errors = 0
         self.think_ms = []
         self.last_status = 0.0
+        self.swaps = 0
+        self.swap_ms = None
+        self.started = time.monotonic()
 
     def handle(self, message: dict) -> bool:
         kind = message.get("type")
@@ -55,22 +58,43 @@ class Brain:
             self.send_status(force=True)
         elif kind == "shutdown":
             log("Shutting down on request")
+            self.close_policy()
             return False
         else:
             log(f"Ignoring unknown message type {kind!r}")
         return True
 
     def set_policy(self, name: str, args: dict) -> None:
+        """Swaps what plays. The process (Python, PyTorch, the GPU context, the mind) stays loaded
+        between plays; only the policy changes. The old one saves what it learned first."""
+        self.close_policy()
         if name == "manager" and args.get("mode") == "personality" and args.get("profile"):
             self._personality_mode(args)
+        start = time.perf_counter()
         try:
             self.policy = policies.create(name, args)
-            log(f"Policy: {name} {args or ''}")
-            self.channel.send({"type": "policy", "name": name, "ok": True})
+            self.swap_ms = round((time.perf_counter() - start) * 1000, 1)
+            log(f"Policy: {name} {args or ''} (ready in {self.swap_ms} ms)")
+            self.channel.send({"type": "policy", "name": name, "ok": True, "swap_ms": self.swap_ms})
         except Exception as e:
-            log(f"Couldn't start policy {name}: {e}")
+            # Only this policy failed: the brain stays up, idle, ready for the next one.
+            log(f"Couldn't start policy {name}: {e}\n" + traceback.format_exc())
+            self.policy = policies.create("idle")
             self.channel.send({"type": "policy", "name": name, "ok": False, "error": str(e)})
+        self.swaps += 1
         self.send_status(force=True)
+
+    def close_policy(self) -> None:
+        """Lets the current policy save and let go (on swap and on shutdown)."""
+        old, self.policy = self.policy, policies.create("idle")
+        if old.name == "idle":
+            return
+        try:
+            old.close()
+        except Exception:
+            log(f"Couldn't close policy {old.name}:\n" + traceback.format_exc())
+        del old
+        free_memory()
 
     def on_world_step(self, message: dict) -> None:
         """Headless training worlds: the training server's views of every world in, every learner's
@@ -255,8 +279,25 @@ class Brain:
             "ticks": self.ticks,
             "errors": self.errors,
             "think_ms": round(avg, 3),
+            "swaps": self.swaps,
+            "swap_ms": self.swap_ms,
+            "uptime_s": round(now - self.started),
             "policy_status": self.policy.status(),
         })
+
+
+def free_memory() -> None:
+    """Gives a swapped-out policy's memory back (its network can be large on the GPU)."""
+    import gc
+
+    gc.collect()
+    torch = sys.modules.get("torch")  # Only if something already loaded it.
+    if torch is not None:
+        try:
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except Exception:
+            pass
 
 
 def main(argv=None) -> int:
@@ -334,6 +375,7 @@ def main(argv=None) -> int:
             pass
     except ConnectionClosed:
         log("The mod closed the connection")
+        brain.close_policy()
     finally:
         if frames is not None:
             frames.close()

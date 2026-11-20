@@ -235,10 +235,16 @@ class PracticePolicy(Policy):
         if self.learner is not None and bonus:
             self.learner.reward(bonus)
 
-    def _maybe_save(self):
+    def close(self):
+        """Swapped out (the brain process stays): keep the updates since the last save."""
+        if self.learner is not None and self.learner.updates > self.saved_updates:
+            self._maybe_save(force=True)
+
+    def _maybe_save(self, force: bool = False):
         from ..learn import checkpoint
 
-        if self.learner.updates - self.saved_updates < self.SAVE_EVERY_UPDATES:
+        done = self.learner.updates - self.saved_updates
+        if done <= 0 or (done < self.SAVE_EVERY_UPDATES and not force):
             return
         self.saved_updates = self.learner.updates
         avg = sum(self.returns) / len(self.returns) if self.returns else None
@@ -247,7 +253,7 @@ class PracticePolicy(Policy):
             self.best = avg
         info = dict(self.info)
         info.update({"phase": "practice", "objective": self.objective.get("name", "custom"),
-                     "practice_updates": int(info.get("practice_updates", 0)) + self.SAVE_EVERY_UPDATES,
+                     "practice_updates": int(info.get("practice_updates", 0)) + done,
                      "practice_avg_return": avg, "practice_best": self.best if self.best != float("-inf") else None})
         self.info = info
         # "model" (what plays normally) only moves forward when practice scores better.

@@ -137,5 +137,86 @@ class PolicyTest(unittest.TestCase):
         self.assertAlmostEqual(170, wrap_degrees(-190))
 
 
+class FakeChannel:
+    def __init__(self):
+        self.sent = []
+
+    def send(self, message):
+        self.sent.append(message)
+
+
+class PersistentBrainTest(unittest.TestCase):
+    """A1: one brain process for many plays; only the policy is swapped."""
+
+    def setUp(self):
+        from minigamebots_brain.policies.base import Policy
+        from minigamebots_brain.server import Brain
+
+        closed = self.closed = []
+
+        class Saving(Policy):
+            name = "saving"
+
+            def __init__(self, **_):
+                pass
+
+            def act(self, obs, frame):
+                return Action()
+
+            def close(self):
+                closed.append(self)
+
+        class Broken(Policy):
+            name = "broken"
+
+            def __init__(self, **_):
+                raise RuntimeError("no network here")
+
+        self.registry = dict(policies.POLICIES)
+        policies.POLICIES["saving"] = Saving
+        policies.POLICIES["broken"] = Broken
+        self.channel = FakeChannel()
+        self.brain = Brain(self.channel, None)
+
+    def tearDown(self):
+        policies.POLICIES.clear()
+        policies.POLICIES.update(self.registry)
+
+    def replies(self, kind):
+        return [m for m in self.channel.sent if m.get("type") == kind]
+
+    def test_swap_closes_the_old_policy(self):
+        self.brain.handle({"type": "set_policy", "name": "saving", "args": {}})
+        first = self.brain.policy
+        self.brain.handle({"type": "set_policy", "name": "follow", "args": {}})
+        self.assertEqual([first], self.closed)
+        self.assertEqual("follow", self.brain.policy.name)
+        self.assertEqual(2, self.brain.swaps)
+        self.assertTrue(all(m["ok"] for m in self.replies("policy")))
+
+    def test_failed_policy_leaves_the_brain_idle_not_dead(self):
+        self.brain.handle({"type": "set_policy", "name": "saving", "args": {}})
+        self.assertTrue(self.brain.handle({"type": "set_policy", "name": "broken", "args": {}}))
+        self.assertEqual(1, len(self.closed))
+        self.assertEqual("idle", self.brain.policy.name)
+        last = self.replies("policy")[-1]
+        self.assertFalse(last["ok"])
+        self.assertIn("no network", last["error"])
+        # It still plays the next policy without a restart.
+        self.brain.handle({"type": "set_policy", "name": "saving", "args": {}})
+        self.assertEqual("saving", self.brain.policy.name)
+
+    def test_shutdown_saves(self):
+        self.brain.handle({"type": "set_policy", "name": "saving", "args": {}})
+        self.assertFalse(self.brain.handle({"type": "shutdown"}))
+        self.assertEqual(1, len(self.closed))
+
+    def test_status_reports_swaps(self):
+        self.brain.handle({"type": "set_policy", "name": "saving", "args": {}})
+        status = self.replies("status")[-1]
+        self.assertEqual(1, status["swaps"])
+        self.assertIsNotNone(status["swap_ms"])
+
+
 if __name__ == "__main__":
     unittest.main()

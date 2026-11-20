@@ -131,6 +131,13 @@ class LearnedPolicy(Policy):
         probs = torch.softmax(l / self.temperature, dim=-1)
         return int(torch.multinomial(probs, 1))
 
+    def close(self):
+        """Swapped out: keep what it learned about its opponents since the last save."""
+        if self.opponent is not None:
+            self.styles.end_fight(self.opponent)
+        self.fast.save()
+        self.styles.save()
+
     def status(self):
         return {"step": self.info.get("step"), "val_loss": self.info.get("val_loss"), "device": self.device,
                 "adapting_to": self.opponent, "adapted": round(self.fast.strength(self.opponent), 2),

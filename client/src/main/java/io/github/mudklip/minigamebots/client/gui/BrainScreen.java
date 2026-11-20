@@ -286,6 +286,11 @@ public final class BrainScreen extends Screen {
 			y = line(g, x, y, "Policy " + status.get("policy").getAsString() + ", " + status.get("ticks").getAsLong()
 					+ " decisions, thinking " + status.get("think_ms").getAsString() + " ms, "
 					+ status.get("policy_status").toString(), 0xFFB0B0B0);
+			if (status.has("swaps") && status.get("swaps").getAsInt() > 0) {
+				// One process for every play: shows that switching didn't restart Python.
+				y = line(g, x, y, String.format("Kept loaded: %d plays in this process, last switch %.0f ms",
+						status.get("swaps").getAsInt(), Math.max(0, brain.lastSwapMs())), 0xFFB0B0B0);
+			}
 		}
 		BrainSource src = brain.source();
 		if (src != null) {

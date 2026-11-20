@@ -168,7 +168,11 @@ class ManagerPolicy(Policy):
                     from .learned import create_learned
 
                     if len(self.skills) >= self.CACHE:
-                        self.skills.pop(next(iter(self.skills)))
+                        old = self.skills.pop(next(iter(self.skills)))
+                        try:
+                            old.close()  # Keeps what it learned about opponents.
+                        except Exception:
+                            pass
                     self.skills[n] = create_learned(skill_dir(self.profile, n), self.temperature, self.device,
                                                     self.foundations)
                 policy = self.skills.pop(n)
@@ -731,6 +735,19 @@ class ManagerPolicy(Policy):
         if "forward" in keys and self.tick % 30 < 2:
             keys.add("jump")
         return aim._turn(keys, aim.gain * wrap_degrees(yaw_err - pending[0]), aim.gain * (pitch_err - pending[1]))
+
+    def close(self):
+        """Swapped out: the strategist's plan memory and every skill it used keep what they learned."""
+        try:
+            self.strategist.save()
+        except OSError:
+            pass
+        for policy in self.skills.values():
+            try:
+                policy.close()
+            except Exception:
+                pass
+        self.skills.clear()
 
     def status(self):
         lg = self.long_goal()

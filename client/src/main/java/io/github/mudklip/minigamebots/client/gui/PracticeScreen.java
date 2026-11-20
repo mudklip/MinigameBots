@@ -193,7 +193,8 @@ public final class PracticeScreen extends Screen {
 		if ("practice".equals(brain.policy())) {
 			io.github.mudklip.minigamebots.client.control.AgentControl.get().stop(minecraft,
 					Component.translatable("minigamebots.control.human_on"));
-			brain.stop();
+			// Saves the practice and keeps the brain loaded for the next play.
+			brain.release();
 		}
 	}
 

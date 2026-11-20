@@ -16,3 +16,7 @@ class Policy:
     def status(self) -> dict:
         """Extra numbers shown in the mod's Brain screen."""
         return {}
+
+    def close(self) -> None:
+        """Called when the brain swaps to another policy or shuts down (the process keeps
+        running between plays): save anything learned since the last save, free what it holds."""

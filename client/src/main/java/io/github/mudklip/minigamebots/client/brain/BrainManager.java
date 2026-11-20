@@ -34,6 +34,8 @@ public final class BrainManager {
 	}
 
 	private static final int CONNECT_TIMEOUT_MS = 60_000;
+	/** How long a stopping brain may take to save before it is ended. */
+	private static final int SHUTDOWN_GRACE_MS = 5_000;
 	/** Observations not yet sent beyond this are dropped instead of piling up behind a slow brain. */
 	private static final int MAX_PENDING_SENDS = 2;
 	private static final SystemToast.SystemToastId TOAST = new SystemToast.SystemToastId();
@@ -265,6 +267,27 @@ public final class BrainManager {
 		control.execute(this::stopBlocking);
 	}
 
+	/**
+	 * Ends what the brain is doing without stopping the process: the policy saves what it learned
+	 * and the brain waits, loaded, for the next play (no Python/PyTorch restart, no GPU reload).
+	 */
+	public void release() {
+		policy = "idle";
+		source = null;
+		control.execute(() -> {
+			if (status == Status.RUNNING) {
+				sendSetPolicy("idle", new JsonObject());
+			}
+		});
+	}
+
+	/** How long the last policy swap took inside the brain (ms), or a negative number before the first one. */
+	public double lastSwapMs() {
+		return lastSwapMs;
+	}
+
+	private volatile double lastSwapMs = -1;
+
 	private boolean startBlocking() {
 		stopBlocking();
 		stopping = false;
@@ -306,6 +329,11 @@ public final class BrainManager {
 				JsonObject bye = new JsonObject();
 				bye.addProperty("type", "shutdown");
 				c.send(bye);
+				// Give the policy a moment to save what it learned before the process is ended.
+				BrainProcess p = process;
+				if (p != null) {
+					p.awaitExit(SHUTDOWN_GRACE_MS);
+				}
 			} catch (IOException ignored) {
 				// It's going away anyway.
 			}
@@ -335,6 +363,27 @@ public final class BrainManager {
 			frames = null;
 		}
 		source = null;
+	}
+
+	/**
+	 * Only the policy failed (missing network, bad arguments...): the brain process stays up and idle,
+	 * so the next play starts at once instead of reloading Python and PyTorch.
+	 */
+	private void policyFailed(String name, String error) {
+		String why = "Policy " + name + " failed: " + error;
+		message = why;
+		if (name.equals(policy)) {
+			policy = "idle";
+			source = null;
+		}
+		Minecraft client = Minecraft.getInstance();
+		client.execute(() -> {
+			if (AgentControl.aiActive() && AgentControl.get().source() instanceof BrainSource) {
+				AgentControl.get().stop(client, Component.translatable("minigamebots.brain.stopped_ai"));
+			}
+			SystemToast.addOrUpdate(client.gui.toastManager(), TOAST, Component.translatable("minigamebots.brain.title"),
+					Component.literal(why.length() > 120 ? why.substring(0, 120) + "..." : why));
+		});
 	}
 
 	private void fail(String why) {
@@ -476,9 +525,13 @@ public final class BrainManager {
 				}
 			}
 			case "policy" -> {
+				String name = m.has("name") ? m.get("name").getAsString() : "";
 				if (m.has("ok") && !m.get("ok").getAsBoolean()) {
 					String error = m.has("error") ? m.get("error").getAsString() : "unknown error";
-					fail("Policy " + m.get("name").getAsString() + " failed: " + error);
+					policyFailed(name, error);
+				} else if (m.has("swap_ms")) {
+					lastSwapMs = m.get("swap_ms").getAsDouble();
+					message = "Running";
 				}
 			}
 			default -> {
