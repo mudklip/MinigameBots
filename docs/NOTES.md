@@ -180,3 +180,9 @@ yet-seen rotation (humanizer smoothing) like FollowPolicy. Client `BuildRunner`:
 ahead, overlay progress line, records the session as a teacher demo "Build: <name>" for a
 building skill; `design_kit` request gives the blocks (Training Grounds managers). Not yet:
 block orientation (dispensers face the builder), filling dispensers, Baritone build demos.
+Placement is planned like a player: a standing spot on a ring 2 outside the design (walking around
+it via ring corners), a face that points at the eye, an exact look-ray check that the block lands
+in the right cell (re-checked right before clicking, once the view has settled), jump-placing for
+the top of 2-high walls, and for shelters a "gate" (the door column) left open until last so blocks
+reachable only from inside (middle of a roof) are placed from inside. A clicked block is never
+clicked again (that stacked towers in-game). Tests: a fake world with ray-cast placement and jumps.
