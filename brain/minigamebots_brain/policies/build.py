@@ -42,6 +42,15 @@ class BuildPolicy(Policy):
         digs = sorted([s for s in steps if s["dig"]], key=lambda s: -s["pos"][1])
         places = sorted([s for s in steps if not s["dig"]], key=lambda s: (s["pos"][1], abs(s["pos"][0] - self.anchor[0])
                                                                            + abs(s["pos"][2] - self.anchor[2])))
+        # Shelters: keep the door column (the "gate") open until last, so it can go in to build
+        # what can only be reached from inside (the middle of a roof), then come out and close it.
+        inside = design.get("inside")
+        self.gate = None
+        if inside and places:
+            zmin = min(s_["pos"][2] for s_ in places)
+            self.gate = (self.anchor[0] + inside[0], zmin)
+            gate_steps = [s_ for s_ in places if (s_["pos"][0], s_["pos"][2]) == self.gate]
+            places = [s_ for s_ in places if s_ not in gate_steps] + gate_steps
         self.steps = digs + places
         xs = [s["pos"][0] for s in self.steps] or [self.anchor[0]]
         zs = [s["pos"][2] for s in self.steps] or [self.anchor[2]]
@@ -50,6 +59,7 @@ class BuildPolicy(Policy):
         x0, x1, z0, z1 = self.box[0] - 2, self.box[1] + 2, self.box[2] - 2, self.box[3] + 2
         self.ring = [(x, z) for x in range(x0, x1 + 1) for z in range(z0, z1 + 1) if x in (x0, x1) or z in (z0, z1)]
         self.idle = 0
+        self.plan = None  # (block, standing spot, face point) for the block being placed.
         self.clicked = {}  # Placements already clicked: pos -> tick (a second click would stack blocks).
         self.done = set()
         self.failed = set()
@@ -130,6 +140,80 @@ class BuildPolicy(Policy):
                 a.keys.add("jump")  # Over small bumps.
         return a
 
+    def _clear(self, grid, feet, eye, point, skip) -> bool:
+        """Nothing solid between the eye and the point (except the cells in skip)."""
+        d = math.dist(eye, point)
+        n = max(2, int(d / 0.1))
+        for i in range(1, n):
+            t = i / n
+            c = tuple(math.floor(eye[k] + (point[k] - eye[k]) * t) for k in range(3))
+            if c in skip:
+                continue
+            if self._filled(grid, feet, c) or c in self.clicked:
+                return False
+        return True
+
+    def _interior(self):
+        cells = {(s["pos"][0], s["pos"][2]) for s in self.steps if not s["dig"] and s["pos"][1] <= self.anchor[1] + 1}
+        return [(x, z) for x in range(self.box[0] + 1, self.box[1]) for z in range(self.box[2] + 1, self.box[3])
+                if (x, z) not in cells]
+
+    def _gate_open(self, grid, feet) -> bool:
+        if self.gate is None:
+            return False
+        return not any(self._filled(grid, feet, (self.gate[0], self.anchor[1] + dy, self.gate[1])) for dy in (0, 1))
+
+    def _find_spot(self, grid, feet, pos, centre):
+        spots = sorted(self.ring, key=lambda c: math.hypot(c[0] + 0.5 - centre[0], c[1] + 0.5 - centre[2]))
+        if self._gate_open(grid, feet):
+            spots += sorted(self._interior(), key=lambda c: math.hypot(c[0] + 0.5 - centre[0], c[1] + 0.5 - centre[2]))
+        for sx, sz in spots:
+            eye = (sx + 0.5, feet[1] + 1.62, sz + 0.5)
+            if math.dist(eye, centre) > REACH - 0.3:
+                continue
+            body = {(sx, feet[1], sz), (sx, feet[1] + 1, sz), (sx, feet[1] + 2, sz)}
+            for n in NEIGHBOURS:
+                support = (pos[0] + n[0], pos[1] + n[1], pos[2] + n[2])
+                if not self._filled(grid, feet, support):
+                    continue
+                # Aim a little inside the support's face, so the look ray really hits it.
+                face = (centre[0] + n[0] * 0.53, centre[1] + n[1] * 0.53, centre[2] + n[2] * 0.53)
+                for jump in (False, True):
+                    # Jumping lifts the eye about a block: how players reach the top of a 2-high wall.
+                    e = (eye[0], eye[1] + (1.0 if jump else 0.0), eye[2])
+                    # The face must point at the eye (you can't click the back of a block).
+                    if sum((e[k] - face[k]) * -n[k] for k in range(3)) <= 0.05:
+                        continue
+                    if math.dist(e, face) > REACH - 0.2:
+                        continue
+                    v = [face[k] - e[k] for k in range(3)]
+                    length = math.sqrt(sum(x * x for x in v)) or 1.0
+                    v = [x / length for x in v]
+                    if -sum(v[k] * n[k] for k in range(3)) > -0.25:
+                        continue  # Too edge-on: the click would slide off the face.
+                    # Exactly what the game would do with this look: lands in the right cell?
+                    if self._ray(e, v, grid, feet, frozenset({support})) == pos:
+                        return (sx, sz), face, jump
+        return None
+
+    def _would_place(self, me, grid, feet):
+        """Where a click right now would put the block: the cell before the first solid one along
+        the look ray (what the game does), or None if nothing is in reach."""
+        yaw, pitch = math.radians(float(me.get("yaw", 0))), math.radians(float(me.get("pitch", 0)))
+        d = (-math.sin(yaw) * math.cos(pitch), -math.sin(pitch), math.cos(yaw) * math.cos(pitch))
+        return self._ray((me["x"], me["y"] + 1.62, me["z"]), d, grid, feet)
+
+    def _ray(self, eye, d, grid, feet, extra=frozenset()):
+        p = list(eye)
+        prev = None
+        for _ in range(int(REACH / 0.05)):
+            p = [p[i] + d[i] * 0.05 for i in range(3)]
+            c = (math.floor(p[0]), math.floor(p[1]), math.floor(p[2]))
+            if c != prev and (self._filled(grid, feet, c) or c in self.clicked or c in extra):
+                return prev
+            prev = c
+        return None
+
     def _crosses(self, a, b) -> bool:
         """Does the straight walk from a to b (x, z) cut across the design's footprint?"""
         x0, x1, z0, z1 = self.box[0] - 0.3, self.box[1] + 1.3, self.box[2] - 0.3, self.box[3] + 1.3
@@ -140,15 +224,37 @@ class BuildPolicy(Policy):
                 return True
         return False
 
+    def _in_box(self, x, z) -> bool:
+        return self.box[0] <= x <= self.box[1] and self.box[2] <= z <= self.box[3]
+
     def _via(self, me, dest):
-        """Walk around the design, never through it: by a corner of the standing ring if needed."""
+        """Walk around the design, never through it: by a corner of the standing ring if needed;
+        in and out of a shelter only through its gate."""
         here = (me["x"], me["z"])
         goal = (dest[0] + 0.5, dest[2] + 0.5)
+        if self.gate is not None:
+            cell = (math.floor(me["x"]), math.floor(me["z"]))
+            front = (self.gate[0], self.gate[1] - 1)
+            want_in, now_in = self._in_box(dest[0], dest[2]), self._in_box(*cell)
+            if want_in and not now_in:
+                if cell != front:
+                    dest, goal = (front[0], dest[1], front[1]), (front[0] + 0.5, front[1] + 0.5)
+                else:
+                    return (self.gate[0], dest[1], self.gate[1])  # Step through the gate.
+            elif now_in and not want_in:
+                if cell != self.gate:
+                    return (self.gate[0], dest[1], self.gate[1])  # Out through the gate.
+                return (front[0], dest[1], front[1])
+            elif want_in and now_in:
+                return dest
+        if not self._crosses(here, goal):
+            return dest
         if not self._crosses(here, goal):
             return dest
         x0, x1, z0, z1 = self.box[0] - 2, self.box[1] + 2, self.box[2] - 2, self.box[3] + 2
         corners = [(x, z) for x in (x0, x1) for z in (z0, z1)]
-        ok = [c for c in corners if not self._crosses(here, (c[0] + 0.5, c[1] + 0.5))]
+        ok = [c for c in corners if not self._crosses(here, (c[0] + 0.5, c[1] + 0.5))
+              and math.dist(here, (c[0] + 0.5, c[1] + 0.5)) > 0.8]  # Not the corner it's already at.
         best = min(ok or corners, key=lambda c: math.dist(here, (c[0] + 0.5, c[1] + 0.5)) + math.dist((c[0] + 0.5, c[1] + 0.5), goal))
         return (best[0], dest[1], best[1])
 
@@ -203,20 +309,27 @@ class BuildPolicy(Policy):
             a, _ = self._look(me, centre)
             a.keys.add("back")
             return a
-        inside = self.box[0] <= feet[0] <= self.box[1] and self.box[2] <= feet[2] <= self.box[3]
-        if dist > REACH or inside:
-            # Go to the closest standing spot outside the design that is within reach of this block.
-            spots = sorted(self.ring, key=lambda c: math.hypot(c[0] + 0.5 - centre[0], c[1] + 0.5 - centre[2]))
-            spot = spots[0]
-            for c in spots:
-                if math.dist((c[0] + 0.5, feet[1] + 1.62, c[1] + 0.5), centre) <= REACH - 0.3:
-                    spot = c
-                    break
+        inside = self._in_box(feet[0], feet[2])
+        if step["dig"]:
+            if dist > REACH or inside:
+                spot = min(self.ring, key=lambda c: math.hypot(c[0] + 0.5 - centre[0], c[1] + 0.5 - centre[2]))
+                if (feet[0], feet[2]) != spot:
+                    return self._walk_to(me, self._via(me, (spot[0], feet[1], spot[1])), stop=0.4)
+                if dist > REACH:
+                    self.failed.add((pos, True))
+                    return Action()
+        else:
+            # Where to stand and which face to click: outside the design, in reach, with a clear
+            # line from the eye to the face (otherwise the click lands on whatever is in the way).
+            if self.plan is None or self.plan[0] != pos:
+                found = self._find_spot(grid, feet, pos, centre)
+                if found is None:
+                    self.failed.add((pos, False))
+                    return Action()
+                self.plan = (pos, found[0], found[1], found[2])
+            _, spot, face, _jump = self.plan
             if (feet[0], feet[2]) != spot:
                 return self._walk_to(me, self._via(me, (spot[0], feet[1], spot[1])), stop=0.4)
-            if dist > REACH:
-                self.failed.add((pos, step["dig"]))  # Can't be reached from outside: skip it.
-                return Action()
         if step["dig"]:
             a, on = self._look(me, centre)
             if on:
@@ -231,17 +344,21 @@ class BuildPolicy(Policy):
             self.missing.add(item.split(":")[-1])  # In the inventory but not the hotbar.
             self.failed.add((pos, False))
             return Action()
-        # Click the face of a solid neighbour (below first: the most natural way to build).
-        for n in NEIGHBOURS:
-            support = (pos[0] + n[0], pos[1] + n[1], pos[2] + n[2])
-            if self._filled(grid, feet, support):
-                face = (centre[0] + n[0] * 0.48, centre[1] + n[1] * 0.48, centre[2] + n[2] * 0.48)
-                break
+        face, jump = self.plan[2], self.plan[3]
         a, on = self._look(me, face)
+        if jump:
+            # Jump, and click near the top of the jump.
+            high = float(me["y"]) - self.anchor[1] >= 0.75
+            if me.get("onGround", True) and float(me["y"]) - self.anchor[1] < 0.1:
+                if obs.get("selectedSlot") == slot:
+                    a.keys.add("jump")
+                on = False
+            elif not high:
+                on = False
         if obs.get("selectedSlot") != slot:
             a.keys.add(f"hotbar_{slot + 1}")
             return a
-        if on:
+        if on and self._would_place(me, grid, feet) == pos:
             a.keys.add("use")
             self.tries[(pos, step["dig"])] = self.tries.get((pos, step["dig"]), 0) + 1
             if self.tries[(pos, False)] > 3:
