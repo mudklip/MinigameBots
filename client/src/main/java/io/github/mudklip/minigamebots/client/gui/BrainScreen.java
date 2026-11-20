@@ -46,24 +46,27 @@ public final class BrainScreen extends Screen {
 
 	@Override
 	protected void init() {
-		int left = 10;
-		int y = height - 54;
+		// Three cards: 1 Setup (left), 2 Run it (right), add-ons (below); the log under them.
+		int cw = (width - 24) / 2;
+		int c1 = 8, c2 = 16 + cw, cy = 40;
+		int bw = (cw - 16) / 2;
+		int y3 = cy + 98;
+		int aw = (width - 16 - 30) / 4;
 		installGpu = addRenderableWidget(Button.builder(Component.translatable("minigamebots.brain.install_gpu"),
-				b -> install(RuntimeInstaller.Variant.CUDA)).pos(left, y).width(96).build());
+				b -> install(RuntimeInstaller.Variant.CUDA)).pos(c1 + 6, cy + 46).width(bw).build());
 		installCpu = addRenderableWidget(Button.builder(Component.translatable("minigamebots.brain.install_cpu"),
-				b -> install(RuntimeInstaller.Variant.CPU)).pos(left + 100, y).width(96).build());
+				b -> install(RuntimeInstaller.Variant.CPU)).pos(c1 + 10 + bw, cy + 46).width(bw).build());
 		ownPython = addRenderableWidget(Button.builder(Component.translatable("minigamebots.brain.own_python"),
-				b -> minecraft.gui.setScreen(new PythonPathScreen(this))).pos(left + 200, y).width(110).build());
+				b -> minecraft.gui.setScreen(new PythonPathScreen(this))).pos(c1 + 6, cy + 68).width(bw).build());
 		cancel = addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), b -> {
 			if (installer != null) {
 				installer.cancel();
 			}
-		}).pos(left + 314, y).width(60).build());
+		}).pos(c1 + 10 + bw, cy + 68).width(bw).build());
 		update = addRenderableWidget(Button.builder(Component.translatable("minigamebots.brain.update"), b -> update())
-				.pos(left + 314, y).width(60).tooltip(net.minecraft.client.gui.components.Tooltip.create(
+				.pos(c1 + 10 + bw, cy + 68).width(bw).tooltip(net.minecraft.client.gui.components.Tooltip.create(
 						Component.translatable("minigamebots.brain.update_help"))).build());
 
-		int y2 = height - 28;
 		startStop = addRenderableWidget(Button.builder(Component.empty(), b -> {
 			if (brain.status() == BrainManager.Status.RUNNING || brain.status() == BrainManager.Status.STARTING) {
 				if (AgentControl.aiActive() && AgentControl.get().source() instanceof BrainSource) {
@@ -73,11 +76,11 @@ public final class BrainScreen extends Screen {
 			} else {
 				brain.start();
 			}
-		}).pos(left, y2).width(70).build());
+		}).pos(c2 + 6, cy + 46).width(bw).build());
 		policyButton = addRenderableWidget(Button.builder(policyLabel(), b -> {
 			policyIndex = (policyIndex + 1) % POLICIES.size();
 			b.setMessage(policyLabel());
-		}).pos(left + 74, y2).width(110).build());
+		}).pos(c2 + 10 + bw, cy + 46).width(bw).build());
 		play = addRenderableWidget(Button.builder(Component.translatable("minigamebots.brain.play"), b -> {
 			String policy = POLICIES.get(policyIndex);
 			var active = MinigameBotsClient.instance().profiles().active();
@@ -96,28 +99,28 @@ public final class BrainScreen extends Screen {
 				brain.play(minecraft, policy);
 			}
 			onClose();
-		}).pos(left + 188, y2).width(110).build());
+		}).pos(c2 + 6, cy + 68).width(bw).build());
 		addRenderableWidget(Button.builder(Component.translatable("minigamebots.brain.logs"),
-				b -> Blaze3D.openPath(brain.runtime().logsDir())).pos(left + 302, y2).width(40).build());
+				b -> Blaze3D.openPath(brain.runtime().logsDir())).pos(c2 + 10 + bw, cy + 68).width(bw).build());
 		addRenderableWidget(Button.builder(Component.translatable("minigamebots.foundations.button"),
-				b -> minecraft.gui.setScreen(new FoundationsScreen(this))).pos(width - 90, 4).width(80)
+				b -> minecraft.gui.setScreen(new FoundationsScreen(this))).pos(14, y3 + 6).width(aw)
 				.tooltip(net.minecraft.client.gui.components.Tooltip.create(
 						Component.translatable("minigamebots.foundations.button_help"))).build());
 		boolean mindInstalled = mindReady(brain.runtime().root().resolve("mind"));
 		addRenderableWidget(Button.builder(Component.literal(mindBusy ? "Installing..." : mindInstalled ? "Mind: ready"
-				: "Mind (3 GB)"), b -> installMind("standard")).pos(width - 90, 28).width(80)
+				: "Mind (3 GB)"), b -> installMind("standard")).pos(14 + 2 * (aw + 6), y3 + 6).width(aw)
 				.tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable("minigamebots.mind.help"))).build())
 				.active = !mindBusy && !mindInstalled && brain.runtime().installed();
 		boolean voiceReady = java.nio.file.Files.isRegularFile(brain.runtime().root().resolve("mind/voice/whisper/config.json"));
 		addRenderableWidget(Button.builder(Component.literal(voiceReady ? "Voice: ready" : "Voice (350 MB)"),
-				b -> installMind("voice")).pos(width - 174, 4).width(80)
+				b -> installMind("voice")).pos(14 + aw + 6, y3 + 6).width(aw)
 				.tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable("minigamebots.voice.help"))).build())
 				.active = !mindBusy && !voiceReady && brain.runtime().installed();
-		addRenderableWidget(Button.builder(Component.literal("Lite mind (1 GB)"), b -> installMind("lite")).pos(width - 90, 52).width(80)
+		addRenderableWidget(Button.builder(Component.literal("Lite mind (1 GB)"), b -> installMind("lite")).pos(14 + 3 * (aw + 6), y3 + 6).width(aw)
 				.tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable("minigamebots.mind.lite_help"))).build())
 				.active = !mindBusy && !mindInstalled && brain.runtime().installed();
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose())
-				.pos(width - 70, y2).width(60).build());
+				.pos(width - 60, 6).width(52).build());
 		updateButtons();
 	}
 
@@ -247,60 +250,71 @@ public final class BrainScreen extends Screen {
 
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float a) {
+		int cw = (width - 24) / 2;
+		int c1 = 8, c2 = 16 + cw, cy = 40;
+		int y3 = cy + 98;
+		Ui.card(g, c1, cy, cw, 92, Ui.CARD, Ui.ACCENT);
+		Ui.card(g, c2, cy, cw, 92, Ui.CARD, Ui.GOOD);
+		Ui.card(g, 8, y3, width - 16, 32, Ui.CARD, Ui.BORDER);
 		super.extractRenderState(g, mouseX, mouseY, a);
-		g.centeredText(font, title, width / 2, 8, 0xFFFFFFFF);
-		int x = 12;
-		int y = 26;
+		g.text(font, Component.literal("§lBrain"), 8, 10, Ui.TEXT, false);
+		g.text(font, font.plainSubstrByWidth("The AI's brain runs on your PC: set it up once, then start it and let it play.", width - 70), 8, 22,
+				Ui.MUTED, false);
+		g.text(font, Component.literal("§l1  Setup"), c1 + 6, cy + 5, Ui.ACCENT, false);
+		g.text(font, Component.literal("§l2  Run it"), c2 + 6, cy + 5, Ui.GOOD, false);
 		BrainRuntime runtime = brain.runtime();
 		BrainRuntime.BrainState state = runtime.readStateCached();
 		String custom = MgbConfig.get().customPythonPath;
-		y = line(g, x, y, "Python: " + (custom.isBlank() ? "standalone (downloaded by Setup)" : custom), 0xFFB0B0B0);
+		int x = c1 + 6;
+		int y = cy + 17;
+		g.text(font, font.plainSubstrByWidth("Python: " + (custom.isBlank() ? "standalone (downloaded)" : custom), cw - 12), x, y, Ui.MUTED, false);
 		if (runtime.installed() && state != null) {
-			y = line(g, x, y, RuntimeInstaller.summary(state.report), 0xFF80E080);
+			g.text(font, font.plainSubstrByWidth(RuntimeInstaller.summary(state.report), cw - 12), x, y + 10, Ui.GOOD, false);
 		} else {
-			y = line(g, x, y, Component.translatable("minigamebots.brain.not_installed").getString(), 0xFFFFC060);
+			g.text(font, font.plainSubstrByWidth(Component.translatable("minigamebots.brain.not_installed").getString(), cw - 12), x, y + 10,
+					Ui.WARN, false);
 		}
-
 		RuntimeInstaller i = installer;
 		if (i != null) {
 			if (!i.done()) {
-				y = line(g, x, y + 4, "Setup: " + i.stage(), 0xFFFFFFFF);
-				drawProgress(g, x, y, width - 24, i.progress());
-				y += 10;
+				g.text(font, font.plainSubstrByWidth("Setup: " + i.stage(), cw - 12), x, y + 20, Ui.TEXT, false);
+				drawProgress(g, x, y + 29, cw - 12, i.progress());
 			} else if (i.error() != null) {
-				y = line(g, x, y + 4, "Setup failed: " + i.error(), 0xFFFF8080);
+				g.text(font, font.plainSubstrByWidth("Setup failed: " + i.error(), cw - 12), x, y + 20, 0xFFFF8080, false);
 			} else {
-				y = line(g, x, y + 4, "Setup finished. " + i.stage(), 0xFF80E080);
+				g.text(font, font.plainSubstrByWidth("Setup finished. " + i.stage(), cw - 12), x, y + 20, Ui.GOOD, false);
 			}
 		}
-
 		BrainManager.Status s = brain.status();
 		int color = switch (s) {
-			case RUNNING -> 0xFF80E080;
+			case RUNNING -> Ui.GOOD;
 			case FAILED -> 0xFFFF8080;
-			default -> 0xFFE0E0E0;
+			default -> Ui.TEXT;
 		};
-		y = line(g, x, y + 4, "Brain: " + s.name().toLowerCase() + (brain.message().isEmpty() ? "" : " - " + brain.message()), color);
+		x = c2 + 6;
+		g.text(font, font.plainSubstrByWidth("Brain: " + s.name().toLowerCase() + (brain.message().isEmpty() ? "" : " - " + brain.message()),
+				cw - 12), x, y, color, false);
 		JsonObject status = brain.lastStatus();
 		if (s == BrainManager.Status.RUNNING && status != null) {
-			y = line(g, x, y, "Policy " + status.get("policy").getAsString() + ", " + status.get("ticks").getAsLong()
-					+ " decisions, thinking " + status.get("think_ms").getAsString() + " ms, "
-					+ status.get("policy_status").toString(), 0xFFB0B0B0);
+			g.text(font, font.plainSubstrByWidth(status.get("policy").getAsString() + ", " + status.get("ticks").getAsLong()
+					+ " decisions, " + status.get("think_ms").getAsString() + " ms each", cw - 12), x, y + 10, Ui.MUTED, false);
 			if (status.has("swaps") && status.get("swaps").getAsInt() > 0) {
-				// One process for every play: shows that switching didn't restart Python.
-				y = line(g, x, y, String.format("Kept loaded: %d plays in this process, last switch %.0f ms",
-						status.get("swaps").getAsInt(), Math.max(0, brain.lastSwapMs())), 0xFFB0B0B0);
+				g.text(font, font.plainSubstrByWidth(String.format("Kept loaded: %d plays, last switch %.0f ms",
+						status.get("swaps").getAsInt(), Math.max(0, brain.lastSwapMs())), cw - 12), x, y + 20, Ui.MUTED, false);
 			}
+		} else {
+			g.text(font, font.plainSubstrByWidth("Start it, pick what plays, then give it control.", cw - 12), x, y + 10, Ui.MUTED, false);
 		}
 		BrainSource src = brain.source();
 		if (src != null) {
-			y = line(g, x, y, String.format("Last session: round trip %.1f ms, no fresh answer on %.0f%% of ticks",
-					src.latencyMs(), src.lateFraction() * 100), 0xFFB0B0B0);
+			g.text(font, font.plainSubstrByWidth(String.format("Last session: %.1f ms round trip, %.0f%% late",
+					src.latencyMs(), src.lateFraction() * 100), cw - 12), x, y + 20, Ui.MUTED, false);
 		}
-
+		x = 12;
+		y = y3 + 36;
 		// Latest output from setup or the brain.
 		List<String> out = brain.output();
-		int maxLines = Math.max(0, (height - 60 - y - 8) / 10);
+		int maxLines = Math.max(0, (height - y - 12) / 10);
 		g.fill(x - 2, y + 4, width - 10, y + 6 + maxLines * 10, 0x66000000);
 		int from = Math.max(0, out.size() - maxLines);
 		int ly = y + 6;

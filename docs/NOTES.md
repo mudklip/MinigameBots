@@ -304,8 +304,8 @@ S = small, M = medium, (check) = needs an in-game check (batch these).
 - ~~C2 skill card "Learns from" row: [Your play] [Watching others] [Who beats it] with weights (on for PvP); reward entry "Uses what beat it"; "Learned from N defeats" S~~ done
 - ~~C3 opponent style traits as network inputs; one combined adaptation layer instead of stacked nudges (fast weights, counters, bluff judgement, mixing) M~~ done
 - ~~C4 dreaming via the main network instead of the tiny MLP S~~ done
-- D1 UI kit: switches, sliders, tabs, list rows, dialogs, empty states, "?" help M
-- D2-D5 old screens rebuilt in batches: main menu -> dashboard; Brain+Profiles; Training+Practice+Exams; rest incl. Settings (custom, internal values hidden) M each (check)
+- ~~D1 UI kit: switches, sliders, tabs, list rows, dialogs, empty states, "?" help M~~ done
+- ~~D2-D5 old screens rebuilt in batches: main menu -> dashboard; Brain+Profiles; Training+Practice+Exams; rest incl. Settings (custom, internal values hidden) M each (check)~~ done
 - E1 reward weights learned from good clips vs marked mistakes (preference learning) M
 - E2 automatic difficulty by success rate; watchdog acts on its diagnosis M
 - E3 overnight population-based evolution of settings + hand-picked constants, judged by auto exams M
@@ -345,3 +345,11 @@ relaunch script lives in the session scratchpad (recreate: Xvfb :99, ./gradlew :
   (optional prefix: old checkpoints load), filled in learned, practice and recording windows; mirror
   flips strafe. OpponentModel.combine: per-opponent trust in fast/counter nudges + clip ±2.
   dream.py --profile: main network memory state (SVD 16) added, used only if it predicts better.
+- Section D notes: StyledButtons + mixins ButtonStyleMixin (Button.Plain.extractContents) and
+  SliderStyleMixin (AbstractSliderButton.extractWidgetRenderState): the mod's look inside its own
+  screens only (class name starts with io.github.mudklip.minigamebots.); "Label: on/off" buttons draw
+  as switches; green (§a) labels get the accent stripe. MainScreen = dashboard (AI card, status chips,
+  Training Hub / Give control, 10 tiles). gui/SettingsScreen built by reflection from MgbConfig
+  @AutoGen fields (tabs per category, switches, sliders, hover help; HIDDEN internal fields; "All
+  settings" opens YACL); Mod Menu opens it. BrainScreen = Setup / Run it / add-ons cards + log.
+  GoalsScreen subtitle + empty state. Other old screens keep their layout with the new style.

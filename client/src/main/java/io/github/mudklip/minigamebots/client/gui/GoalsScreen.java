@@ -274,10 +274,23 @@ public final class GoalsScreen extends Screen {
 	public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float a) {
 		super.extractRenderState(g, mouseX, mouseY, a);
 		ProfileManifest p = MinigameBotsClient.instance().profiles().active();
-		g.text(font, title.getString() + (p == null ? "" : ": " + p.name), 10, 12, 0xFFFFFFFF, false);
+		g.text(font, Component.literal("§l" + title.getString() + (p == null ? "" : ": " + p.name)), 10, 8, Ui.TEXT, false);
+		g.text(font, font.plainSubstrByWidth("What it does when you give it control: a list of goals, or free play.", width - 20), 10, 19,
+				Ui.MUTED, false);
 		int y = 58;
 		if (QUEUE.isEmpty()) {
-			g.text(font, freePlay ? "No goals: it will do what it feels like." : "No goals yet.", 10, y, 0xFF909090, false);
+			if (freePlay) {
+				g.text(font, "No goals: in free play it does what it feels like.", 10, y, Ui.MUTED, false);
+			} else {
+				// Empty state: what goals are and how to add one.
+				Ui.card(g, 10, y - 2, Math.min(360, width - 20), 34, Ui.CARD, Ui.ACCENT);
+				g.text(font, Component.literal("§lNo goals yet"), 16, y + 2, Ui.TEXT, false);
+				g.text(font, font.plainSubstrByWidth("Pick what kind above (mine, kill...), type what and how many, then Add.",
+						Math.min(360, width - 20) - 12), 16, y + 13, Ui.MUTED, false);
+				g.text(font, font.plainSubstrByWidth("It works through them in order. Or switch on Free play below.", Math.min(360, width - 20) - 12),
+						16, y + 22, Ui.MUTED, false);
+				y += 26;
+			}
 		}
 		for (int i = 0; i < Math.min(QUEUE.size(), 8); i++) {
 			g.text(font, (i + 1) + ". " + describe(QUEUE.get(i)), 28, y + i * 14, 0xFFFFFFFF, false);

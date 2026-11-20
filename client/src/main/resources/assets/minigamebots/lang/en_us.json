@@ -105,7 +105,7 @@
 	"minigamebots.brain.screen": "Brain",
 	"minigamebots.brain.install_gpu": "Install (GPU)",
 	"minigamebots.brain.install_cpu": "Install (CPU)",
-	"minigamebots.brain.own_python": "Use my own Python...",
+	"minigamebots.brain.own_python": "Own Python...",
 	"minigamebots.brain.own_python_title": "Use My Own Python",
 	"minigamebots.brain.own_python_help": "Full path to a Python 3.10+ executable, e.g. C:\\Python312\\python.exe. The brain gets its own environment built from it; your Python itself isn't changed. Leave empty to download a standalone Python instead.",
 	"minigamebots.brain.use_standalone": "Download one instead",

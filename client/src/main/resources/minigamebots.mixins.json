@@ -5,6 +5,7 @@
 	"client": [
 		"BossHealthOverlayAccessor",
 		"ButtonStyleMixin",
+		"SliderStyleMixin",
 		"ContainerScreenAccessor",
 		"ClientPacketListenerMixin",
 		"FramerateLimitTrackerMixin",
