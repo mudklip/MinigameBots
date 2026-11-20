@@ -141,6 +141,7 @@ class Brain:
         self.think_ms.append((time.perf_counter() - start) * 1000)
         self.think_ms = self.think_ms[-200:]
         self.send_status()
+        self.send_feed()
 
     def on_command(self, message: dict) -> None:
         """A command you typed (/ai ...): understood off the play loop, answered with goals."""
@@ -266,6 +267,18 @@ class Brain:
 
             sp = self.selfplay = SelfPlay(profile)
         return sp
+
+    def send_feed(self) -> None:
+        """Popups: what it just gained, lost or learned (at most twice a second)."""
+        now = time.monotonic()
+        if now - getattr(self, "last_feed", 0.0) < 0.5:
+            return
+        self.last_feed = now
+        from . import feed
+
+        items = feed.drain()
+        if items:
+            self.channel.send({"type": "feed", "items": items})
 
     def send_status(self, force: bool = False) -> None:
         now = time.monotonic()

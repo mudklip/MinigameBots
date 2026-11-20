@@ -203,7 +203,19 @@ class OpponentModel:
             r.base += 0.05 * (x - r.base)  # How exchanges go with them in general.
             for c, at in r.used.items():
                 if self.tick - at <= CREDIT:
+                    before = r.counter_scale(c)
                     r.works[c] += 0.15 * (x - r.works[c])
+                    if before >= 0.5 > r.counter_scale(c):
+                        from .. import feed
+
+                        feed.push("know", f"Counter dropped vs {r.name}: {c.replace('_', ' ')} (looks like bait)")
+        if self.tick % 200 == 0 and r.traits["range"].n >= 20:
+            s = r.summary()
+            if s != getattr(r, "told", None):
+                r.told = s
+                from .. import feed
+
+                feed.push("know", f"Read {r.name}: {s}")
         dx, dz = float(e.get("dx", 0)), float(e.get("dz", 0))
         d = math.hypot(dx, dz)
         if d < 1e-3 or d > CLOSE:
@@ -245,6 +257,9 @@ class OpponentModel:
         if judged is not None:
             if self.tick - r.judged_at > 60:
                 r.bluffs += 1  # A new bluff (not the same one going on).
+                from .. import feed
+
+                feed.push("know", f"Bluff caught ({r.name}): " + ("fake retreat" if judged == "fake_retreat" else "acting strong while low"))
             r.judged_at = self.tick
             r.judged = judged
         elif self.tick - r.judged_at > 20:

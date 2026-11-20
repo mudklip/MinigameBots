@@ -52,6 +52,20 @@ public final class DebugCommands {
 							return 1;
 						})))
 				.then(literal("observe").executes(DebugCommands::observe))
+				.then(literal("popuptest").executes(ctx -> {
+					// Sample popups (also switches them on), to see them and check they stay out of the AI's view.
+					var cfg = io.github.mudklip.minigamebots.client.config.MgbConfig.get();
+					cfg.popupPoints = true;
+					cfg.popupKnowledge = true;
+					var m = com.google.gson.JsonParser.parseString("{\"items\":["
+							+ "{\"kind\":\"points\",\"text\":\"deals damage\",\"amount\":2.0},"
+							+ "{\"kind\":\"points\",\"text\":\"hurts itself\",\"amount\":-1.5},"
+							+ "{\"kind\":\"held\",\"text\":\"going down\",\"amount\":3.0},"
+							+ "{\"kind\":\"paid\",\"text\":\"going down\",\"amount\":3.0},"
+							+ "{\"kind\":\"know\",\"text\":\"Read Steve: rushes, strafes left\"}]}").getAsJsonObject();
+					io.github.mudklip.minigamebots.client.overlay.Popups.feed(m);
+					return 1;
+				}))
 				.then(literal("events")
 						.executes(ctx -> events(ctx, 10, ""))
 						.then(argument("count", IntegerArgumentType.integer(1, 100))

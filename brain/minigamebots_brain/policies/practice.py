@@ -119,6 +119,7 @@ class PracticePolicy(Policy):
         events += self.behaviours.events(obs, self.prev_action, events)
         tick = int(obs.get("tick", self.decisions))
         res = self.engine.step(tick, events, obs)
+        self._feed(res)
         if self.learner is not None:
             self.learner.reward(res.reward)
             for t, amount in res.delayed:
@@ -258,6 +259,20 @@ class PracticePolicy(Policy):
         self.info = info
         # "model" (what plays normally) only moves forward when practice scores better.
         checkpoint.save(self.profile, self.model, info, best=better, optimizer=None)
+
+    def _feed(self, res):
+        """Points and held rewards for the optional popups."""
+        from .. import feed
+
+        name = lambda i: self.engine.rules[i].get("note") or self.engine.rules[i].get("event", "?")  # noqa: E731
+        for part, amount in res.parts.items():
+            feed.points(part, amount)
+        for i, amount in self.engine.new_held:
+            feed.push("held", name(i), amount)
+        for i, amount in self.engine.paid:
+            feed.push("paid", name(i), amount)
+        for i, amount in self.engine.cancelled:
+            feed.push("cancelled", name(i), amount)
 
     def status(self):
         avg = sum(self.returns) / len(self.returns) if self.returns else None

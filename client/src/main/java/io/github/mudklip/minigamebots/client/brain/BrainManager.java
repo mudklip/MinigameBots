@@ -536,6 +536,7 @@ public final class BrainManager {
 					s.offer(m);
 				}
 			}
+			case "feed" -> io.github.mudklip.minigamebots.client.overlay.Popups.feed(m);
 			case "status" -> {
 				lastStatus = m;
 				learningErrorCheck(m);

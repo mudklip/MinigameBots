@@ -275,7 +275,7 @@ screen shows AI vs you.
 
 ## Next update plan (do in parts; commit+push main and coach after each part; one release zip at the end)
 S = small, M = medium, (check) = needs an in-game check (batch these).
-- ~~A1 persistent brain process (swap policies, no restart per play) M (check)~~ done, in-game check pending:
+- ~~A1 persistent brain process (swap policies, no restart per play) M (check)~~ done (unit tests; quick in-game check skipped):
   server.set_policy closes the old policy (Policy.close(): practice saves pending updates, learned saves fast
   weights + styles, Manager saves strategist + cached skills) and frees GPU memory; a failing policy leaves the
   brain idle (BrainManager.policyFailed toasts, stops AI control, stays RUNNING); BrainManager.release() ends a
@@ -293,13 +293,13 @@ S = small, M = medium, (check) = needs an in-game check (batch these).
   GuiRenderer.render(), GuiGraphicsExtractor ctor found by type via reflection; falls back to vanilla toasts/
   action bar/HUD REC if not found or it throws, log line "MinigameBots overlays: ..."). Overlay.toast replaces
   SystemToast.addOrUpdate, Overlay.message replaces sendOverlayMessage, Overlay.add(Piece) for B6 popups.
-  Check: overlays show and are absent from /mgb debug frame dumps; no double-render artifacts.
-- B1 damage_taken gets cause (explosion/fall/fire/lava/melee/arrow/drown/void) + self flag; picker: "Hurts itself", "Takes <cause> damage" S
-- B2 options: going down; standing on block (item picker); inside zone; near/away from edge; holding item; close to teammate/protectee; combo hits; lands in water; falls into void M
-- B3 rule settings: "only if safe for N s" (hold reward, cancel on damage/death; mirror of forgive) and "only beyond its best this round" S
-- B4 item wasted (budget cost, scaled by scarcity = how many left): projectiles that hit nothing; food by hunger+saturation overflow; golden apples by absorption soaked + regen healed before effects end M
-- B5 item wasted: healing by % actually used (setting, default 50%, self + allies); splash/lingering by type (healing used / harmful reached enemies / buffs reached self-ally + used where measurable); pearls (closed in + damage, escaped, reached height/gap); wind charges (damage/knockback, escape, real height/distance toward something). Waste only ever costs, never pays. No blocks. M
-- B6 optional popups (off / points / points+knowledge; side; small stuff), per-second aggregation, held ⏳ -> ✓/✗, knowledge lines (needs A3) S
+  Checked in-game: REC, toasts and B6 popups on screen, absent from the AI's recorded frames.
+- ~~B1 damage_taken gets cause (explosion/fall/fire/lava/melee/arrow/drown/void) + self flag; picker: "Hurts itself", "Takes <cause> damage" S~~ done
+- ~~B2 options: going down; standing on block (item picker); inside zone; near/away from edge; holding item; close to teammate/protectee; combo hits; lands in water; falls into void M~~ done
+- ~~B3 rule settings: "only if safe for N s" (hold reward, cancel on damage/death; mirror of forgive) and "only beyond its best this round" S~~ done
+- ~~B4 item wasted (budget cost, scaled by scarcity = how many left): projectiles that hit nothing; food by hunger+saturation overflow; golden apples by absorption soaked + regen healed before effects end M~~ done
+- ~~B5 item wasted: healing by % actually used (setting, default 50%, self + allies); splash/lingering by type (healing used / harmful reached enemies / buffs reached self-ally + used where measurable); pearls (closed in + damage, escaped, reached height/gap); wind charges (damage/knockback, escape, real height/distance toward something). Waste only ever costs, never pays. No blocks. M~~ done
+- ~~B6 optional popups (off / points / points+knowledge; side; small stuff), per-second aggregation, held ⏳ -> ✓/✗, knowledge lines (needs A3) S~~ done
 - C1 learn from who beats it: opponent's play from lost/heavy-damage fights -> player-source clips weighted by damage dealt, tagged by mode/kit; "what hurt it" tally -> lessons/strategist M
 - C2 skill card "Learns from" row: [Your play] [Watching others] [Who beats it] with weights (on for PvP); reward entry "Uses what beat it"; "Learned from N defeats" S
 - C3 opponent style traits as network inputs; one combined adaptation layer instead of stacked nudges (fast weights, counters, bluff judgement, mixing) M
@@ -329,3 +329,9 @@ Brain: brain/minigamebots_brain/
 - players.py (writes player-source clips), dream.py, invent.py (evolution loop to reuse for E3), learn/recording.py (read_chunk)
 Dev: build /tmp/claude-0/g.sh <tasks>; brain tests: cd brain && ../run/minigamebots/brain/runtime/venv/bin/python -m unittest discover -s tests;
 relaunch script lives in the session scratchpad (recreate: Xvfb :99, ./gradlew :client:runClient --offline --args="--quickPlaySingleplayer test" with MINIGAMEBOTS_BRAIN_DIR=brain).
+- Section B notes: damage_taken data {amount, cause, self, by} (EventDetector.damageInfo via
+  getLastDamageSource; self = own doing, or world damage with no attacker in the last 3 s). Observation
+  Self.standingOn/zone, ItemInfo.detail (potion id). Catalog keys "event?k=v" and "[block]"/"[item]"
+  params (PickRuleScreen opens ItemPickerScreen). rl/skills.py new behaviours; rl/waste.py WasteTracker
+  -> b:item_wasted {units (scarcity-scaled), item, why, used}; objective.py safe/beyond/min_use;
+  feed.py -> "feed" messages (server.send_feed, 0.5 s) -> overlay/Popups (config popup*), /mgb popuptest.

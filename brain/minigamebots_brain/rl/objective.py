@@ -124,6 +124,8 @@ class RewardEngine:
         self.best: dict = {}
         self.start = None
         self.cancelled: list = []  # (rule, amount) held rewards lost this step (for the popups).
+        self.paid: list = []
+        self.new_held: list = []
         self.episode_return = 0.0
 
     def _active_tier(self, tick: int) -> int:
@@ -148,12 +150,15 @@ class RewardEngine:
                 self._count(e.rule, e.amount, out)
         # Held rewards: lost if it got hurt, paid once it stayed safe long enough.
         self.cancelled = []
+        self.paid = []
+        self.new_held = []
         if any(ev.get("type") in HURT for ev in events):
             self.cancelled = [(h.rule, h.amount) for h in self.held]
             self.held = []
         for h in list(self.held):
             if tick >= h.pays:
                 self.held.remove(h)
+                self.paid.append((h.rule, h.amount))
                 out.delayed.append((h.tick, h.amount))
                 self._count(h.rule, h.amount, out)
         me = (obs or {}).get("self") or {}
@@ -207,6 +212,7 @@ class RewardEngine:
                     self.totals[i] += amount
                     secs = float(safe.get("seconds", 5) if isinstance(safe, dict) else 5)
                     self.held.append(_Held(tick, amount, i, tick + int(secs * TICKS_PER_SECOND)))
+                    self.new_held.append((i, amount))
                     continue
                 self.totals[i] += amount
                 self._count(i, amount, out, now=True)

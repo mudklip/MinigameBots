@@ -140,6 +140,30 @@ public final class MgbConfig {
 	@SerialEntry
 	public boolean showRecordingIndicator = true;
 
+	/** Popups of points gained or lost (only you see them; never in the AI's view). */
+	@AutoGen(category = "recording")
+	@Boolean(colored = true)
+	@SerialEntry
+	public boolean popupPoints = false;
+
+	/** Popups of what it learned (opponent reads, bluffs, counters dropped). */
+	@AutoGen(category = "recording")
+	@Boolean(colored = true)
+	@SerialEntry
+	public boolean popupKnowledge = false;
+
+	/** Also the small per-second points (moving, aiming...), not only bigger moments. */
+	@AutoGen(category = "recording")
+	@Boolean(colored = true)
+	@SerialEntry
+	public boolean popupSmall = false;
+
+	/** Popups on the left side of the screen instead of the right. */
+	@AutoGen(category = "recording")
+	@Boolean(colored = true)
+	@SerialEntry
+	public boolean popupLeft = false;
+
 	@AutoGen(category = "autonomy")
 	@Boolean(colored = true)
 	@SerialEntry
