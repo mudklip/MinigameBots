@@ -47,8 +47,10 @@
   hits), automatic rewards from rules, skill borrowing suggestions, per-game memory by sidebar
   title, "Learn this game" mode, Core card (light block) first in Skills. 1.10.0: Core plan and
   Core category; generated games (snowball, one_hit, sumo, king) built around you; each game
-  learns into its own network, starting from the best-fitting skill's network (a). Next:
-  (b) self-taught pretraining heads (predict next seconds, events, deaths) on the shared network,
+  learns into its own network, starting from the best-fitting skill's network (a). 1.11.0:
+  (b) self-taught prediction head (8 signals, next 1-5 s) trained from recordings, surprise and
+  curiosity; (d) exam per game (rounds until 3 of 5 won); Spleef and TNT Run. Was: (b) self-taught
+  pretraining heads (predict next seconds, events, deaths) on the shared network,
   needs a model change and retraining, (c) the minigame generator in Training Grounds (instant
   random rule sets: one-hit snowballs, sumo, spleef, TNT run, king of the hill, last alive...),
   (d) exam: rounds needed to play an unseen generated game well.

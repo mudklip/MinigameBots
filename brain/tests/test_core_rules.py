@@ -89,3 +89,53 @@ class RuleFinderTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ExamTest(unittest.TestCase):
+    def test_rounds_until_it_plays_well(self):
+        f = RuleFinder("Me")
+        for won in (0, 0, 1, 0, 1, 1, 0, 1):
+            f.round_over(bool(won))
+        self.assertEqual(f.learned_after, 6)  # Rounds 2..6: 3 of 5 won.
+        self.assertEqual(f.summary()["rounds"], 8)
+
+
+class PredictTest(unittest.TestCase):
+    def test_targets_look_ahead_and_mask_the_unknown(self):
+        import numpy as np
+
+        from minigamebots_brain.core import predict
+
+        chunk = {t: ({"events": []}, None) for t in range(0, 200)}
+        chunk[30] = ({"events": [{"type": "damage_taken", "data": {"amount": 2}}]}, None)
+        tg, mask = predict.targets(chunk, 0, 40)
+        k = predict.NAMES.index("hurt")
+        self.assertEqual(tg[15, k], 1.0)  # 15 ticks before: within 1 s.
+        self.assertEqual(tg[5, k], 0.0)  # 25 ticks before: too far.
+        self.assertEqual(tg[35, k], 0.0)
+        tg, mask = predict.targets(chunk, 150, 40)
+        self.assertEqual(mask[39, predict.NAMES.index("won")], 0.0)  # The future past the chunk is unknown.
+        self.assertTrue(np.all(mask[:, k][:20] == 1.0))
+
+    def test_model_predicts_and_loss_trains(self):
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("needs PyTorch")
+        from minigamebots_brain.core import predict
+        from minigamebots_brain.learn.model import LitePolicy
+        from minigamebots_brain.learn import train
+
+        m = LitePolicy()
+        self.assertEqual(m.head_predict.out_features, predict.SIZE)
+        logits = {"predict": torch.zeros(2, 70, predict.SIZE, requires_grad=True)}
+        for k, n in (("keys", 22), ("attacks", 4), ("uses", 4), ("yaw", 31), ("pitch", 31)):
+            logits[k] = torch.zeros(2, 70, n)
+        batch = {"weight": torch.ones(2, 70), "camera_ok": torch.ones(2, 70), "target_keys": torch.zeros(2, 70, 22),
+                 "target_attacks": torch.zeros(2, 70, dtype=torch.long), "target_uses": torch.zeros(2, 70, dtype=torch.long),
+                 "target_yaw": torch.zeros(2, 70, dtype=torch.long), "target_pitch": torch.zeros(2, 70, dtype=torch.long),
+                 "target_predict": torch.ones(2, 70, predict.SIZE), "predict_mask": torch.ones(2, 70, predict.SIZE)}
+        total, stats = train.loss_fn(logits, batch)
+        self.assertIn("predict_loss", stats)
+        total.backward()
+        self.assertLess(float(logits["predict"].grad.sum()), 0)  # Pushes towards "it will happen".

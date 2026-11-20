@@ -45,6 +45,8 @@ class RuleFinder:
         self.n_ce = {}
         self.score = {}
         self.titles_seen = set()
+        self.results = []  # 1 = won the round, 0 = lost.
+        self.learned_after = None  # Rounds it took to play well (3 of the last 5 won).
 
     # --- watching ---
 
@@ -186,8 +188,21 @@ class RuleFinder:
         title = clean(((obs.get("text") or {}).get("sidebarTitle")) or "")
         return re.sub(r"[^a-z0-9]+", "_", title.lower()).strip("_")[:40] or "unknown_game"
 
+    def round_over(self, won: bool) -> None:
+        """The exam: how many rounds until it plays well (3 of its last 5 won)."""
+        self.results.append(1 if won else 0)
+        if self.learned_after is None and len(self.results) >= 5 and sum(self.results[-5:]) >= 3:
+            self.learned_after = len(self.results)
+
+    def summary(self) -> dict:
+        last = self.results[-10:]
+        return {"rounds": len(self.results), "win_rate": round(sum(last) / len(last), 2) if last else None,
+                "learned_after": self.learned_after}
+
     def to_json(self) -> dict:
-        return {"n_c": self.n_c, "n_e": self.n_e, "n_ce": [[c, e, n] for (c, e), n in self.n_ce.items()], "tick": self.tick}
+        return {"n_c": self.n_c, "n_e": self.n_e, "n_ce": [[c, e, n] for (c, e), n in self.n_ce.items()], "tick": self.tick,
+                "results": self.results[-200:], "learned_after": self.learned_after, "summary": self.summary(),
+                "rules": self.describe()}
 
     @classmethod
     def from_json(cls, data: dict, me: str = "") -> "RuleFinder":
@@ -196,6 +211,8 @@ class RuleFinder:
         f.n_e = dict(data.get("n_e") or {})
         f.n_ce = {(c, e): n for c, e, n in data.get("n_ce") or []}
         f.tick = int(data.get("tick", 0))
+        f.results = list(data.get("results") or [])
+        f.learned_after = data.get("learned_after")
         return f
 
     @staticmethod

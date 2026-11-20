@@ -89,6 +89,10 @@ class LitePolicy(nn.Module):
         self.self_calc = nn.Linear(features.SELF_CALC_DIM, hidden)
         # The Manager's current goal (zero-initialised too).
         self.goal_in = nn.Linear(features.GOAL_DIM, hidden)
+        # The Core's self-taught prediction: what happens in the next seconds (core/predict.py).
+        from ..core import predict as _predict
+
+        self.head_predict = nn.Linear(hidden, _predict.SIZE)
         self.reset_memory_modules()
 
     def reset_memory_modules(self):
@@ -158,6 +162,7 @@ class LitePolicy(nn.Module):
             "pitch": self.head_pitch(out),
             "value": self.head_value(out).squeeze(-1),
             "mark": self.head_mark(out),
+            "predict": self.head_predict(out),
         }
         return logits, state
 
@@ -172,7 +177,8 @@ def to_tensors(batch: dict, device) -> dict:
 
 
 # Parameters that may be missing from older checkpoints (they start fresh when loaded).
-OPTIONAL_PREFIXES = ("head_value.", "ent_rel.", "memory_in.", "head_mark.", "ent_calc.", "self_calc.", "goal_in.")
+OPTIONAL_PREFIXES = ("head_value.", "ent_rel.", "memory_in.", "head_mark.", "ent_calc.", "self_calc.", "goal_in.",
+                     "head_predict.")
 
 
 def count_parameters(model: nn.Module) -> int:

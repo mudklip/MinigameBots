@@ -38,9 +38,11 @@ import org.jspecify.annotations.Nullable;
  * score; first to 20 wins).
  */
 public final class CoreGames {
-	public static final List<String> KINDS = List.of("snowball", "one_hit", "sumo", "king");
+	public static final List<String> KINDS = List.of("snowball", "one_hit", "sumo", "king", "spleef", "tnt_run");
 	private static final Map<String, String> TITLES = Map.of("snowball", "Snowball Fight", "one_hit", "One Hit", "sumo", "Sumo",
-			"king", "King of the Hill");
+			"king", "King of the Hill", "spleef", "Spleef", "tnt_run", "TNT Run");
+	/** Floor blocks stepped on in TNT Run: removed a moment later (position -> tick to remove at). */
+	private final Map<BlockPos, Integer> crumbling = new java.util.HashMap<>();
 	private static final int HALF = 8;
 	private static final int TO_WIN = 20;
 
@@ -87,8 +89,9 @@ public final class CoreGames {
 		var stone = Blocks.SMOOTH_STONE.defaultBlockState();
 		var glass = Blocks.GLASS.defaultBlockState();
 		var air = Blocks.AIR.defaultBlockState();
-		boolean sumo = "sumo".equals(kind);
-		int half = sumo ? 5 : HALF;
+		boolean fall = fallGame();
+		boolean sumo = fall;
+		int half = "sumo".equals(kind) ? 5 : fall ? 7 : HALF;
 		int outer = sumo ? half + 4 : half;
 		for (BlockPos q : BlockPos.betweenClosed(centre.offset(-outer, -4, -outer), centre.offset(outer, 5, outer))) {
 			int dx = Math.abs(q.getX() - centre.getX());
@@ -97,8 +100,17 @@ public final class CoreGames {
 			BlockState want;
 			if (sumo) {
 				boolean inside = dx <= half && dz <= half;
-				want = dy == -1 && inside ? stone : dy == -4 ? stone : dy <= -2 && !inside ? Blocks.WATER.defaultBlockState()
-						: dy <= -2 ? stone : air;
+				BlockState floor = "spleef".equals(kind) ? Blocks.SNOW_BLOCK.defaultBlockState()
+						: "tnt_run".equals(kind) ? Blocks.TNT.defaultBlockState() : stone;
+				if ("sumo".equals(kind)) {
+					want = dy == -1 && inside ? floor : dy == -4 ? stone : dy <= -2 && !inside ? Blocks.WATER.defaultBlockState()
+							: dy <= -2 ? stone : air;
+				} else {
+					// Spleef / TNT Run: the whole floor can go; a water pit below catches the fallen.
+					boolean rim = dx == outer || dz == outer;
+					want = dy == -1 && inside ? floor : dy == -4 ? stone : dy <= -2 && dy >= -3 ? Blocks.WATER.defaultBlockState()
+							: rim && dy >= -1 && dy <= 2 ? glass : air;
+				}
 			} else {
 				if (dy < -1) {
 					continue;
@@ -110,6 +122,17 @@ public final class CoreGames {
 				want = Blocks.GOLD_BLOCK.defaultBlockState();
 			}
 			set(lv, q, want);
+		}
+	}
+
+	private void rebuildFloor(ServerLevel lv) {
+		int half = "sumo".equals(kind) ? 5 : 7;
+		BlockState floor = "spleef".equals(kind) ? Blocks.SNOW_BLOCK.defaultBlockState()
+				: "tnt_run".equals(kind) ? Blocks.TNT.defaultBlockState() : Blocks.SMOOTH_STONE.defaultBlockState();
+		for (BlockPos q : BlockPos.betweenClosed(centre.offset(-half, -1, -half), centre.offset(half, -1, half))) {
+			if (lv.getBlockState(q).isAir()) {
+				lv.setBlock(q, floor, Block.UPDATE_CLIENTS); // Already recorded in "replaced" when first built.
+			}
 		}
 	}
 
@@ -130,6 +153,10 @@ public final class CoreGames {
 			return;
 		}
 		clearFoes();
+		if (fallGame() && !replaced.isEmpty()) {
+			rebuildFloor(lv);
+		}
+		crumbling.clear();
 		ownerOut = false;
 		restartIn = -1;
 		age = 0;
@@ -144,6 +171,11 @@ public final class CoreGames {
 				var d = dummies.byId(m.getUUID());
 				if (d != null) {
 					d.settings.infiniteHealth = false;
+					if ("spleef".equals(kind) || "tnt_run".equals(kind)) {
+						d.settings.fightsBack = false; // Floor games: the floor is the danger, not fists.
+						d.settings.cps = 0;
+						d.settings.damage = 0;
+					}
 				}
 				foes.add(m.getUUID());
 			}
@@ -152,9 +184,12 @@ public final class CoreGames {
 		p.setHealth(p.getMaxHealth());
 		p.teleportTo(lv, centre.getX() + 0.5, centre.getY(), centre.getZ() + 0.5, java.util.Set.of(), p.getYRot(), 0, true);
 		var inv = p.getInventory();
-		if ("snowball".equals(kind)) {
-			inv.add(new ItemStack(Items.SNOWBALL, 16));
-		} else if (!"sumo".equals(kind)) {
+		// The round's kit, only what's missing (no pile-up over rounds).
+		if ("snowball".equals(kind) && inv.countItem(Items.SNOWBALL) < 16) {
+			inv.add(new ItemStack(Items.SNOWBALL, 16 - inv.countItem(Items.SNOWBALL)));
+		} else if ("spleef".equals(kind) && inv.countItem(Items.DIAMOND_SHOVEL) == 0) {
+			inv.add(new ItemStack(Items.DIAMOND_SHOVEL));
+		} else if (!fallGame() && !"snowball".equals(kind) && inv.countItem(Items.WOODEN_SWORD) == 0) {
 			inv.add(new ItemStack(Items.WOODEN_SWORD));
 		}
 		scoreboard(p, 0);
@@ -176,6 +211,7 @@ public final class CoreGames {
 
 	public void stop(@Nullable MinecraftServer server) {
 		clearFoes();
+		crumbling.clear();
 		ServerLevel lv = level;
 		if (lv != null) {
 			// Back to the start spot first, so nobody ends up inside the ground once it's put back.
@@ -238,7 +274,10 @@ public final class CoreGames {
 		if (lv == null) {
 			return;
 		}
-		if ("sumo".equals(kind)) {
+		if ("tnt_run".equals(kind)) {
+			crumble(lv, p);
+		}
+		if (fallGame()) {
 			if (!ownerOut && p.getY() < centre.getY() - 0.8) {
 				out(p, p);
 			}
@@ -275,6 +314,36 @@ public final class CoreGames {
 		}
 	}
 
+	private boolean fallGame() {
+		return "sumo".equals(kind) || "spleef".equals(kind) || "tnt_run".equals(kind);
+	}
+
+	/** TNT Run: the floor under everyone disappears 8 ticks after they step on it. */
+	private void crumble(ServerLevel lv, ServerPlayer p) {
+		List<LivingEntity> people = new ArrayList<>();
+		if (!ownerOut) {
+			people.add(p);
+		}
+		for (UUID id : foes) {
+			if (lv.getEntity(id) instanceof LivingEntity e) {
+				people.add(e);
+			}
+		}
+		for (LivingEntity e : people) {
+			BlockPos under = BlockPos.containing(e.getX(), centre.getY() - 1, e.getZ());
+			if (lv.getBlockState(under).is(Blocks.TNT) && e.onGround()) {
+				crumbling.putIfAbsent(under, age + 8);
+			}
+		}
+		crumbling.entrySet().removeIf(en -> {
+			if (en.getValue() <= age) {
+				lv.setBlock(en.getKey(), Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
+				return true;
+			}
+			return false;
+		});
+	}
+
 	private boolean onGold(LivingEntity e) {
 		return Math.abs(e.getX() - (centre.getX() + 0.5)) <= 1.5 && Math.abs(e.getZ() - (centre.getZ() + 0.5)) <= 1.5
 				&& Math.abs(e.getY() - centre.getY()) < 0.6;
@@ -308,7 +377,7 @@ public final class CoreGames {
 					out(victim, byOwner ? p : null);
 				}
 			}
-			case "sumo", "king" -> victim.setHealth(victim.getMaxHealth()); // Knockback only.
+			case "sumo", "king", "spleef", "tnt_run" -> victim.setHealth(victim.getMaxHealth()); // Knockback only.
 			default -> {
 			}
 		}

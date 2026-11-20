@@ -204,9 +204,11 @@ The Core is the first card in the Skills list (the light block). It's common sen
 > Games are remembered by their scoreboard title: next time it starts out knowing the rules.
 
 # Core plan (no setup)
-Training Hub > Plans > [Core] > [Start coaching]: it builds a random little minigame around you (Snowball Fight, One Hit, Sumo, King of the Hill), learns it for a while, then switches to a new random game, again and again. Every game teaches it to pick up new games faster. The ground goes back as it was when the plan ends.
+Training Hub > Plans > [Core] > [Start coaching]: it builds a random little minigame around you (Snowball Fight, One Hit, Sumo, King of the Hill, Spleef, TNT Run), learns it for a while, then switches to a new random game, again and again. Every game teaches it to pick up new games faster. The ground goes back as it was when the plan ends.
 - Each game gets its own network: a new game starts from the AI's skill that fits the rules best (e.g. its combat network), a game it knows continues where it left off. Its main network is never overwritten.
-> Command: /tg coregame <snowball|one_hit|sumo|king|random>, /tg coregame stop.
+> Command: /tg coregame <snowball|one_hit|sumo|king|spleef|tnt_run|random>, /tg coregame stop.
+- The Core screen shows, for every game it knows, how many rounds it needed to play well (3 of 5 won) and how often it wins now. That number dropping over new games means it's getting better at learning games.
+- Common sense: its main training also learns to predict the next seconds (getting hurt, hitting, dying, kills, scores, breaking blocks, items, winning), straight from your recordings. Being surprised in a safe moment makes it curious while it learns a new game or a skill's self-discovery stage.
 ! It ignores coincidences: a rule needs to happen a few times, clearly more often than by chance.
 
 === skills | Skills (one by one)

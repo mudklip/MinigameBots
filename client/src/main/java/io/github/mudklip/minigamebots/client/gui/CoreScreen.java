@@ -115,9 +115,31 @@ public final class CoreScreen extends Screen {
 				if (y > height - 44) {
 					break;
 				}
-				g.text(font, Component.literal("§f• " + gname.replace('_', ' ')), x, y, Ui.TEXT, false);
+				g.text(font, Component.literal("§f• " + gname.replace('_', ' ') + "  §7" + examLine(gname)), x, y, Ui.TEXT, false);
 				y += 11;
 			}
+		}
+	}
+
+	/** "learned in 6 rounds, wins 70%" from the game's saved file. */
+	private String examLine(String game) {
+		Path d = dir();
+		if (d == null) {
+			return "";
+		}
+		try {
+			var o = com.google.gson.JsonParser.parseString(Files.readString(d.resolve(game + ".json"))).getAsJsonObject();
+			var sum = o.has("summary") ? o.getAsJsonObject("summary") : null;
+			if (sum == null) {
+				return "";
+			}
+			int rounds = sum.get("rounds").getAsInt();
+			String learned = sum.has("learned_after") && !sum.get("learned_after").isJsonNull()
+					? "learned in " + sum.get("learned_after").getAsInt() + " rounds" : rounds + " rounds, still learning";
+			String wins = sum.has("win_rate") && !sum.get("win_rate").isJsonNull() ? ", wins " + Math.round(sum.get("win_rate").getAsDouble() * 100) + "%" : "";
+			return learned + wins;
+		} catch (Exception e) {
+			return "";
 		}
 	}
 

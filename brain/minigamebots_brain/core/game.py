@@ -25,6 +25,7 @@ class CoreGamePolicy(PracticePolicy):
         super().__init__(profile, objective=self.finder.objective(), learn=learn, **kwargs)
         self.prev = None
         self.started_from = "general"
+        self.curious = True  # A new game: curiosity helps find out what does what.
 
     def _switch_game(self, key: str) -> None:
         if self.key is not None:
@@ -84,6 +85,9 @@ class CoreGamePolicy(PracticePolicy):
             if any(t in held for t in THROWABLES):
                 events.append({"type": "threw", "data": {"item": held}})
         self.finder.observe(obs, events, self.prev)
+        for ev in events:
+            if ev.get("type") == "tg_episode_end":
+                self.finder.round_over((ev.get("data") or {}).get("result") == "win")
         episodes = self.episodes
         o = dict(obs)
         o["_events"] = events
@@ -97,5 +101,5 @@ class CoreGamePolicy(PracticePolicy):
     def status(self):
         out = super().status()
         out.update({"game": self.key, "rules": self.finder.describe(), "borrow": self.finder.borrow(),
-                    "started_from": self.started_from})
+                    "started_from": self.started_from, **self.finder.summary()})
         return out

@@ -106,6 +106,11 @@ class PracticePolicy(Policy):
         self.realism = Realism.load(profile)
         self.recent_inputs = deque(maxlen=40)
         self.human = None
+        # Core: predictions of the next seconds, surprise when they're wrong, curiosity from surprise.
+        self.expect = None
+        self.surprise = 0.0
+        self.curious = bool(skill_def and (skill_def.get("stages") or [{}])[
+            self.tracker.stage if self.tracker else 0].get("discover"))
 
     def act(self, obs, frame):
         from ..rl import ppo
@@ -141,11 +146,14 @@ class PracticePolicy(Policy):
             self.state = None
             return Action()
 
+        self._surprise(events)
         feats = ppo.featurize(obs, frame)
         batch = {k: torch.from_numpy(v[None, None]).to(self.device) for k, v in feats.items()}
         hidden = self.state if self.state is not None else self.model.initial_state(1, self.device)
         with torch.no_grad():
             logits, self.state = self.model(batch, hidden)
+            if "predict" in logits:
+                self.expect = torch.sigmoid(logits["predict"][0, 0].float()).cpu().numpy()
             logits = self._mask(logits)
             idx = ppo.sample(logits, greedy=not self.learn)
             act = ppo.encode_sample(idx)
@@ -165,6 +173,27 @@ class PracticePolicy(Policy):
         self.prev_action = action
         return action
 
+    CURIOSITY = 0.02
+
+    def _surprise(self, events) -> None:
+        """How unexpected this moment was (things that happened that it thought unlikely). In
+        self-discovery and while learning a new game, surprise in a safe moment is a small reward."""
+        from ..core import predict
+
+        if self.expect is None:
+            return
+        now = predict.happened(events)
+        if not now.any():
+            self.surprise *= 0.95
+            return
+        import numpy as np
+
+        s = float(-(np.log(np.clip(self.expect, 1e-3, 1.0)) * now).sum())
+        self.surprise = 0.7 * self.surprise + 0.3 * s
+        bad = now[predict.NAMES.index("hurt")] or now[predict.NAMES.index("die")]
+        if self.curious and self.learner is not None and not bad:
+            self.learner.reward(self.CURIOSITY * min(5.0, s))
+
     def _mask(self, logits):
         from ..rl import skills
 
@@ -182,6 +211,7 @@ class PracticePolicy(Policy):
             self.engine.budget_weight = budget
         if self.learner is not None:
             self.learner.set_learning(**skills.learning(self.skill, self.tracker.stage))
+        self.curious = bool((self.skill.get("stages") or [{}])[self.tracker.stage].get("discover"))
 
     REALISM_WEIGHT = 0.05
     STYLE_WEIGHT = 0.05
@@ -228,6 +258,11 @@ class PracticePolicy(Policy):
         out = {"objective": self.objective.get("name"), "episodes": self.episodes, "avg_return": avg,
                "last_return": self.returns[-1] if self.returns else None, "device": self.device,
                "warnings": self.warnings, "human_score": self.human}
+        if self.expect is not None:
+            from ..core import predict
+
+            out["expect"] = {n: round(float(v), 2) for n, v in zip(predict.NAMES, self.expect)}
+            out["surprise"] = round(self.surprise, 2)
         if self.tracker is not None:
             st = (self.skill.get("stages") or [{}])[self.tracker.stage] if self.skill.get("stages") else {}
             out.update({"stage": self.tracker.stage, "stage_name": st.get("name", ""),

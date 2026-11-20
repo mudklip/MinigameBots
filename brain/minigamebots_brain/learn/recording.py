@@ -225,6 +225,9 @@ class SequenceSampler:
             out["vpt_camera"] = np.array([c for _, c in pairs], dtype=np.int64)
         out["frames"] = np.stack(frames)
         out["target_mark"] = np.array([rec.mark_ticks.get(start + i, 0) for i in range(self.length)], dtype=np.int64)
+        from ..core import predict
+
+        out["target_predict"], out["predict_mask"] = predict.targets(chunk, start, self.length)
         out["weight"] = weights
         out["camera_ok"] = camera_ok
         out["has_frame"] = has_frame

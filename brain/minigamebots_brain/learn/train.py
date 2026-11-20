@@ -66,11 +66,22 @@ def loss_fn(logits: dict, batch: dict) -> tuple:
         mark_w = w * torch.where(tm > 0, torch.full_like(w, 50.0), torch.ones_like(w))
         total = total + 0.2 * (mark * mark_w).sum() / denom
 
+    extra = {}
+    if "predict" in logits and "target_predict" in batch:
+        # Self-taught prediction (the Core): rare events count more when they do happen.
+        tp = cut(batch["target_predict"])
+        pm = cut(batch["predict_mask"]) * w.unsqueeze(-1)
+        pl = F.binary_cross_entropy_with_logits(cut(logits["predict"]).float(), tp, reduction="none",
+                                                pos_weight=torch.full((tp.shape[-1],), 5.0, device=tp.device))
+        pred_loss = (pl * pm).sum() / pm.sum().clamp(min=1.0)
+        total = total + 0.3 * pred_loss
+        extra["predict_loss"] = float(pred_loss.detach())
+
     with torch.no_grad():
         pred_keys = (cut(logits["keys"]) > 0).float()
         key_acc = ((pred_keys == cut(batch["target_keys"])).float().mean(-1) * w).sum() / denom
         yaw_acc = ((cut(logits["yaw"]).argmax(-1) == cut(batch["target_yaw"])).float() * cam_ok).sum() / cam_ok.sum().clamp(min=1.0)
-    return total, {"key_acc": float(key_acc), "camera_acc": float(yaw_acc)}
+    return total, {"key_acc": float(key_acc), "camera_acc": float(yaw_acc), **extra}
 
 
 class StopFlag:
