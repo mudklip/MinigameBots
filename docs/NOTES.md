@@ -272,3 +272,28 @@ screen shows AI vs you.
   began, objectives/ changed since, else plateau/drop advice. ProgressScreen: status card, chart
   (series chips, highlighted compare stretch, least-squares trend, "you" line for win rate, hover
   card), tiles. Main menu warning button when flat/dropping; Exams screen "Progress" button.
+
+## Next update plan (do in parts; commit+push main and coach after each part; one release zip at the end)
+S = small, M = medium, (check) = needs an in-game check (batch these).
+- A1 persistent brain process (swap policies, no restart per play) M (check)
+- A2 automatic short exam after every training, in a fast training world M
+- A3 everything this mod draws (popups, REC, AI-control line, toasts) drawn after FrameCapture; other mods' HUD (AppleSkin) stays visible M (check)
+- B1 damage_taken gets cause (explosion/fall/fire/lava/melee/arrow/drown/void) + self flag; picker: "Hurts itself", "Takes <cause> damage" S
+- B2 options: going down; standing on block (item picker); inside zone; near/away from edge; holding item; close to teammate/protectee; combo hits; lands in water; falls into void M
+- B3 rule settings: "only if safe for N s" (hold reward, cancel on damage/death; mirror of forgive) and "only beyond its best this round" S
+- B4 item wasted (budget cost, scaled by scarcity = how many left): projectiles that hit nothing; food by hunger+saturation overflow; golden apples by absorption soaked + regen healed before effects end M
+- B5 item wasted: healing by % actually used (setting, default 50%, self + allies); splash/lingering by type (healing used / harmful reached enemies / buffs reached self-ally + used where measurable); pearls (closed in + damage, escaped, reached height/gap); wind charges (damage/knockback, escape, real height/distance toward something). Waste only ever costs, never pays. No blocks. M
+- B6 optional popups (off / points / points+knowledge; side; small stuff), per-second aggregation, held ⏳ -> ✓/✗, knowledge lines (needs A3) S
+- C1 learn from who beats it: opponent's play from lost/heavy-damage fights -> player-source clips weighted by damage dealt, tagged by mode/kit; "what hurt it" tally -> lessons/strategist M
+- C2 skill card "Learns from" row: [Your play] [Watching others] [Who beats it] with weights (on for PvP); reward entry "Uses what beat it"; "Learned from N defeats" S
+- C3 opponent style traits as network inputs; one combined adaptation layer instead of stacked nudges (fast weights, counters, bluff judgement, mixing) M
+- C4 dreaming via the main network instead of the tiny MLP S
+- D1 UI kit: switches, sliders, tabs, list rows, dialogs, empty states, "?" help M
+- D2-D5 old screens rebuilt in batches: main menu -> dashboard; Brain+Profiles; Training+Practice+Exams; rest incl. Settings (custom, internal values hidden) M each (check)
+- E1 reward weights learned from good clips vs marked mistakes (preference learning) M
+- E2 automatic difficulty by success rate; watchdog acts on its diagnosis M
+- E3 overnight population-based evolution of settings + hand-picked constants, judged by auto exams M
+- E4 mind as middleman (goal, scope, explanation) + playbook notes per minigame; form fallback without the mind M
+- E5 program card UI (timeline, editable, Accept creates skills/rules, follow-up on stalls) M (check)
+- F1 guard orders: "Takes orders from" list (empty default), only signed player chat/whispers by sender UUID; guard <player> <dist> <ring|line|front|wedge|square> with <names>; standby/follow/stop; cooldown, max distance, allowed protectees M
+- F2 slots = sorted names index + simple math, rotate with protectee facing, optional close gaps from visible guards; nearest guard engages, others hold; safety first; scripted (no training, no Baritone) M (check)
