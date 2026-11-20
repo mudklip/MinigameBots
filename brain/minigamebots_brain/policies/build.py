@@ -129,6 +129,28 @@ class BuildPolicy(Policy):
                 a.keys.add("jump")  # Over small bumps.
         return a
 
+    def _crosses(self, a, b) -> bool:
+        """Does the straight walk from a to b (x, z) cut across the design's footprint?"""
+        x0, x1, z0, z1 = self.box[0] - 0.3, self.box[1] + 1.3, self.box[2] - 0.3, self.box[3] + 1.3
+        for i in range(21):
+            t = i / 20
+            x, z = a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t
+            if x0 <= x <= x1 and z0 <= z <= z1:
+                return True
+        return False
+
+    def _via(self, me, dest):
+        """Walk around the design, never through it: by a corner of the standing ring if needed."""
+        here = (me["x"], me["z"])
+        goal = (dest[0] + 0.5, dest[2] + 0.5)
+        if not self._crosses(here, goal):
+            return dest
+        x0, x1, z0, z1 = self.box[0] - 2, self.box[1] + 2, self.box[2] - 2, self.box[3] + 2
+        corners = [(x, z) for x in (x0, x1) for z in (z0, z1)]
+        ok = [c for c in corners if not self._crosses(here, (c[0] + 0.5, c[1] + 0.5))]
+        best = min(ok or corners, key=lambda c: math.dist(here, (c[0] + 0.5, c[1] + 0.5)) + math.dist((c[0] + 0.5, c[1] + 0.5), goal))
+        return (best[0], dest[1], best[1])
+
     def act(self, obs, frame):
         self.tick += 1
         me = obs.get("self") or {}
@@ -183,7 +205,7 @@ class BuildPolicy(Policy):
                     spot = c
                     break
             if (feet[0], feet[2]) != spot:
-                return self._walk_to(me, (spot[0], feet[1], spot[1]), stop=0.4)
+                return self._walk_to(me, self._via(me, (spot[0], feet[1], spot[1])), stop=0.4)
             if dist > REACH:
                 self.failed.add((pos, step["dig"]))  # Can't be reached from outside: skip it.
                 return Action()
