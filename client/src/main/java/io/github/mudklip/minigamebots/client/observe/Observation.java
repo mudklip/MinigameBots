@@ -93,6 +93,10 @@ public record Observation(
 	}
 
 	/** The open screen, if any. */
-	public record Gui(String screen, String title, List<ItemInfo> slots, double cursorX, double cursorY) {
+	/**
+	 * An open screen. {@code slotPos}: every slot of a container screen as {index, x, y, mine}
+	 * (centre, in GUI pixels like the cursor; mine = 1 for the player's own inventory slots).
+	 */
+	public record Gui(String screen, String title, List<ItemInfo> slots, double cursorX, double cursorY, List<int[]> slotPos) {
 	}
 }

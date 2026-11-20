@@ -40,6 +40,9 @@ public final class SleepMode {
 	private static int view;
 	private static double volume;
 	private static String status = "";
+	/** This sleep was started by minimising the game (restoring it wakes it). */
+	private static boolean byMinimise;
+	private static long minimisedSince = -1;
 
 	private SleepMode() {
 	}
@@ -163,8 +166,41 @@ public final class SleepMode {
 		}
 	}
 
+	/**
+	 * Sleep when minimised (only if you turned it on): you minimise Minecraft, it falls asleep a few
+	 * seconds later (so a minimise-and-back doesn't count); restoring the window wakes it. Never
+	 * anything automatic based on time: only your minimising starts it.
+	 */
+	private static void watchMinimise(Minecraft mc) {
+		boolean minimised = mc.getWindow().isIconified();
+		if (!minimised) {
+			minimisedSince = -1;
+			if (sleeping && byMinimise) {
+				byMinimise = false;
+				wake(mc, false);
+			}
+			return;
+		}
+		if (!MgbConfig.get().sleepWhenMinimised || sleeping || mc.player == null) {
+			return;
+		}
+		if (minimisedSince < 0) {
+			minimisedSince = System.currentTimeMillis();
+		} else if (System.currentTimeMillis() - minimisedSince > 5000) {
+			String r = start(mc, false, false);
+			if (sleeping) {
+				byMinimise = true;
+				mc.gui.setScreen(new SleepScreen(null)); // Pauses a singleplayer world.
+			} else {
+				minimisedSince = Long.MAX_VALUE / 2; // Couldn't (e.g. no AI picked): don't keep trying.
+				status = r;
+			}
+		}
+	}
+
 	/** Every client tick while asleep: one step after another. */
 	public static void tick(Minecraft mc) {
+		watchMinimise(mc);
 		if (!sleeping) {
 			return;
 		}
@@ -192,6 +228,7 @@ public final class SleepMode {
 		}
 		sleeping = false;
 		worldRuns = false;
+		byMinimise = false;
 		var mgb = MinigameBotsClient.instance();
 		if (!finished) {
 			if (mgb.training().busy()) {

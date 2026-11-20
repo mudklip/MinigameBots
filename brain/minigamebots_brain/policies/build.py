@@ -22,6 +22,57 @@ R = 5
 REACH = 4.3
 ITEM_FOR = {"minecraft:lava": "minecraft:lava_bucket", "minecraft:water": "minecraft:water_bucket"}
 NEIGHBOURS = ((0, -1, 0), (1, 0, 0), (-1, 0, 0), (0, 0, 1), (0, 0, -1), (0, 1, 0))
+DIRS = {"north": (0, 0, -1), "south": (0, 0, 1), "east": (1, 0, 0), "west": (-1, 0, 0), "up": (0, 1, 0), "down": (0, -1, 0)}
+# How each kind of block takes its facing from the placement (Minecraft's own rules).
+TOWARD = ("dispenser", "dropper", "piston", "sticky_piston", "barrel")  # Faces the player (3D).
+AWAY = ("observer",)  # Faces the way the player looks (3D).
+# Thin blocks: the look ray passes over them, and nothing can be built against them.
+THIN = ("pressure_plate", "torch", "carpet", "rail", "button", "lever", "tripwire", "redstone_wire", "repeater", "comparator")
+HORIZONTAL_OPPOSITE = ("chest", "trapped_chest", "furnace", "smoker", "blast_furnace")  # Faces the player, flat.
+
+
+def _props(block: str) -> dict:
+    if "[" not in block:
+        return {}
+    return dict(kv.split("=", 1) for kv in block[block.index("[") + 1:-1].split(",") if "=" in kv)
+
+
+def _nearest(v, horizontal=False, margin=1.0):
+    """Minecraft's nearest looking direction (or horizontal direction) of a look vector; with a
+    margin > 1, None unless that direction clearly wins (so a small shift can't flip it)."""
+    axes = [(abs(v[0]), (1 if v[0] > 0 else -1, 0, 0)), (abs(v[2]), (0, 0, 1 if v[2] > 0 else -1))]
+    if not horizontal:
+        axes.append((abs(v[1]), (0, 1 if v[1] > 0 else -1, 0)))
+    axes.sort(reverse=True)
+    if axes[0][0] < axes[1][0] * margin:
+        return None
+    return axes[0][1]
+
+
+def placement_ok(block: str, look, clicked_face, margin=1.0) -> bool:
+    """Would placing this block with this look (and clicking this face) give the facing the design
+    asks for? Blocks without a facing are always fine."""
+    want = _props(block).get("facing")
+    if want not in DIRS:
+        return True
+    w = DIRS[want]
+    name = block.split("[")[0].split(":")[-1]
+    def neg(d):
+        return None if d is None else tuple(-x for x in d)
+
+    if name in TOWARD:
+        return neg(_nearest(look, margin=margin)) == w
+    if name in AWAY:
+        return _nearest(look, margin=margin) == w
+    if name in HORIZONTAL_OPPOSITE:
+        return neg(_nearest(look, True, margin)) == w
+    if name.endswith("_door") or name.endswith("_stairs"):
+        return _nearest(look, True, margin) == w
+    if name.endswith("_trapdoor"):
+        return clicked_face == w if clicked_face[1] == 0 else neg(_nearest(look, True, margin)) == w
+    if name == "hopper":
+        return w == (0, -1, 0) if clicked_face[1] != 0 else neg(clicked_face) == w
+    return True
 
 
 class BuildPolicy(Policy):
@@ -51,16 +102,33 @@ class BuildPolicy(Policy):
             self.gate = (self.anchor[0] + inside[0], zmin)
             gate_steps = [s_ for s_ in places if (s_["pos"][0], s_["pos"][2]) == self.gate]
             places = [s_ for s_ in places if s_ not in gate_steps] + gate_steps
-        self.steps = digs + places
+        # Filling containers last (arrows into dispensers, bait into chests...).
+        fills = []
+        for key, val in (design.get("items") or {}).items():
+            x, y, z = (int(v) for v in key.split(","))
+            fills.append({"pos": (self.anchor[0] + x, self.anchor[1] + y, self.anchor[2] + z), "block": "fill",
+                          "dig": False, "fill": [val[0], int(val[1])]})
+        self.steps = digs + places + fills
+        self.thin = {s_["pos"] for s_ in places if any(t in s_["block"] for t in THIN)}
+        self.fill_tries = 0
+        self.fill_plan = None
+        self.ppd = 2.0  # Cursor pixels per degree (learned as it goes).
+        self.last_cursor = None
+        self.last_order = None
         xs = [s["pos"][0] for s in self.steps] or [self.anchor[0]]
         zs = [s["pos"][2] for s in self.steps] or [self.anchor[2]]
         self.box = (min(xs), max(xs), min(zs), max(zs))
         # Where to stand: a ring two blocks outside the design (a builder doesn't wall itself in).
         x0, x1, z0, z1 = self.box[0] - 2, self.box[1] + 2, self.box[2] - 2, self.box[3] + 2
         self.ring = [(x, z) for x in range(x0, x1 + 1) for z in range(z0, z1 + 1) if x in (x0, x1) or z in (z0, z1)]
+        # Also right next to it (1 out): needed for blocks whose facing only works from close by.
+        y0_, y1_, w0_, w1_ = self.box[0] - 1, self.box[1] + 1, self.box[2] - 1, self.box[3] + 1
+        self.ring_in = [(x, z) for x in range(y0_, y1_ + 1) for z in range(w0_, w1_ + 1) if x in (y0_, y1_) or z in (w0_, w1_)]
         self.idle = 0
         self.steady = 0
         self.plan = None  # (block, standing spot, face point) for the block being placed.
+        self.plan_strict = False
+        self.plan_face_dir = (0, 1, 0)
         self.clicked = {}  # Placements already clicked: pos -> tick (a second click would stack blocks).
         self.done = set()
         self.failed = set()
@@ -164,8 +232,18 @@ class BuildPolicy(Policy):
             return False
         return not any(self._filled(grid, feet, (self.gate[0], self.anchor[1] + dy, self.gate[1])) for dy in (0, 1))
 
-    def _find_spot(self, grid, feet, pos, centre):
-        spots = sorted(self.ring, key=lambda c: math.hypot(c[0] + 0.5 - centre[0], c[1] + 0.5 - centre[2]))
+    def _find_spot(self, grid, feet, pos, centre, block=""):
+        """A standing spot and face to click; the block's facing comes out right if at all possible."""
+        for ring, strict in ((self.ring, True), (self.ring_in, True), (self.ring, False)):
+            found = self._find_spot_any(grid, feet, pos, centre, block, strict, ring)
+            if found is not None:
+                self.plan_strict = strict and "facing=" in block
+                self.plan_face_dir = found[3]
+                return found[:3]
+        return None
+
+    def _find_spot_any(self, grid, feet, pos, centre, block, strict, ring):
+        spots = sorted(ring, key=lambda c: math.hypot(c[0] + 0.5 - centre[0], c[1] + 0.5 - centre[2]))
         if self._gate_open(grid, feet):
             spots += sorted(self._interior(), key=lambda c: math.hypot(c[0] + 0.5 - centre[0], c[1] + 0.5 - centre[2]))
         for sx, sz in spots:
@@ -175,7 +253,7 @@ class BuildPolicy(Policy):
             body = {(sx, feet[1], sz), (sx, feet[1] + 1, sz), (sx, feet[1] + 2, sz)}
             for n in NEIGHBOURS:
                 support = (pos[0] + n[0], pos[1] + n[1], pos[2] + n[2])
-                if not self._filled(grid, feet, support):
+                if not self._filled(grid, feet, support) or support in self.thin or self._cat(grid, feet, support) == 3:
                     continue
                 # Aim a little inside the support's face, so the look ray really hits it.
                 face = (centre[0] + n[0] * 0.53, centre[1] + n[1] * 0.53, centre[2] + n[2] * 0.53)
@@ -192,9 +270,11 @@ class BuildPolicy(Policy):
                     v = [x / length for x in v]
                     if -sum(v[k] * n[k] for k in range(3)) > -0.25:
                         continue  # Too edge-on: the click would slide off the face.
+                    if strict and not placement_ok(block, v, tuple(-x for x in n), margin=1.4):
+                        continue  # It would face the wrong way from here.
                     # Exactly what the game would do with this look: lands in the right cell?
                     if self._ray(e, v, grid, feet, frozenset({support})) == pos:
-                        return (sx, sz), face, jump
+                        return (sx, sz), face, jump, tuple(-x for x in n)
         return None
 
     def _would_place(self, me, grid, feet):
@@ -210,7 +290,8 @@ class BuildPolicy(Policy):
         for _ in range(int(REACH / 0.05)):
             p = [p[i] + d[i] * 0.05 for i in range(3)]
             c = (math.floor(p[0]), math.floor(p[1]), math.floor(p[2]))
-            if c != prev and (self._filled(grid, feet, c) or c in self.clicked or c in extra):
+            if c != prev and c not in self.thin and self._cat(grid, feet, c) != 3 and (
+                    self._filled(grid, feet, c) or c in self.clicked or c in extra):
                 return prev
             prev = c
         return None
@@ -273,9 +354,17 @@ class BuildPolicy(Policy):
         step = None
         for s in self.steps:
             pos = s["pos"]
-            key = (pos, s["dig"])
+            key = (pos, s["dig"]) if not s.get("fill") else (pos, "fill")
             if key in self.failed or key in self.done:
                 continue
+            if s.get("fill"):
+                if not self._filled(grid, feet, pos):
+                    continue  # The container isn't there yet.
+                if not self._has(obs, s["fill"][0]) and not obs.get("gui"):
+                    self.missing.add(s["fill"][0].split(":")[-1])
+                    continue
+                step = s
+                break
             filled = self._filled(grid, feet, pos)
             if (s["dig"] and not filled) or (not s["dig"] and filled):
                 self.done.add(key)
@@ -303,6 +392,10 @@ class BuildPolicy(Policy):
         self.idle = 0
         pos = step["pos"]
         centre = (pos[0] + 0.5, pos[1] + 0.5, pos[2] + 0.5)
+        if step.get("fill"):
+            return self._fill(obs, me, grid, feet, step, centre)
+        if obs.get("gui"):
+            return Action(keys={"inventory"})  # A screen is open that it doesn't need: close it.
         eye = (me["x"], me["y"] + 1.62, me["z"])
         dist = math.dist(eye, centre)
         if not step["dig"] and pos[0] == feet[0] and pos[2] == feet[2] and pos[1] in (feet[1], feet[1] + 1):
@@ -323,7 +416,7 @@ class BuildPolicy(Policy):
             # Where to stand and which face to click: outside the design, in reach, with a clear
             # line from the eye to the face (otherwise the click lands on whatever is in the way).
             if self.plan is None or self.plan[0] != pos:
-                found = self._find_spot(grid, feet, pos, centre)
+                found = self._find_spot(grid, feet, pos, centre, step["block"])
                 if found is None:
                     self.failed.add((pos, False))
                     return Action()
@@ -364,7 +457,14 @@ class BuildPolicy(Policy):
         pend = getattr(self, "_pend", [0.0, 0.0])
         settled = on and abs(pend[0]) < 1.0 and abs(pend[1]) < 1.0
         self.steady = self.steady + 1 if settled else 0
-        if self.steady >= 2 and self._would_place(me, grid, feet) == pos:
+        facing_ok = True
+        if self.plan_strict:
+            yaw, pitch = math.radians(float(me.get("yaw", 0))), math.radians(float(me.get("pitch", 0)))
+            look = (-math.sin(yaw) * math.cos(pitch), -math.sin(pitch), math.cos(yaw) * math.cos(pitch))
+            facing_ok = placement_ok(step["block"], look, self.plan_face_dir)
+            if not facing_ok and self.steady >= 6:
+                self.plan = None  # From where it actually stands it can't: plan again.
+        if self.steady >= 2 and facing_ok and self._would_place(me, grid, feet) == pos:
             a.keys.add("use")
             self.steady = 0
             self.tries[(pos, step["dig"])] = self.tries.get((pos, step["dig"]), 0) + 1
@@ -374,9 +474,94 @@ class BuildPolicy(Policy):
             self.wait = 4
         return a
 
+    def _first_hit(self, eye, d, grid, feet):
+        """The first block the look ray hits (thin blocks like plates are looked over)."""
+        p = list(eye)
+        for _ in range(int(REACH / 0.05)):
+            p = [p[i] + d[i] * 0.05 for i in range(3)]
+            c = (math.floor(p[0]), math.floor(p[1]), math.floor(p[2]))
+            if c not in self.thin and self._cat(grid, feet, c) != 3 and self._filled(grid, feet, c):
+                return c
+        return None
+
+    def _fill(self, obs, me, grid, feet, step, centre) -> Action:
+        """Open the container, shift-click the item in from its own inventory, close it."""
+        pos = step["pos"]
+        item, count = step["fill"]
+        gui = obs.get("gui")
+        key = (pos, "fill")
+        if gui and gui.get("slotPos"):
+            mine = {int(p[0]): (p[1], p[2]) for p in gui["slotPos"] if p[3] == 1}
+            theirs = {int(p[0]) for p in gui["slotPos"] if p[3] == 0}
+            inside = sum(int(it.get("count", 0)) for it in gui.get("slots") or [] if it.get("slot") in theirs and it.get("id") == item)
+            if inside >= min(count, 1) or self.fill_tries > 6:
+                if inside == 0:
+                    self.failed.add(key)
+                else:
+                    self.done.add(key)
+                self.fill_tries = 0
+                return Action(keys={"inventory"})  # Done here: close it.
+            src = next((it for it in gui.get("slots") or [] if it.get("slot") in mine and it.get("id") == item), None)
+            if src is None:
+                self.missing.add(item.split(":")[-1])
+                self.failed.add(key)
+                return Action(keys={"inventory"})
+            tx, ty = mine[int(src["slot"])]
+            cx, cy = float(gui.get("cursorX", 0)), float(gui.get("cursorY", 0))
+            # Learn how far the cursor moves per degree from what the last move did.
+            if self.last_cursor is not None and self.last_order is not None and abs(self.last_order[0]) > 0.5:
+                moved = cx - self.last_cursor[0]
+                if moved * self.last_order[0] > 0:
+                    self.ppd = 0.7 * self.ppd + 0.3 * max(0.3, min(12.0, moved / self.last_order[0]))
+            self.last_cursor = (cx, cy)
+            dx, dy = tx - cx, ty - cy
+            if abs(dx) > 2 or abs(dy) > 2:
+                order = (max(-30.0, min(30.0, dx / self.ppd * 0.7)), max(-30.0, min(30.0, dy / self.ppd * 0.7)))
+                self.last_order = order
+                return Action(yaw=order[0], pitch=order[1])
+            self.last_order = None
+            self.fill_tries += 1
+            self.wait = 4
+            return Action(keys={"sneak", "attack"})  # Shift-click: the whole stack moves into the container.
+        # Not open yet: stand where it can see the container, get in reach and right-click it
+        # (not sneaking, or it would place a block).
+        eye = (me["x"], me["y"] + 1.62, me["z"])
+        if self.fill_plan is None or self.fill_plan[0] != pos:
+            spot = None
+            for sx, sz in sorted(self.ring + self.ring_in, key=lambda c: math.hypot(c[0] + 0.5 - centre[0], c[1] + 0.5 - centre[2])):
+                e = (sx + 0.5, feet[1] + 1.62, sz + 0.5)
+                if math.dist(e, centre) > REACH - 0.3:
+                    continue
+                v = [centre[k] - e[k] for k in range(3)]
+                n_ = math.sqrt(sum(x * x for x in v)) or 1.0
+                if self._first_hit(e, [x / n_ for x in v], grid, feet) == pos:
+                    spot = (sx, sz)
+                    break
+            if spot is None:
+                self.failed.add(key)
+                return Action()
+            self.fill_plan = (pos, spot)
+        spot = self.fill_plan[1]
+        if (feet[0], feet[2]) != spot:
+            return self._walk_to(me, self._via(me, (spot[0], feet[1], spot[1])), stop=0.3)
+        a, on = self._look(me, centre)
+        pend = getattr(self, "_pend", [0.0, 0.0])
+        if on and abs(pend[0]) < 1 and abs(pend[1]) < 1:
+            yaw, pitch = math.radians(float(me.get("yaw", 0))), math.radians(float(me.get("pitch", 0)))
+            d = (-math.sin(yaw) * math.cos(pitch), -math.sin(pitch), math.cos(yaw) * math.cos(pitch))
+            if self._first_hit(eye, d, grid, feet) == pos:
+                a.keys.add("use")
+                self.fill_tries += 1
+                self.wait = 6
+                if self.fill_tries > 8:
+                    self.failed.add(key)
+                    self.fill_tries = 0
+        return a
+
     def status(self):
         total = len(self.steps)
         return {"placed": len(self.done), "total": total, "failed": len(self.failed), "missing": sorted(self.missing),
                 "doing": None if self.current is None else
+                ("fill " + self.current["fill"][0].split(":")[-1]) if self.current.get("fill") else
                 ("dig " if self.current["dig"] else "place ") + self.current["block"].split("[")[0].split(":")[-1],
                 "finished": self.current is None and (len(self.done) + len(self.failed) >= total or self.idle > 100)}

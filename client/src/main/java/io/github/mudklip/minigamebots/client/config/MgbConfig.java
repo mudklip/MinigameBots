@@ -86,6 +86,9 @@ public final class MgbConfig {
 	/** When it last slept (ISO time): the next sleep replays what was recorded since. */
 	@SerialEntry
 	public String lastSleep = "";
+	/** Off unless you turn it on: minimising Minecraft (your action) puts it to sleep; restoring wakes it. */
+	@SerialEntry
+	public boolean sleepWhenMinimised = false;
 
 	@AutoGen(category = "background")
 	@IntSlider(min = 10, max = 120, step = 5, format = "%d FPS")

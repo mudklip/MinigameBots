@@ -29,7 +29,7 @@ import sys
 import time
 
 # Rough cost of a block (how hard it is to get in survival).
-COST = {"minecraft:tnt": 5, "minecraft:dispenser": 4, "minecraft:arrow": 0.2, "minecraft:lava": 3, "minecraft:cobweb": 3,
+COST = {"minecraft:tnt": 5, "minecraft:dispenser": 4, "minecraft:arrow": 0.2, "minecraft:fire_charge": 1, "minecraft:lava": 3, "minecraft:cobweb": 3,
         "minecraft:magma_block": 2, "minecraft:stone_pressure_plate": 1, "minecraft:oak_pressure_plate": 0.5,
         "minecraft:oak_door": 1, "minecraft:torch": 0.3, "minecraft:glass": 1, "minecraft:oak_planks": 0.3,
         "minecraft:cobblestone": 0.2, "minecraft:dirt": 0.1, "minecraft:stone_bricks": 0.4, "minecraft:air": 0,
@@ -115,7 +115,8 @@ def trap_from_genes(g: dict) -> dict:
                 if g.get("pit") and abs(dx) <= g["pit"]["w"] // 2 and abs(dz) <= g["pit"]["w"] // 2:
                     continue
                 p.put(at + dx, 0, dz, f"minecraft:dispenser[facing={facing}]")
-                p.items[(at + dx, 0, dz)] = ["minecraft:arrow", 16]
+                ammo = g.get("ammo") or "minecraft:arrow"
+                p.items[(at + dx, 0, dz)] = [ammo, 16 if ammo == "minecraft:arrow" else 4]
             p.parts.append(f"dispensers:{g['dispensers']}")
     if g.get("web"):
         for dx in range(g["web"]):
@@ -143,6 +144,7 @@ def random_trap_genes(rng: random.Random) -> dict:
         g["tnt"] = rng.randint(1, 4)
     if kind in ("arrows", "web_arrows"):
         g["dispensers"] = rng.randint(1, 3)
+        g["ammo"] = rng.choice(["minecraft:arrow", "minecraft:arrow", "minecraft:fire_charge"])
     if kind in ("web_arrows", "web_tnt"):
         g["web"] = rng.randint(1, 2)
     if kind == "magma":
@@ -155,7 +157,7 @@ def random_trap_genes(rng: random.Random) -> dict:
 def mutate_trap(g: dict, rng: random.Random) -> dict:
     g = copy.deepcopy(g)
     for _ in range(rng.randint(1, 3)):
-        what = rng.choice(["at", "pit", "plate", "tnt", "dispensers", "web", "magma", "floor", "drop"])
+        what = rng.choice(["at", "pit", "plate", "tnt", "dispensers", "web", "magma", "floor", "drop", "ammo"])
         if what == "at":
             g["at"] = max(-3, min(3, g["at"] + rng.choice([-1, 1])))
         elif what == "pit":
@@ -176,6 +178,8 @@ def mutate_trap(g: dict, rng: random.Random) -> dict:
             g["web"] = max(0, min(2, int(g.get("web") or 0) + rng.choice([-1, 1])))
         elif what == "magma":
             g["magma"] = max(0, min(5, int(g.get("magma") or 0) + rng.choice([-2, 2])))
+        elif what == "ammo":
+            g["ammo"] = rng.choice(["minecraft:arrow", "minecraft:fire_charge"])
         elif what == "floor":
             g["floor"] = rng.choice([None, "minecraft:stone_bricks", "minecraft:oak_planks"])
         elif what == "drop":

@@ -381,18 +381,23 @@ public final class Observer {
 			return null;
 		}
 		List<Observation.ItemInfo> slots = new ArrayList<>();
+		List<int[]> slotPos = new ArrayList<>();
 		if (screen instanceof AbstractContainerScreen<?> container) {
 			List<Slot> menuSlots = container.getMenu().slots;
+			var at = (io.github.mudklip.minigamebots.client.mixin.ContainerScreenAccessor) container;
 			for (int i = 0; i < menuSlots.size(); i++) {
-				ItemStack stack = menuSlots.get(i).getItem();
+				Slot slot = menuSlots.get(i);
+				ItemStack stack = slot.getItem();
 				if (!stack.isEmpty()) {
 					slots.add(item(i, stack));
 				}
+				slotPos.add(new int[] {i, at.minigamebots$leftPos() + slot.x + 8, at.minigamebots$topPos() + slot.y + 8,
+						slot.container instanceof net.minecraft.world.entity.player.Inventory ? 1 : 0});
 			}
 		}
 		var window = client.getWindow();
 		return new Observation.Gui(screen.getClass().getSimpleName(), screen.getTitle().getString(), slots,
-				client.mouseHandler.getScaledXPos(window), client.mouseHandler.getScaledYPos(window));
+				client.mouseHandler.getScaledXPos(window), client.mouseHandler.getScaledYPos(window), slotPos);
 	}
 
 	private static @Nullable String string(@Nullable Component component) {

@@ -208,8 +208,8 @@ public final class Sandbox {
 				BlockPos at = origin.offset(Integer.parseInt(xyz[0]), Integer.parseInt(xyz[1]), Integer.parseInt(xyz[2]));
 				JsonArray it = en.getValue().getAsJsonArray();
 				var item = BuiltInRegistries.ITEM.getValue(Identifier.tryParse(it.get(0).getAsString()));
-				if (lv.getBlockEntity(at) instanceof DispenserBlockEntity db) {
-					db.setItem(0, new ItemStack(item, Math.min(64, it.get(1).getAsInt())));
+				if (lv.getBlockEntity(at) instanceof net.minecraft.world.Container c) {
+					c.setItem(0, new ItemStack(item, Math.min(item.getDefaultMaxStackSize(), it.get(1).getAsInt())));
 				}
 			}
 		}
@@ -337,7 +337,7 @@ public final class Sandbox {
 			if (item == net.minecraft.world.item.Items.AIR) {
 				continue;
 			}
-			int n = id.endsWith("_bucket") ? counts[i] : counts[i];
+			int n = counts[i];
 			if (id.equals("minecraft:oak_door")) {
 				n = Math.max(1, n / 2); // One door item makes both halves.
 			}
@@ -345,6 +345,16 @@ public final class Sandbox {
 				int k = Math.min(n, item.getDefaultMaxStackSize());
 				p.getInventory().add(new ItemStack(item, k));
 				n -= k;
+			}
+		}
+		// What goes inside its containers (arrows for dispensers, and so on).
+		if (d.has("items")) {
+			for (var en : d.getAsJsonObject("items").entrySet()) {
+				JsonArray it = en.getValue().getAsJsonArray();
+				var item = BuiltInRegistries.ITEM.getValue(Identifier.tryParse(it.get(0).getAsString()));
+				if (item != net.minecraft.world.item.Items.AIR) {
+					p.getInventory().add(new ItemStack(item, Math.min(item.getDefaultMaxStackSize(), it.get(1).getAsInt())));
+				}
 			}
 		}
 	}

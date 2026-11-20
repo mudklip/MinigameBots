@@ -42,6 +42,14 @@ public final class SleepScreen extends Screen {
 				rebuildWidgets();
 			}).pos(x, 116).width(220).tooltip(Tooltip.create(Component.literal("Keeps inventing traps and shelters (needs "
 					+ "Training Grounds). The world keeps running for that, so only in a safe place."))).build());
+			var cfg = io.github.mudklip.minigamebots.client.config.MgbConfig.get();
+			addRenderableWidget(Button.builder(Component.literal("Sleep when I minimise the game: " + (cfg.sleepWhenMinimised ? "§aon" : "off")), b -> {
+				cfg.sleepWhenMinimised = !cfg.sleepWhenMinimised;
+				io.github.mudklip.minigamebots.client.config.MgbConfig.HANDLER.save();
+				rebuildWidgets();
+			}).pos(x, 68).width(220).tooltip(Tooltip.create(Component.literal("When on: minimising Minecraft puts it to sleep "
+					+ "(after a few seconds), and bringing the window back wakes it. It only ever starts because you minimised; "
+					+ "nothing happens on a timer."))).build());
 			addRenderableWidget(Button.builder(Component.literal("§a☾ Go to sleep"), b -> {
 				message = SleepMode.start(minecraft, minimise, invent);
 				rebuildWidgets();
