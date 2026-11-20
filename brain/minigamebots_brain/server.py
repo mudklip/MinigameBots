@@ -52,6 +52,8 @@ class Brain:
             threading.Thread(target=self.on_voice, args=(message,), daemon=True).start()
         elif kind == "command":
             threading.Thread(target=self.on_command, args=(message,), daemon=True).start()
+        elif kind in ("fit_rewards", "design"):
+            threading.Thread(target=self.on_design, args=(message,), daemon=True).start()
         elif kind == "ping":
             self.channel.send({"type": "pong", "id": message.get("id")})
         elif kind == "status":
@@ -278,6 +280,28 @@ class Brain:
             out["error"] = str(e)
         self.channel.send(out)
 
+    def on_design(self, message: dict) -> None:
+        """The training designer (designer.py) and the reward fitter (rl/rewardfit.py)."""
+        out = {"type": message.get("type") + "_result", "id": message.get("id")}
+        try:
+            if message.get("type") == "fit_rewards":
+                from .rl import rewardfit
+
+                out.update(rewardfit.fit(message.get("skill") or {}, str(message.get("recordings", ""))))
+            else:
+                from . import designer
+
+                mind = None
+                try:
+                    mind = self._mind() if message.get("use_mind", True) else None
+                except Exception:
+                    mind = None
+                out.update(designer.design(str(message.get("request", "")), message.get("context") or {}, mind))
+        except Exception as e:
+            log("Designer error:\n" + traceback.format_exc())
+            out["error"] = str(e)
+        self.channel.send(out)
+
     def _selfplay(self, profile: str):
         """The self-play opponent for this AI (made on first use)."""
         sp = getattr(self, "selfplay", None)
@@ -351,6 +375,14 @@ def main(argv=None) -> int:
         from .mind import cli
 
         return cli.main(argv[1:])
+    if argv and argv[0] == "fitrewards":
+        from .rl import rewardfit
+
+        return rewardfit.main(argv[1:])
+    if argv and argv[0] == "design":
+        from . import designer
+
+        return designer.main(argv[1:])
     if argv and argv[0] == "dream":
         from . import dream
 

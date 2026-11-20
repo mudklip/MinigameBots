@@ -131,9 +131,21 @@ class StageTracker:
             need = int(adv.get("episodes", 0) or 0)
             avg_ok = "avg" not in adv or (len(self.data["returns"]) >= 3
                                           and sum(self.data["returns"]) / len(self.data["returns"]) >= float(adv["avg"]))
+            need = max(need, int(self.data.get("hold", 0) or 0))
             if need > 0 and self.data["episodes"] >= need and avg_ok:
-                self.data.update(stage=self.stage + 1, episodes=0, returns=[])
+                rets = self.data["returns"]
+                self.data.update(stage=self.stage + 1, episodes=0, returns=[], hold=0,
+                                 entry_avg=sum(rets) / len(rets) if rets else None)
                 moved = True
+        # Automatic difficulty, the other way: clearly struggling at this stage -> one back, and it
+        # has to earn the next one again over twice as many tries (no bouncing).
+        if not moved and not isinstance(self.defn.get("stage"), int) and self.stage > 0 and len(self.data["returns"]) >= 10:
+            prev = (stages[self.stage - 1].get("advance") or {}) if self.stage - 1 < len(stages) else {}
+            ref = float(prev["avg"]) if "avg" in prev else self.data.get("entry_avg")
+            avg = sum(self.data["returns"]) / len(self.data["returns"])
+            if ref is not None and ref > 0 and avg < 0.25 * ref:
+                hold = 2 * int(prev.get("episodes", 10) or 10)
+                self.data.update(stage=self.stage - 1, episodes=0, returns=[], hold=hold, stepped_back=True)
         self.save()
         return moved
 
