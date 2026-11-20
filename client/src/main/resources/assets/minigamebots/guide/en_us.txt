@@ -289,6 +289,12 @@ It starts with common sense and learns which plans actually work in which situat
 The PvP plan ends with a free-for-all: a large arena with cover is built around you, with bots of mixed styles that fight everyone, each other included. Nobody really dies: a knocked-out bot comes back somewhere else, and so does your AI (with full health). This is where the strategist learns when to hunt, when to pick fights, when to back off and heal and when to wait in ambush. The ground goes back as it was when it ends.
 
 
+# Reading opponents
+In a fight it reads the player in front of it: the distance they fight at, whether they rush or keep away, which way they strafe, whether they block after being hit, whether they jump for crits, and whether they run when low. It starts from what it remembers about that player (or a neutral guess) and updates within a few exchanges. When they suddenly change how they fight, it notices and trusts the last few seconds over its memory.
+It counters with small nudges: circling against their strafe, keeping its distance from rushers and closing in on players who keep away, not swinging into a block, stepping back from a jump crit, chasing when they run low. Now and then it switches its own strafe on purpose, so it's harder to read.
+Each player's style is saved after every fight (Memory screen > the player: 'fights: ...'), so the next fight starts prepared.
+! It reads habits, not minds: against players who keep changing on purpose it helps less.
+
 # You vs the AI (the human floor)
 On the Exams screen (Training Hub > More... > Exams), [Measure me: duel] counts your own win rate over the next 10 rounds of the match you're in (the same test the AI's exams use), and [Measure me: aim] runs a 60-second aim test for you. The line above the buttons then shows the AI's latest results next to yours, so you can see when it gets to your level and past it.
 

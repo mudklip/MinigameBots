@@ -249,3 +249,11 @@ screen shows AI vs you.
   walking; re-aim from the real eye when off-centre; non-jump spots before jump ones; corner
   routing prefers corners that see the goal; climb out of a hole if done while down in one.
   MGB_BUILD_TRACE=<file> logs every change of what it's doing (debugging).
+- Opponent reading (policies/opponent.py): per-opponent traits (range, aggression = closing speed,
+  strafe = lateral speed in my view, block-after-my-hit, crit = airborne when hitting me,
+  low_retreat). Each trait: slow estimate (prior from <profile>/styles.json, capped at 15 obs) and
+  fast EMA; if they differ by more than SPREAD after 8 fast obs -> style switch, slow = fast.
+  Counters are key/attack logit nudges added to the fast-weight bias in learned.py (circle against
+  strafe, spacing vs rushers, close in vs kiters, no swing into a block, back off from air crits,
+  chase when low) + random strafe mixing spells (harder to read). Saved on opponent change and
+  every 400 obs; MemoryScreen shows the summary per person.

@@ -53,6 +53,17 @@ class LearnedPolicy(Policy):
 
         self.fast = FastWeights(os.path.join(profile, "fast_weights.json") if os.path.isdir(profile) else None)
         self.opponent = None
+        # Reading each opponent's style, live and remembered (see opponent.py); kept for the whole
+        # AI (the profile folder, next to manifest.json), shared by all its skills.
+        from .opponent import OpponentModel
+
+        root = os.path.abspath(profile)
+        for _ in range(4):
+            if os.path.isfile(os.path.join(root, "manifest.json")) or os.path.dirname(root) == root:
+                break
+            root = os.path.dirname(root)
+        self.styles = OpponentModel(os.path.join(root, "styles.json") if os.path.isfile(os.path.join(root, "manifest.json")) else None)
+        self.reading = None
 
     def act(self, obs, frame):
         from ..learn import actions, features
@@ -73,10 +84,17 @@ class LearnedPolicy(Policy):
             logits, self.state = self.model(to_tensors(batch, self.device), self.state)
         # What happened since the last decision teaches the fast weights for this opponent.
         self.fast.learn(obs.get("_events"))
-        self.opponent = self.fast.opponent(obs)
+        who = self.fast.opponent(obs)
+        if self.opponent is not None and who != self.opponent:
+            self.styles.end_fight(self.opponent)  # That fight is over: remember how they fought.
+        self.opponent = who
         key_logits = logits["keys"][0, 0].float().cpu().numpy()
         bias = self.fast.bias(self.opponent, {"keys": len(key_logits), "attacks": int(logits["attacks"].shape[-1]),
                                               "uses": int(logits["uses"].shape[-1])})
+        # Countering their style: added to the nudges, not remembered as the fast weights' own choices.
+        self.reading = self.styles.observe(obs, who)
+        counter = self.styles.bias(self.reading, obs, actions.KEY_INDEX, len(key_logits), int(logits["attacks"].shape[-1]))
+        bias = {"keys": bias["keys"] + counter["keys"], "attacks": bias["attacks"] + counter["attacks"], "uses": bias["uses"]}
         keys = 1.0 / (1.0 + np.exp(-(key_logits + bias["keys"])))
         if self.temperature == 0:
             keys_on = keys > 0.5
@@ -115,4 +133,5 @@ class LearnedPolicy(Policy):
 
     def status(self):
         return {"step": self.info.get("step"), "val_loss": self.info.get("val_loss"), "device": self.device,
-                "adapting_to": self.opponent, "adapted": round(self.fast.strength(self.opponent), 2)}
+                "adapting_to": self.opponent, "adapted": round(self.fast.strength(self.opponent), 2),
+                "reading": self.reading.summary() if self.reading is not None and self.opponent else None}

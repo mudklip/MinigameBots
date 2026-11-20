@@ -358,7 +358,45 @@ public final class MemoryScreen extends Screen {
 		if (!p.lastPlace.isEmpty()) {
 			parts.add("last seen near " + p.lastPlace);
 		}
+		String style = styleOf(e.key());
+		if (style != null) {
+			parts.add("fights: " + style);
+		}
 		return String.join(" · ", parts);
+	}
+
+	private static com.google.gson.@Nullable JsonObject styles;
+	private static long stylesAt;
+
+	/** How this player fights, as the brain read it (profile/styles.json, see opponent.py). */
+	private static @Nullable String styleOf(String name) {
+		long now = System.currentTimeMillis();
+		if (now - stylesAt > 5000) {
+			stylesAt = now;
+			styles = null;
+			var mgb = MinigameBotsClient.instance();
+			var profile = mgb.profiles().active();
+			if (profile != null) {
+				var file = mgb.profiles().store().dir(profile.id).resolve("styles.json");
+				try {
+					if (java.nio.file.Files.isRegularFile(file)) {
+						styles = com.google.gson.JsonParser.parseString(java.nio.file.Files.readString(file)).getAsJsonObject();
+					}
+				} catch (Exception ex) {
+					styles = null;
+				}
+			}
+		}
+		if (styles == null) {
+			return null;
+		}
+		for (var en : styles.entrySet()) {
+			if (en.getKey().equalsIgnoreCase(name) && en.getValue().isJsonObject() && en.getValue().getAsJsonObject().has("summary")) {
+				var o = en.getValue().getAsJsonObject();
+				return o.get("summary").getAsString() + (o.has("fights") ? " (" + o.get("fights").getAsInt() + " fights)" : "");
+			}
+		}
+		return null;
 	}
 
 	@Override

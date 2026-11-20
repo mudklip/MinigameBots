@@ -12,6 +12,7 @@ nudge, and fade slowly between fights. Saved in <skill>/fast_weights.json. CPU o
 import json
 import math
 import os
+import re
 
 import numpy as np
 
@@ -29,6 +30,22 @@ def _sigmoid(x):
 def _softmax(x):
     e = np.exp(x - x.max())
     return e / e.sum()
+
+
+# Health after a name: always set apart by a space or a heart (usernames have neither), so
+# "Player123" stays itself while "Steve 20 ❤" and "Dummy ❤ 18.5" lose the number.
+_HEALTH = re.compile(r"(\s+[❤♥]?\s*\d+(\.\d+)?\s*([❤♥]|hp|HP)?|\s*[❤♥]\s*\d+(\.\d+)?\s*([❤♥]|hp|HP)?|\s*[❤♥])\s*$")
+
+
+def who_key(e: dict) -> str:
+    """A stable name for one opponent: no colour codes, no health shown after the name (dummies
+    and many servers add "❤ 18.5" to nametags, which would make every hit a new opponent)."""
+    name = re.sub(r"§.", "", str(e.get("name") or e.get("type") or ""))
+    prev = None
+    while prev != name:
+        prev = name
+        name = _HEALTH.sub("", name).strip()
+    return name or str(e.get("type") or "")
 
 
 class FastWeights:
@@ -54,7 +71,7 @@ class FastWeights:
             t = min(x for x in (e.get("hitMe", -1), e.get("hitByMe", -1), 10 ** 9) if x >= 0) if (
                 e.get("hitMe", -1) >= 0 or e.get("hitByMe", -1) >= 0) else 10 ** 9
             if t < 100 and t < best_t:
-                best, best_t = str(e.get("name") or e.get("type")), t
+                best, best_t = who_key(e), t
         return best
 
     def bias(self, who, sizes: dict) -> dict:
