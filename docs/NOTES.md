@@ -156,3 +156,17 @@ look about. Status adds `strategy` and `long_goal`; Goals screen shows the plan.
 Training Grounds `StrategyArena` (`/tg ffa start [bots]|stop`): 37x37 arena with cover, bots of
 mixed styles each on its own team (all fight all), own respawns, player deaths caught (reported as
 `tg_death`, respawn in the arena with kit). PvP plan: free-for-all step before the exam.
+
+## 1.23.0: creativity, part 1 (inventing traps and shelters)
+`brain/invent.py`: designs are small block plans (palette + [dx,dy,dz,i], path/inside, dispenser
+items) built from "genes" over a part library (traps: pit/lava pit, pressure plate + TNT or arrow
+dispensers, cobweb, magma, floor material; shelters: walls/roof/door/torch, sizes, materials).
+`propose`: 40% new random genes, 60% mutations/crossings of the hall of fame; skips known ids
+(failed list + kept designs). `record`: scores (traps: harm, caught, visibility, cost; shelters:
+enclosed, light >= 8, room, cost), hall of fame per quality (3 each), failures remembered;
+<profile>/inventions.json. Training Grounds `Sandbox`: TgRequestPayload "sandbox_test" (new
+serverbound payload, up to 32 KB), 4 slots 80 blocks above the player on a stone/obsidian slab,
+victim dummy walks the path for 10 s (walker brain), shelters flood-filled; result as
+`sandbox_result`; the space is cleared to air with entities removed. Client: InventSession loop,
+Inventions screen (main menu) with top-down pictures. Next: its own building skill, then the
+strategist using inventions.

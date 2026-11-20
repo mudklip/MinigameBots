@@ -288,6 +288,12 @@ It starts with common sense and learns which plans actually work in which situat
 # Free-for-all practice
 The PvP plan ends with a free-for-all: a large arena with cover is built around you, with bots of mixed styles that fight everyone, each other included. Nobody really dies: a knocked-out bot comes back somewhere else, and so does your AI (with full health). This is where the strategist learns when to hunt, when to pick fights, when to back off and heal and when to wait in ambush. The ground goes back as it was when it ends.
 
+
+# Inventions (traps and shelters)
+Main menu > [Inventions...]: your AI invents its own traps and shelters. It knows some parts (pits, lava, pressure plates with TNT or arrow dispensers, cobwebs, magma; walls, roofs, doors, torches in different sizes and materials), and it combines and changes them into new ideas, half brand new, half built on its best ideas so far.
+Every idea is tested for real: Training Grounds builds it in a sandbox high in the sky above you and lets the game run it. For a trap, a dummy walks across it: does it get hurt, knocked out or stuck? For a shelter: is it closed in, how much room is inside, how bright is it? The sky there is cleared again after every test, and you can keep playing meanwhile.
+It keeps the best few for each quality (the deadliest, the most hidden, the cheapest, the one that holds them longest; for shelters the cheapest safe one, the roomiest, the best lit), and remembers the ideas that didn't work so it never tries them again. Click one to see it from above and what it did in the test. Its building skill (putting these in the world itself) comes later.
+
 # Attitude
 [Attitude] (bottom of the Goals screen) sets what it's about when it plays by itself:
 - [Neutral]: lives like a normal player (farms, mines, builds, stocks up). Fights monsters and anyone who attacks it for real.

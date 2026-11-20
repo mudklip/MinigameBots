@@ -49,6 +49,8 @@ public final class DummySettings {
 	public boolean wtap;
 	/** Keeps the shield up between its own attacks and lowers it only to swing. */
 	public boolean smartShield;
+	/** Hurt by anything (traps, lava, explosions, falls), not only by players and other dummies. */
+	public boolean worldDamage;
 	/** Teacher opponent: allowed to cheat (disables raised shields instantly, never misses). */
 	public boolean cheats;
 	/** Self-play: steered by its owner's client (a past version of their AI); plays like L3 without it. */

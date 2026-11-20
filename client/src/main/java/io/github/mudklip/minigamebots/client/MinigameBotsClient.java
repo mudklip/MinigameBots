@@ -296,6 +296,7 @@ public final class MinigameBotsClient implements ClientModInitializer {
 			io.github.mudklip.minigamebots.client.brain.MultiWorldLink.directStopped();
 		});
 		events.addListener(recorder::onEvent);
+		events.addListener(io.github.mudklip.minigamebots.client.invent.InventSession::onEvent);
 		events.addListener(e -> {
 			// Memory: who knocked it out, whom it knocked out.
 			if (("title".equals(e.type()) || "subtitle".equals(e.type()) || "chat".equals(e.type())) && e.data().get("text") instanceof String t) {

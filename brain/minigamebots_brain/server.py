@@ -260,6 +260,10 @@ def main(argv=None) -> int:
         from .mind import cli
 
         return cli.main(argv[1:])
+    if argv and argv[0] == "invent":
+        from . import invent
+
+        return invent.main(argv[1:])
     if argv and argv[0] == "players":
         from . import players
 

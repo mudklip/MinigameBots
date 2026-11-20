@@ -714,6 +714,10 @@ public final class DummyManager {
 	/** Dummies only take damage from players (and their arrows etc.) or other dummies, not falls or walls. */
 	public boolean allowDamage(LivingEntity e, DamageSource source) {
 		Entity attacker = GroundTruth.attacker(source);
+		Dummy d = dummies.get(e.getUUID());
+		if (d != null && d.settings.worldDamage) {
+			return true; // A sandbox victim: traps must be able to hurt it.
+		}
 		return !isDummy(e) || attacker instanceof ServerPlayer || attacker != null && isDummy(attacker);
 	}
 

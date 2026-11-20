@@ -53,9 +53,13 @@ public final class MainScreen extends Screen {
 				b -> minecraft.gui.setScreen(MgbConfig.screen(this))).width(100).build());
 		LinearLayout row4 = body.addChild(LinearLayout.horizontal().spacing(4));
 		row4.addChild(Button.builder(Component.translatable("minigamebots.menu.video"),
-				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.VideoLabScreen(this))).width(100).build());
+				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.VideoLabScreen(this))).width(65).build());
+		row4.addChild(Button.builder(Component.literal("Inventions..."),
+				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.InventionsScreen(this))).width(66)
+				.tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("It invents its own traps and shelters: "
+						+ "combines and changes parts, tests every idea for real, keeps the best."))).build());
 		row4.addChild(Button.builder(Component.translatable("minigamebots.menu.guide"),
-				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.GuideScreen(this, "start"))).width(100)
+				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.GuideScreen(this, "start"))).width(65)
 				.tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable("minigamebots.menu.guide_help"))).build());
 		if (!MgbConfig.get().guideHintShown) {
 			// Once: point new players at the guide, then never again.

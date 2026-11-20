@@ -52,6 +52,7 @@ public final class TrainingGrounds implements ModInitializer {
 	}
 
 	private @org.jspecify.annotations.Nullable StrategyArena ffa;
+	private @org.jspecify.annotations.Nullable Sandbox sandbox;
 
 	public StrategyArena ffa() {
 		return ffa;
@@ -171,6 +172,14 @@ public final class TrainingGrounds implements ModInitializer {
 		ServerPlayNetworking.registerGlobalReceiver(io.github.mudklip.minigamebots.common.net.TgStatusPayload.TYPE,
 				(payload, context) -> scenarios.onStatus(context.player(), payload.aiActive(), payload.sustainableTps()));
 
+		ServerPlayNetworking.registerGlobalReceiver(io.github.mudklip.minigamebots.common.net.TgRequestPayload.TYPE,
+				(payload, context) -> {
+					// The AI's inventor: test a design in the sandbox (needs permission to manage the grounds).
+					if ("sandbox_test".equals(payload.kind()) && sandbox != null && canManage(context.player().createCommandSourceStack())) {
+						sandbox.request(context.player(), payload.json());
+					}
+				});
+
 		ServerPlayNetworking.registerGlobalReceiver(io.github.mudklip.minigamebots.common.net.TgPuppetPayload.TYPE,
 				(payload, context) -> dummies.control(context.player(), payload));
 
@@ -183,6 +192,7 @@ public final class TrainingGrounds implements ModInitializer {
 		multi = new MultiTrainer(arenas, dummies, truth);
 		coreGames = new CoreGames(dummies, truth);
 		ffa = new StrategyArena(dummies, truth);
+		sandbox = new Sandbox(dummies, truth);
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			arenas.load(server);
 			dummies.load(server);
@@ -192,6 +202,9 @@ public final class TrainingGrounds implements ModInitializer {
 			multi.stop(server);
 			if (ffa != null) {
 				ffa.stop(server);
+			}
+			if (sandbox != null) {
+				sandbox.stop();
 			}
 			scenarios.shutdown();
 			aim.clear();
@@ -216,6 +229,9 @@ public final class TrainingGrounds implements ModInitializer {
 			}
 			if (ffa != null) {
 				ffa.tick(server);
+			}
+			if (sandbox != null) {
+				sandbox.tick(server);
 			}
 		});
 
