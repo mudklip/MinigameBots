@@ -89,6 +89,7 @@ class LitePolicy(nn.Module):
         self.self_calc = nn.Linear(features.SELF_CALC_DIM, hidden)
         # The Manager's current goal (zero-initialised too).
         self.goal_in = nn.Linear(features.GOAL_DIM, hidden)
+        self.opp_in = nn.Linear(features.OPP_DIM, hidden)  # The opponent's style (opponent.py).
         # The Core's self-taught prediction: what happens in the next seconds (core/predict.py).
         from ..core import predict as _predict
 
@@ -103,7 +104,7 @@ class LitePolicy(nn.Module):
         nn.init.zeros_(self.memory_in[2].weight)
         nn.init.zeros_(self.memory_in[2].bias)
         nn.init.zeros_(self.head_mark.weight)
-        for m in (self.ent_calc, self.self_calc, self.goal_in):
+        for m in (self.ent_calc, self.self_calc, self.goal_in, self.opp_in):
             nn.init.zeros_(m.weight)
             nn.init.zeros_(m.bias)
         with torch.no_grad():
@@ -151,6 +152,8 @@ class LitePolicy(nn.Module):
             h = h + self.self_calc(x["self_calc"])
         if "goal" in x:
             h = h + self.goal_in(x["goal"])
+        if "opp" in x:
+            h = h + self.opp_in(x["opp"])
         if state is None:
             state = self.initial_state(b, h.device)
         out, state = self.memory(h, state)
@@ -168,7 +171,7 @@ class LitePolicy(nn.Module):
 
 
 INPUT_KEYS = ("self", "items", "item_vals", "ent_type", "ent_held", "ent_vals", "ent_mask", "blocks", "screen", "crowd",
-              "frames", "ent_rel", "wp_vals", "wp_mask", "ent_calc", "self_calc", "goal")
+              "frames", "ent_rel", "wp_vals", "wp_mask", "ent_calc", "self_calc", "goal", "opp")
 
 
 def to_tensors(batch: dict, device) -> dict:
@@ -177,7 +180,7 @@ def to_tensors(batch: dict, device) -> dict:
 
 
 # Parameters that may be missing from older checkpoints (they start fresh when loaded).
-OPTIONAL_PREFIXES = ("head_value.", "ent_rel.", "memory_in.", "head_mark.", "ent_calc.", "self_calc.", "goal_in.",
+OPTIONAL_PREFIXES = ("head_value.", "ent_rel.", "memory_in.", "head_mark.", "ent_calc.", "self_calc.", "goal_in.", "opp_in.",
                      "head_predict.")
 
 

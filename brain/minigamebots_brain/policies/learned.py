@@ -73,6 +73,14 @@ class LearnedPolicy(Policy):
         if obs.get("self", {}).get("dead"):
             self.state = None  # Fresh memory after respawning.
             return Action()
+        # Who it's fighting and how they fight: read first, so the network sees it too.
+        who = self.fast.opponent(obs)
+        if self.opponent is not None and who != self.opponent:
+            self.styles.end_fight(self.opponent)  # That fight is over: remember how they fought.
+        self.opponent = who
+        self.reading = self.styles.observe(obs, who)
+        if self.reading is not None:
+            obs = dict(obs, opponent=self.reading.vector())
         f = features.featurize(obs)
         if frame is None or isinstance(frame, (bytes, bytearray)):
             frame_arr = np.zeros((features.FRAME_SIZE, features.FRAME_SIZE, 3), dtype=np.uint8)
@@ -84,17 +92,12 @@ class LearnedPolicy(Policy):
             logits, self.state = self.model(to_tensors(batch, self.device), self.state)
         # What happened since the last decision teaches the fast weights for this opponent.
         self.fast.learn(obs.get("_events"))
-        who = self.fast.opponent(obs)
-        if self.opponent is not None and who != self.opponent:
-            self.styles.end_fight(self.opponent)  # That fight is over: remember how they fought.
-        self.opponent = who
         key_logits = logits["keys"][0, 0].float().cpu().numpy()
         bias = self.fast.bias(self.opponent, {"keys": len(key_logits), "attacks": int(logits["attacks"].shape[-1]),
                                               "uses": int(logits["uses"].shape[-1])})
         # Countering their style: added to the nudges, not remembered as the fast weights' own choices.
-        self.reading = self.styles.observe(obs, who)
         counter = self.styles.bias(self.reading, obs, actions.KEY_INDEX, len(key_logits), int(logits["attacks"].shape[-1]))
-        bias = {"keys": bias["keys"] + counter["keys"], "attacks": bias["attacks"] + counter["attacks"], "uses": bias["uses"]}
+        bias = self.styles.combine(self.reading, bias, counter)
         keys = 1.0 / (1.0 + np.exp(-(key_logits + bias["keys"])))
         if self.temperature == 0:
             keys_on = keys > 0.5

@@ -201,6 +201,10 @@ class SequenceSampler:
         weights = np.zeros(self.length, dtype=np.float32)
         camera_ok = np.ones(self.length, dtype=np.float32)
         has_frame = np.ones(self.length, dtype=np.float32)
+        from ..policies.fastweights import FastWeights
+        from ..policies.opponent import OpponentModel
+
+        styles = OpponentModel(None)  # Read through the window, as it would be in play.
         for i in range(self.length):
             t = start + i
             entry = chunk.get(t)
@@ -208,6 +212,9 @@ class SequenceSampler:
                 return None
             record, jpeg = entry
             obs = record.get("obs") or {}
+            reading = styles.observe(obs, FastWeights.opponent(obs))
+            if reading is not None:
+                obs = dict(obs, opponent=reading.vector())
             if goals is not None and goals[i] is not None:
                 obs = dict(obs, goal=goals[i])
             feats.append(features.featurize(obs))

@@ -194,3 +194,22 @@ class BluffTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CombineTest(unittest.TestCase):
+    def test_trust_follows_results_and_total_is_capped(self):
+        import numpy as np
+
+        m = OpponentModel(None)
+        r = m.reading("Steve")
+        fast = {"keys": np.full(4, 3.0), "attacks": np.zeros(2), "uses": np.zeros(2)}
+        counter = {"keys": np.full(4, 1.0), "attacks": np.zeros(2)}
+        out = m.combine(r, fast, counter)
+        self.assertTrue((out["keys"] <= 2.0).all())  # Capped: only ever a nudge.
+        # Every time the nudges steer, it gets hit: trust in them drops.
+        for i in range(10):
+            m.combine(r, fast, counter)
+            for k in range(6):
+                m.observe(foe(k, hitMe=k), "Steve")
+        self.assertLess(r.trust["fast"], 1.0)
+        self.assertLess(r.trust["counter"], 1.0)

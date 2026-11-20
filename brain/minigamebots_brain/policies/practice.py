@@ -149,6 +149,16 @@ class PracticePolicy(Policy):
             return Action()
 
         self._surprise(events)
+        # The opponent's style as an input (opponent.py), the same as when it plays for real.
+        if getattr(self, "styles", None) is None:
+            from .opponent import OpponentModel
+
+            self.styles = OpponentModel(None)
+        from .fastweights import FastWeights
+
+        reading = self.styles.observe(obs, FastWeights.opponent(obs))
+        if reading is not None:
+            obs = dict(obs, opponent=reading.vector())
         feats = ppo.featurize(obs, frame)
         batch = {k: torch.from_numpy(v[None, None]).to(self.device) for k, v in feats.items()}
         hidden = self.state if self.state is not None else self.model.initial_state(1, self.device)

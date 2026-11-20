@@ -98,6 +98,10 @@ class Reading:
         self.start = {t: saved.get(t) for t in TRAITS}  # What it believed at the start (consistency check).
         self.fights = int(saved.get("fights", 0)) + 1
         self.base = float(saved.get("base", 0.0))
+        # The combined adaptation layer: how much to trust each kind of nudge against this player
+        # (fast weights, counters), scored like the counters, relative to how exchanges usually go.
+        self.trust = {k: float((saved.get("trust") or {}).get(k, 1.0)) for k in ("fast", "counter")}
+        self.steering = {}  # kind -> last tick its nudge was strong
         self.works = {c: float((saved.get("works") or {}).get(c, self.base)) for c in COUNTERS}
         self.baiter = float(saved.get("baiter", 0.0))
         self.bluffs = int(saved.get("bluffs", 0))
@@ -126,6 +130,14 @@ class Reading:
         than usual with it in use (bait). Relative to how they go anyway: against someone simply
         better, every counter isn't bait."""
         return float(np.clip(1.0 + 1.5 * (self.works[c] - self.base), 0.0, 1.3))
+
+    def vector(self) -> list:
+        """The style as network inputs (features.OPP_DIM), roughly in -1..1."""
+        v = {t: tr.value() for t, tr in self.traits.items()}
+        conf = sum(tr.confidence() for tr in self.traits.values()) / len(self.traits)
+        return [v["range"] / 6.0, max(-1.0, min(1.0, v["aggression"] * 5)), max(-1.0, min(1.0, v["strafe"] * 5)),
+                v["block"], v["crit"], max(-1.0, min(1.0, v["low_retreat"] * 5)), conf, self.baiter,
+                1.0 if self.judged == "fake_retreat" else 0.0, 1.0 if self.judged == "bluff_strength" else 0.0]
 
     def summary(self):
         v = {t: tr.value() for t, tr in self.traits.items()}
@@ -201,6 +213,9 @@ class OpponentModel:
         if i_hit or they_hit:
             x = (1.0 if i_hit else 0.0) - (1.0 if they_hit else 0.0)
             r.base += 0.05 * (x - r.base)  # How exchanges go with them in general.
+            for kind, at in r.steering.items():
+                if self.tick - at <= CREDIT:
+                    r.trust[kind] = float(np.clip(r.trust[kind] + 0.1 * ((x - r.base) - 0.0), 0.2, 1.5))
             for c, at in r.used.items():
                 if self.tick - at <= CREDIT:
                     before = r.counter_scale(c)
@@ -368,6 +383,18 @@ class OpponentModel:
         nudge("right", -self.mix)
         return {"keys": keys, "attacks": attacks}
 
+    def combine(self, r: Reading | None, fast: dict, counter: dict) -> dict:
+        """One adaptation layer: fast weights and counters, each weighed by how much it has helped
+        against this player, then capped so together they only ever nudge the network."""
+        if r is None:
+            out = {k: fast[k] + counter.get(k, 0) for k in fast}
+        else:
+            for kind, b in (("fast", fast), ("counter", counter)):
+                if any(float(np.abs(v).max()) > 0.3 for v in b.values() if np.size(v)):
+                    r.steering[kind] = self.tick
+            out = {k: r.trust["fast"] * fast[k] + r.trust["counter"] * counter.get(k, 0) for k in fast}
+        return {k: np.clip(v, -2.0, 2.0) for k, v in out.items()}
+
     def end_fight(self, who):
         r = self.live.pop(who, None)
         if r is not None:
@@ -384,6 +411,7 @@ class OpponentModel:
         entry.update(n=max(tr.n for tr in r.traits.values()), fights=r.fights, at=int(time.time()),
                      switches=sum(tr.switches for tr in r.traits.values()), summary=r.summary(),
                      works={k: round(x, 3) for k, x in r.works.items()}, base=round(r.base, 3), baiter=round(r.baiter, 3),
+                     trust={k: round(x, 3) for k, x in r.trust.items()},
                      bluffs=r.bluffs, dev_hit=round(r.dev_hit, 3), dev_base=round(r.dev_base, 3),
                      consistency=round(r.consistency, 3))
         self.saved[r.name] = entry

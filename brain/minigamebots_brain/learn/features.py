@@ -97,6 +97,12 @@ def importance(e: dict) -> float:
     return score
 
 
+# The opponent's style, as read by policies/opponent.py (obs["opponent"]; zeros when nobody):
+# range, aggression, strafe, block, crit, low_retreat, confidence, baiter, fake retreat, bluff.
+OPP_DIM = 10
+OPP_STRAFE = 2
+
+
 def featurize(obs: dict) -> dict:
     # Privileged training data (Watch & learn) is never an input of the playing network.
     if "privileged" in obs:
@@ -214,6 +220,7 @@ def featurize(obs: dict) -> dict:
         "self": self_vec, "items": items, "item_vals": item_vals, "ent_type": ent_type, "ent_held": ent_held,
         "ent_vals": ent_vals, "ent_mask": ent_mask, "blocks": blocks, "screen": np.int64(screen),
         "ent_rel": ent_rel, "wp_vals": wp_vals, "wp_mask": wp_mask, "ent_calc": ent_calc, "goal": goal_vec,
+        "opp": np.asarray((obs.get("opponent") or [0.0] * OPP_DIM)[:OPP_DIM], dtype=np.float32),
         "self_calc": np.array([float(me.get("attackReady", 1.0)), float(me.get("critReady", False)),
                                min(float(me.get("fallDamage", 0.0)), 40.0) / 20.0], dtype=np.float32),
     }
@@ -298,6 +305,10 @@ def mirror(f: dict) -> dict:
     for c in ENT_RIGHT_COLUMNS:
         e[..., c] *= -1
     out["ent_vals"] = e
+    if "opp" in f:
+        o = f["opp"].copy()
+        o[..., OPP_STRAFE] *= -1
+        out["opp"] = o
     if "wp_vals" in f:
         w = f["wp_vals"].copy()
         w[..., len(WAYPOINT_TYPES) + 1] *= -1
