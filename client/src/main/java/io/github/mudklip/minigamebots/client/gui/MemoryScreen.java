@@ -61,8 +61,6 @@ public final class MemoryScreen extends Screen {
 			rebuildWidgets();
 		}).pos(width - 140, 6).width(130).build()).active = !factions;
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(width - 70, height - 26).width(60).build());
-		addRenderableWidget(Button.builder(Component.literal("Lessons"), b -> minecraft.gui.setScreen(new LessonsScreen(this)))
-				.pos(width - 134, height - 26).width(60).build());
 		var wm = io.github.mudklip.minigamebots.client.MinigameBotsClient.instance().memory().memory();
 		int zones = wm == null ? 0 : wm.zones.size();
 		int half = Math.max(70, Math.min(110, (width / 2 - 30) / 2));
@@ -78,6 +76,8 @@ public final class MemoryScreen extends Screen {
 			}
 			rebuildWidgets();
 		}).pos(14 + half, height - 50).width(half).build()).active = zones > 0;
+		addRenderableWidget(Button.builder(Component.literal("Lessons"), b -> minecraft.gui.setScreen(new LessonsScreen(this)))
+				.pos(18 + half * 2, height - 50).width(60).build());
 		WorldMemory m = mm().memory();
 		if (m == null) {
 			return;

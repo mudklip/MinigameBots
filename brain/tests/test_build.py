@@ -196,3 +196,19 @@ class FacingAndFillTest(unittest.TestCase):
             self.assertTrue(placement_ok(block, look, (0, 1, 0)), block)  # Every dispenser faces the plate.
         self.assertEqual(len(w.containers), 2)  # Both filled, through the container screen.
         self.assertTrue(p.status()["finished"])
+
+
+class SafetyTest(unittest.TestCase):
+    def test_never_walks_into_a_hole(self):
+        from minigamebots_brain.policies.build import BuildPolicy
+
+        w = World()
+        for z in range(-1, 2):
+            for y in (63, 62, 61):
+                w.solid.add(("air", (2, y, z)))  # A deep hole between it and where it's going.
+        p = BuildPolicy(design={"palette": [], "blocks": []}, anchor=[0, 64, 0])
+        o = w.obs([])
+        p._grid, p._feet = __import__("minigamebots_brain.learn.features", fromlist=["x"]).decode_blocks(o["blocks"]), (3, 64, 0)
+        w.me.update(x=3.5, z=0.5, yaw=90.0)  # Facing west, towards the hole.
+        a = p._walk_to(w.me, (-2, 64, 0), stop=0.4)
+        self.assertNotIn("forward", a.keys)

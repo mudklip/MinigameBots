@@ -200,9 +200,27 @@ class BuildPolicy(Policy):
         self.ordered[1] += turn[1]
         return Action(keys=set(keys or ()), yaw=turn[0], pitch=turn[1]), on
 
+    def _hole_ahead(self, me, dx, dz) -> bool:
+        """Open air under the ground just ahead (a pit it dug, a cliff): never walk into it."""
+        grid, feet = getattr(self, "_grid", None), getattr(self, "_feet", None)
+        if grid is None or feet is None:
+            return False
+        n = math.hypot(dx, dz) or 1.0
+        for dist in (0.6, 1.1):
+            x, z = me["x"] + dx / n * dist, me["z"] + dz / n * dist
+            below = (math.floor(x), feet[1] - 1, math.floor(z))
+            if (math.floor(x), math.floor(z)) == (feet[0], feet[2]):
+                continue
+            if self._cat(grid, feet, below) == AIR and self._cat(grid, feet, (below[0], below[1] - 1, below[2])) == AIR:
+                return True
+        return False
+
     def _walk_to(self, me, pos, stop=2.6):
         dx, dz = pos[0] + 0.5 - me["x"], pos[2] + 0.5 - me["z"]
         a, _ = self._look(me, (pos[0] + 0.5, me["y"] + 1.62, pos[2] + 0.5))
+        if math.hypot(dx, dz) > stop and self._hole_ahead(me, dx, dz):
+            a.keys.add("left" if (self.tick // 40) % 2 else "right")  # Edge along it instead of falling in.
+            return a
         if math.hypot(dx, dz) > stop:
             a.keys.add("forward")
             if self.tick % 30 == 0:
@@ -347,6 +365,7 @@ class BuildPolicy(Policy):
             return Action()
         feet = (math.floor(me["x"]), math.floor(me["y"]), math.floor(me["z"]))
         grid = decode_blocks(obs.get("blocks"))
+        self._grid, self._feet = grid, feet
         self._pend = self._pending(me)
         if self.wait > 0:
             self.wait -= 1
