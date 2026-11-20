@@ -142,3 +142,17 @@ Learner hits now also emit `tg_damage_dealt` with charge/sprint_hit/crit/blocked
 a world's objective from its `objective` field. Speed 1-3x via FastTraining (light mode separate).
 Core minigames: `/tg coregame <kind> ffa` (Core screen toggle, off by default) makes the mode bots
 target the nearest contestant instead of only the player. Spleef bots wait 3 s before digging.
+
+## 1.22.0: the learned strategist
+`policies/strategy.py`: plans gear_up/hunt/heal/ambush/pick_fights/roam/guard, chosen every 30-60 s
+or on surprise (death or `tg_death`, health < 8, player kill). 15 situation features; rule prior
+per plan blended with a per-plan ridge regression (A, b; trust n/(n+25)) learned from the plan's
+outcome (kills incl. training mannequins, deaths, damage, gear, target kill), normalised per 45 s;
+10% exploration after the first plan while learning. Saved in <profile>/strategist.json.
+Manager: on for free play and long goals (`manhunt` {player}, `kill_players` {count}), off for a
+plain task list; plan -> sub-goal (roam = normal free play; guard at night = free play's "go home"),
+courage added to the flee threshold, `min_odds` for which prey to take; `ambush` goal = sneak and
+look about. Status adds `strategy` and `long_goal`; Goals screen shows the plan.
+Training Grounds `StrategyArena` (`/tg ffa start [bots]|stop`): 37x37 arena with cover, bots of
+mixed styles each on its own team (all fight all), own respawns, player deaths caught (reported as
+`tg_death`, respawn in the arena with kit). PvP plan: free-for-all step before the exam.

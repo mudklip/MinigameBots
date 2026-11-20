@@ -51,6 +51,12 @@ public final class TrainingGrounds implements ModInitializer {
 		return coreGames;
 	}
 
+	private @org.jspecify.annotations.Nullable StrategyArena ffa;
+
+	public StrategyArena ffa() {
+		return ffa;
+	}
+
 	public PracticeAreas areas() {
 		return areas;
 	}
@@ -176,6 +182,7 @@ public final class TrainingGrounds implements ModInitializer {
 
 		multi = new MultiTrainer(arenas, dummies, truth);
 		coreGames = new CoreGames(dummies, truth);
+		ffa = new StrategyArena(dummies, truth);
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			arenas.load(server);
 			dummies.load(server);
@@ -183,6 +190,9 @@ public final class TrainingGrounds implements ModInitializer {
 		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			multi.stop(server);
+			if (ffa != null) {
+				ffa.stop(server);
+			}
 			scenarios.shutdown();
 			aim.clear();
 			dummies.unload();
@@ -204,11 +214,14 @@ public final class TrainingGrounds implements ModInitializer {
 			if (coreGames != null) {
 				coreGames.tick(server);
 			}
+			if (ffa != null) {
+				ffa.tick(server);
+			}
 		});
 
 		ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> dummies.allowDamage(entity, source));
 		ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) ->
-				scenarios.allowDeath(entity, source) && dummies.allowDeath(entity));
+				scenarios.allowDeath(entity, source) && dummies.allowDeath(entity) && (ffa == null || ffa.allowDeath(entity)));
 		ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, base, taken, blocked) -> {
 			truth.onDamage(entity, source, taken, blocked);
 			dummies.afterDamage(entity, source, base, taken, blocked);
@@ -224,6 +237,9 @@ public final class TrainingGrounds implements ModInitializer {
 			truth.onDeath(entity, source);
 			scenarios.afterDeath(entity, source);
 			dummies.afterDeath(entity);
+			if (ffa != null && ffa.running()) {
+				ffa.afterDeath(entity, source.getEntity() instanceof net.minecraft.world.entity.LivingEntity k ? k : null);
+			}
 			if (multi != null) {
 				multi.onDeath(entity);
 			}

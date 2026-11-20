@@ -280,6 +280,14 @@ The Manager decides what to do moment to moment, using the AI's skills.
 
 > An untrained AI can already do simple goals (like hunting a pig) with built-in reflexes.
 
+
+# Long goals and plans (the strategist)
+Two goals run for a long time: [manhunt] (a player's name: hunt them down) and [kill_players] (a number: knock out that many). With one of these, or in free play, the AI thinks ahead every 30-60 seconds and picks a plan: gear up, hunt, retreat and heal, wait in ambush, only take fights it can win, roam, or guard home. It rethinks straight away when something surprising happens: it gets knocked out, its health drops sharply, the target comes into sight, or it knocks someone out. The Goals screen shows the plan and why ("Plan: hunt (target in sight)").
+It starts with common sense and learns which plans actually work in which situations from how they turned out (knockouts, being knocked out, damage, reaching the goal). Now and then it tries a different plan to find out. What it learns is kept with the AI. A plain list of tasks (mine 10 iron, go home) runs as you set it, without plans.
+
+# Free-for-all practice
+The PvP plan ends with a free-for-all: a large arena with cover is built around you, with bots of mixed styles that fight everyone, each other included. Nobody really dies: a knocked-out bot comes back somewhere else, and so does your AI (with full health). This is where the strategist learns when to hunt, when to pick fights, when to back off and heal and when to wait in ambush. The ground goes back as it was when it ends.
+
 # Attitude
 [Attitude] (bottom of the Goals screen) sets what it's about when it plays by itself:
 - [Neutral]: lives like a normal player (farms, mines, builds, stocks up). Fights monsters and anyone who attacks it for real.

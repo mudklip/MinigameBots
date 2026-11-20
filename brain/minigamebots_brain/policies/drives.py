@@ -188,7 +188,8 @@ class Drives:
         memory = {m.get("id"): m for m in obs.get("healthMemory") or []}
         best, best_score = None, -1e9
         for e in obs.get("entities") or []:
-            if not e.get("player") or not e.get("visible", True) or e.get("sameTeam") or e.get("relation", 0) > 0 \
+            if not (e.get("player") or "mannequin" in str(e.get("type", ""))) or not e.get("visible", True) \
+                    or e.get("sameTeam") or e.get("relation", 0) > 0 \
                     or e.get("allyInsignia"):
                 continue
             d = math.sqrt(e.get("dx", 0) ** 2 + e.get("dy", 0) ** 2 + e.get("dz", 0) ** 2)

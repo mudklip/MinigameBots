@@ -32,7 +32,9 @@ public final class GoalsScreen extends Screen {
 			new Kind("follow", "player", "player name", false),
 			new Kind("protect", "player", "player name", false),
 			new Kind("explore", "minutes", "how long", false),
-			new Kind("survive", "minutes", "how long", false));
+			new Kind("survive", "minutes", "how long", false),
+			new Kind("manhunt", "player", "who to hunt down (it plans how)", false),
+			new Kind("kill_players", "count", "how many players to knock out", false));
 
 	/** Kept while the game runs, so the queue survives closing the screen. */
 	private static final List<JsonObject> QUEUE = new ArrayList<>();
@@ -199,6 +201,13 @@ public final class GoalsScreen extends Screen {
 					error = "Minutes must be a number";
 					return;
 				}
+			} else if (k.param().equals("count")) {
+				try {
+					g.addProperty("count", Math.max(1, Integer.parseInt(value)));
+				} catch (NumberFormatException e) {
+					error = "Count must be a whole number";
+					return;
+				}
 			} else {
 				g.addProperty(k.param(), k.param().equals("target") && !value.contains(":") ? "minecraft:" + value : value);
 			}
@@ -277,6 +286,16 @@ public final class GoalsScreen extends Screen {
 			} + (str(ps, "why").isEmpty() || str(ps, "why").equals("-") ? "" : " (" + str(ps, "why") + ")") + " using " + str(ps, "skill");
 			g.text(font, font.plainSubstrByWidth(line, width - 20), 10, sy, 0xFF80E080, false);
 			sy += 12;
+			if (ps.has("strategy") && ps.get("strategy").isJsonObject()) {
+				// The strategist's plan for the next half-minute or so, and why.
+				JsonObject sg = ps.getAsJsonObject("strategy");
+				String plan = str(sg, "plan").replace('_', ' ');
+				String lg = ps.has("long_goal") && !ps.get("long_goal").isJsonNull() ? " §7| long goal: §f" + ps.get("long_goal").getAsString() : "";
+				g.text(font, Component.literal(font.plainSubstrByWidth("§bPlan: §f" + plan + " §7(" + str(sg, "why") + ", "
+						+ (sg.has("experience") ? sg.get("experience").getAsInt() : 0) + " plans learned from)" + lg, width - 20)),
+						10, sy, Ui.TEXT, false);
+				sy += 12;
+			}
 			if (ps.has("feelings") && ps.get("feelings").isJsonObject()) {
 				StringBuilder f = new StringBuilder("§7Feels: ");
 				for (var en : ps.getAsJsonObject("feelings").entrySet()) {

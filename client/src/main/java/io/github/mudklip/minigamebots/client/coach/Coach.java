@@ -343,6 +343,23 @@ public final class Coach {
 					train(p, TrainingManager.Plan.QUICK, g.skill, false, "teacher");
 				}
 				match("league");
+				int ffaMin = Math.max(5, Math.min(30, chunk));
+				steps.add(new Step("Free-for-all vs bots: plan ahead (" + ffaMin + " min)", true, () -> {
+					stopAi();
+					cmd("tg match stop");
+					cmd("tg ffa start 5");
+					// A long goal (knock out as many as it can) lets the strategist plan: hunt, pick fights, heal, ambush.
+					var goals = new com.google.gson.JsonArray();
+					com.google.gson.JsonObject kp = new com.google.gson.JsonObject();
+					kp.addProperty("type", "kill_players");
+					kp.addProperty("count", 1000);
+					goals.add(kp);
+					mgb.brain().playManager(Minecraft.getInstance(), p, goals, false, new com.google.gson.JsonObject());
+				}, () -> elapsed() > ffaMin * 60_000L));
+				steps.add(new Step("End the free-for-all", true, () -> {
+					stopAi();
+					cmd("tg ffa stop");
+				}, () -> elapsed() > 2000));
 				exam(p, 5);
 			}
 			case AIM -> {

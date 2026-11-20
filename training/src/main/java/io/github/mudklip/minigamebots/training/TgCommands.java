@@ -110,6 +110,19 @@ final class TgCommands {
 									ok(ctx, tg.coreGames().start(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "kind"), true));
 									return 1;
 								}))))
+				.then(Commands.literal("ffa").requires(tg::canManage)
+						.then(Commands.literal("start").executes(ctx -> {
+							ok(ctx, tg.ffa().start(ctx.getSource().getPlayerOrException(), 5));
+							return 1;
+						}).then(Commands.argument("bots", IntegerArgumentType.integer(1, 8)).executes(ctx -> {
+							ok(ctx, tg.ffa().start(ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "bots")));
+							return 1;
+						})))
+						.then(Commands.literal("stop").executes(ctx -> {
+							tg.ffa().stop(ctx.getSource().getServer());
+							ok(ctx, "Free-for-all stopped (the ground is as it was)");
+							return 1;
+						})))
 				.then(Commands.literal("area").requires(tg::canManage)
 						.then(Commands.literal("clear").executes(ctx -> {
 							tg.areas().clear(ctx.getSource().getPlayer());

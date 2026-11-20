@@ -9,7 +9,11 @@ eat, flee) still make it act.
 goals: [{"type": "mine", "item": "diamond", "count": 3}, {"type": "go_to", "waypoint": "base"},
         {"type": "hunt", "target": "minecraft:cow", "count": 2}, {"type": "protect", "player": "Alex"},
         {"type": "follow", "player": "Alex"}, {"type": "explore", "minutes": 5},
-        {"type": "survive", "minutes": 10}, {"type": "free_play"}]
+        {"type": "survive", "minutes": 10}, {"type": "free_play"},
+        {"type": "manhunt", "player": "Steve"}, {"type": "kill_players", "count": 10}]
+
+Long goals (manhunt, kill_players) and free play are steered by the strategist (strategy.py),
+which picks a plan every 30-60 s and sets what the Manager works on in between.
 """
 
 import math
@@ -26,9 +30,11 @@ SKILLS_FOR = {
     "follow": ("travel", "general"), "go_to": ("travel", "general"), "explore": ("explore", "travel", "general"),
     "survive": ("survival", "general"), "fight": ("combat", "general"), "flee": ("flee", "travel", "general"),
     "free_play": ("general",), "hunt_players": ("combat", "general"), "farm": ("farming", "general"),
-    "build": ("building", "general"), "stash": ("general",),
+    "build": ("building", "general"), "stash": ("general",), "ambush": ("general",),
+    "manhunt": ("combat", "general"), "kill_players": ("combat", "general"),
 }
-TIMED = ("explore", "survive", "farm", "build", "stash", "hunt_players")
+TIMED = ("explore", "survive", "farm", "build", "stash", "hunt_players", "ambush")
+LONG = ("manhunt", "kill_players")
 FOODS = ("cooked_beef", "cooked_porkchop", "golden_carrot", "cooked_mutton", "cooked_chicken", "cooked_salmon",
          "cooked_cod", "bread", "baked_potato", "carrot", "apple", "cooked_rabbit", "pumpkin_pie", "beef", "porkchop",
          "mutton", "chicken", "potato", "melon_slice", "sweet_berries", "cookie", "golden_apple")
@@ -59,7 +65,7 @@ class Goal:
     def label(self) -> str:
         extra = self.spec.get("item") or self.spec.get("target") or self.spec.get("player") or self.spec.get("waypoint") or ""
         extra = str(extra).replace("minecraft:", "")
-        need = f" {self.progress}/{self.count}" if self.type in ("mine", "hunt") else ""
+        need = f" {self.progress}/{self.count}" if self.type in ("mine", "hunt", "kill_players") else ""
         return f"{self.type} {extra}{need}".strip()
 
     def on_event(self, ev: dict) -> None:
@@ -72,11 +78,15 @@ class Goal:
                 self.progress += 1
         elif self.type == "hunt_players" and kind == "kill" and "player" in str(data.get("target", "")):
             self.done = True
+        elif self.type == "manhunt" and kind == "kill" and data.get("name") == self.spec.get("player"):
+            self.done = True
+        elif self.type == "kill_players" and kind == "kill" and any(w in str(data.get("target", "")) for w in ("player", "mannequin")):
+            self.progress += 1
         elif self.type == "go_to" and kind == "waypoint_reached":
             want = self.spec.get("waypoint", "")
             if want in (data.get("name"), data.get("type")):
                 self.done = True
-        if self.type in ("mine", "hunt") and self.progress >= self.count:
+        if self.type in ("mine", "hunt", "kill_players") and self.progress >= self.count:
             self.done = True
 
     def check_time(self, tick: int) -> None:
@@ -92,8 +102,10 @@ class ManagerPolicy(Policy):
 
     def __init__(self, profile: str, goals: list | None = None, free_play: bool = False, temperature: float = 1.0,
                  foundations: str | None = None, likes: dict | None = None, device: str | None = None,
-                 mode: str = "neutral", after: str = "auto", **_):
+                 mode: str = "neutral", after: str = "auto", strategy: bool | None = None, learn_strategy: bool = True,
+                 **_):
         from . import drives
+        from .strategy import Strategist
 
         if mode == "personality":
             mode = drives.load(profile).get("from_personality", "neutral")
@@ -107,6 +119,9 @@ class ManagerPolicy(Policy):
         self.device = device
         self.queue = [Goal(g, 0) for g in (goals or [])]
         self.free_play = bool(free_play) or not self.queue
+        # The strategist plans for free play and long goals (or when asked); a plain task list runs as given.
+        self.strategy_on = strategy if strategy is not None else (self.free_play or any(g.type in LONG for g in self.queue))
+        self.strategist = Strategist(profile, learn=learn_strategy)
         self.likes = dict(likes or DEFAULT_LIKES)
         if self.drives.mode != "neutral" or not likes:
             self.likes = dict(self.drives.cfg["likes"])
@@ -178,16 +193,27 @@ class ManagerPolicy(Policy):
             return Action(keys={"sneak"})
         return Action()
 
+    def long_goal(self) -> Goal | None:
+        return self.queue[0] if self.queue and self.queue[0].type in LONG and not self.queue[0].done else None
+
     def current(self) -> Goal | None:
         while self.queue and self.queue[0].done:
             self.completed.append(self.queue.pop(0).label())
-        if self.queue:
+        if self.queue and self.queue[0].type not in LONG:
             return self.queue[0]
-        if self.free_play:
+        if self.free_play or self.long_goal() is not None:
             if self.sub is None or self.sub.done or self.tick - self.sub.started > 2400:
-                self.sub = self._pick_free_play()
+                self.sub = self._plan_goal() if self.strategy_on else self._pick_free_play()
             return self.sub
         return None
+
+    def _plan_goal(self) -> Goal:
+        """What the strategist's plan means right now ("roam" is ordinary free play)."""
+        if self.strategist.plan == "roam" or (self.strategist.plan == "guard" and self._night()):
+            return self._pick_free_play()  # Ordinary free play (it also heads home when it gets dark).
+        lg = self.long_goal()
+        spec = self.strategist.goal(lg.spec if lg else None)
+        return Goal(spec, self.tick)
 
     def _pick_free_play(self) -> Goal:
         """What it feels like doing: needs first (night -> home, hungry -> food), then what it likes."""
@@ -335,7 +361,7 @@ class ManagerPolicy(Policy):
         if threat is not None:
             odds = float(threat.get("fightOdds", 0.0))
             name = threat.get("name") or threat.get("type", "?").split(":")[-1]
-            scared = 0.8 if self.drives.mode == "peaceful" else 1.0
+            scared = (0.8 if self.drives.mode == "peaceful" else 1.0) + (self.strategist.courage() if self.strategy_on else 0.0)
             if (health <= 6 and odds < 0.2) or (need["fear"] >= scared and need["fear"] >= need["anger"]):
                 return "flee", f"afraid of {name} (health {health:.0f}, odds {odds:+.2f})"
             if need["anger"] >= 0.8 and (goal is None or goal.type != "flee"):
@@ -367,6 +393,16 @@ class ManagerPolicy(Policy):
                 self._on_stuck()
             if ev.get("type") == "chat":
                 self.talk.heard(self.tick, (ev.get("data") or {}).get("text", ""), obs)
+        if self.strategy_on:
+            lg = self.long_goal()
+            wake = self.strategist.on_events(self.tick, obs.get("_events") or [], obs.get("self") or {},
+                                             lg.spec if lg else None)
+            if wake or self.strategist.due(self.tick):
+                before = self.strategist.plan
+                self.strategist.decide(self.tick, obs, lg.spec if lg else None)
+                if self.strategist.plan != before or wake:
+                    self.sub = None  # Work on the new plan now.
+                self.strategist.save()
         goal = self.current()
         if goal is not None:
             goal.check_time(self.tick)
@@ -397,6 +433,10 @@ class ManagerPolicy(Policy):
         if gtype is None:
             self.skill = "idle"
             return self._idle()
+        if gtype == "ambush":
+            # Keep still and low, and look about slowly: let them come (anyone close wakes the fight check).
+            self.skill = "ambush"
+            return Action(keys={"sneak"}, yaw=1.5 if (self.tick // 60) % 2 else -1.5)
         # Awareness: when nothing is going on, think 5 times a second instead of 20 and keep
         # walking in between (like walking on autopilot); anything close or surprising wakes it.
         if self._calm(obs, gtype):
@@ -452,7 +492,14 @@ class ManagerPolicy(Policy):
         """(dx, dz) to what the goal is about, if visible or remembered."""
         self._tdy = None
         if gtype == "hunt_players":
-            t = self.drives.prey(self._obs)
+            want = goal.spec.get("player") if goal else None
+            t = next((e for e in self._obs.get("entities") or [] if want and e.get("name") == want
+                      and e.get("visible", True)), None) if want else None
+            if t is None:
+                t = self.drives.prey(self._obs)
+                # Only fights worth taking under the current plan (the manhunt target is always worth it).
+                if t is not None and self.strategy_on and float(t.get("fightOdds", 0.0)) < self.strategist.min_odds():
+                    t = None
             if t is None:
                 return None
             self._tdy = t.get("dy")
@@ -602,10 +649,13 @@ class ManagerPolicy(Policy):
         return aim._turn(keys, aim.gain * wrap_degrees(yaw_err - pending[0]), aim.gain * (pitch_err - pending[1]))
 
     def status(self):
-        goal = self.queue[0] if self.queue else self.sub
+        lg = self.long_goal()
+        goal = self.sub if lg is not None and self.sub is not None else self.queue[0] if self.queue else self.sub
         return {"goal": goal.label() if goal else None, "why": (goal.spec.get("why") if goal else None) or self.why,
                 "mode": self.mode, "skill": self.skill or "reflexes", "queue": len(self.queue),
                 "completed": self.completed[-5:], "skills": self.available, "free_play": self.free_play,
                 "attitude": self.drives.mode, "thinking": self.thinking,
                 "after_fight": self.aftermath["mode"] if self.aftermath else None, "feelings": self.drives.feelings,
-                "judged": {str(k): f"{v[0]} ({v[1]})" for k, v in list(self.drives.judge.verdict.items())[-3:]}}
+                "judged": {str(k): f"{v[0]} ({v[1]})" for k, v in list(self.drives.judge.verdict.items())[-3:]},
+                "strategy": self.strategist.status() if self.strategy_on else None,
+                "long_goal": lg.label() if lg is not None else None}
