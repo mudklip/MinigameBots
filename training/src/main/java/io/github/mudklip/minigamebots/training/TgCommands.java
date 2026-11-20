@@ -104,7 +104,12 @@ final class TgCommands {
 								.executes(ctx -> {
 									ok(ctx, tg.coreGames().start(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "kind")));
 									return 1;
-								})))
+								})
+								.then(Commands.literal("ffa").executes(ctx -> {
+									// Free-for-all: the bots also go after each other.
+									ok(ctx, tg.coreGames().start(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "kind"), true));
+									return 1;
+								}))))
 				.then(Commands.literal("area").requires(tg::canManage)
 						.then(Commands.literal("clear").executes(ctx -> {
 							tg.areas().clear(ctx.getSource().getPlayer());
@@ -150,7 +155,19 @@ final class TgCommands {
 											ok(ctx, tg.multi().startAround(ctx.getSource().getPlayerOrException(),
 													IntegerArgumentType.getInteger(ctx, "count"), style, IntegerArgumentType.getInteger(ctx, "team")));
 											return 1;
-										})))))
+										})
+										.then(Commands.argument("options", StringArgumentType.greedyString()).executes(ctx -> {
+											// e.g. "kit=axe size=large type=edge mix=ladder round=60 practice=mixed"
+											String style = StringArgumentType.getString(ctx, "opponent");
+											if (!DummySettings.STYLES.contains(style) || style.equals("self")) {
+												fail(ctx, "Opponent styles: L1-L5, rusher, blocker, critter, w_tapper, kiter, godly");
+												return 0;
+											}
+											ok(ctx, tg.multi().startAround(ctx.getSource().getPlayerOrException(),
+													IntegerArgumentType.getInteger(ctx, "count"), style, IntegerArgumentType.getInteger(ctx, "team"),
+													MultiTrainer.Options.parse(StringArgumentType.getString(ctx, "options"))));
+											return 1;
+										}))))))
 						.then(Commands.literal("stop").executes(ctx -> {
 							tg.multi().stop(ctx.getSource().getServer());
 							ok(ctx, "Stopped multi-world training");

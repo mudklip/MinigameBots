@@ -6,6 +6,7 @@ import io.github.mudklip.minigamebots.training.arena.Arena;
 import io.github.mudklip.minigamebots.training.arena.ArenaManager;
 import io.github.mudklip.minigamebots.training.dummy.DummyManager;
 import io.github.mudklip.minigamebots.training.dummy.DummySettings;
+import io.github.mudklip.minigamebots.training.dummy.Kits;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -17,6 +18,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.decoration.Mannequin;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 
@@ -48,6 +50,11 @@ public final class MultiTrainer {
 		/** Per opponent: {learner slot it hit last, tick}. For helping a teammate. */
 		final java.util.Map<UUID, long[]> lastAttackBy = new java.util.HashMap<>();
 		int restartIn = -1;
+
+		BlockPos centre = BlockPos.ZERO;
+		int age;
+		int ladder = 1;
+		String objective = "";
 
 		Copy(int index, Vec3 a, Vec3 b, int size) {
 			this.index = index;
@@ -106,8 +113,58 @@ public final class MultiTrainer {
 	private final java.util.List<java.util.Map.Entry<BlockPos, net.minecraft.world.level.block.state.BlockState>> replaced =
 			new java.util.ArrayList<>();
 	private BlockPos gridCentre = BlockPos.ZERO;
-	private static final int HALF = 7; // Arena 15 x 15 inside the walls' outer edge.
-	private static final int STEP = 2 * HALF + 1 + 3;
+	private int half = 7; // Arena 15 x 15 inside the walls' outer edge (Normal size).
+	private int step = 2 * 7 + 1 + 3;
+	private Options opts = Options.DEFAULT;
+
+	/**
+	 * Customisation of the training worlds, all optional (defaults = the classic setup):
+	 * kit (default, shield, axe, diamond, bare), size (small, normal, large), type (flat, pillars,
+	 * edge = fall off and you're out), mix (single, mixed = a different opponent style each round,
+	 * ladder = harder after a win, easier after a loss), round (seconds, 0 = no limit, a draw when
+	 * time's up) and practice (duel, crits, wtap, shields, mixed = each world its own).
+	 */
+	public record Options(String kit, String size, String type, String mix, int round, String practice) {
+		public static final Options DEFAULT = new Options("default", "normal", "flat", "single", 0, "duel");
+
+		public static Options parse(String text) {
+			String kit = "default";
+			String size = "normal";
+			String type = "flat";
+			String mix = "single";
+			int round = 0;
+			String practice = "duel";
+			for (String tok : text.trim().split("\\s+")) {
+				int eq = tok.indexOf('=');
+				if (eq <= 0) {
+					continue;
+				}
+				String k = tok.substring(0, eq).toLowerCase(java.util.Locale.ROOT);
+				String v = tok.substring(eq + 1).toLowerCase(java.util.Locale.ROOT);
+				switch (k) {
+					case "kit" -> kit = List.of("default", "shield", "axe", "diamond", "bare").contains(v) ? v : kit;
+					case "size" -> size = List.of("small", "normal", "large").contains(v) ? v : size;
+					case "type" -> type = List.of("flat", "pillars", "edge").contains(v) ? v : type;
+					case "mix" -> mix = List.of("single", "mixed", "ladder").contains(v) ? v : mix;
+					case "round" -> {
+						try {
+							round = Math.max(0, Math.min(600, Integer.parseInt(v)));
+						} catch (NumberFormatException ignored) {
+							// Keep the default.
+						}
+					}
+					case "practice" -> practice = List.of("duel", "crits", "wtap", "shields", "mixed").contains(v) ? v : practice;
+					default -> {
+					}
+				}
+			}
+			return new Options(kit, size, type, mix, round, practice);
+		}
+	}
+
+	private static final String[] MIX = {"L2", "L3", "L4", "L5", "rusher", "blocker", "critter", "w_tapper", "kiter"};
+	private static final String[] LADDER = {"L1", "L2", "L3", "L4", "L5", "godly"};
+	private static final String[] DRILLS = {"", "crit_drill", "wtap_drill", "shield_drill"};
 
 	/** Grid size for n worlds around the player: {cols, rows, skipCentre}. 8 = a ring of 3 x 3. */
 	static int[] grid(int n) {
@@ -135,8 +192,19 @@ public final class MultiTrainer {
 
 	/** As above, with teams of {@code team} learners against as many opponents in each world. */
 	public String startAround(ServerPlayer p, int count, String opponentStyle, int team) {
+		return startAround(p, count, opponentStyle, team, Options.DEFAULT);
+	}
+
+	public String startAround(ServerPlayer p, int count, String opponentStyle, int team, Options options) {
 		stop(p.level().getServer());
 		teamSize = Math.max(1, Math.min(4, team));
+		opts = options;
+		half = switch (opts.size()) {
+			case "small" -> 5;
+			case "large" -> 10;
+			default -> 7;
+		};
+		step = 2 * half + 1 + 3;
 		if (!truth.supports(p, io.github.mudklip.minigamebots.common.Protocol.Features.PUPPET)) {
 			return "Join with the MinigameBots client mod to steer the learners";
 		}
@@ -156,12 +224,23 @@ public final class MultiTrainer {
 				if (g[2] == 1 && i == g[0] / 2 && j == g[1] / 2) {
 					continue; // The player's spot.
 				}
-				int cx = c.getX() + (int) Math.round((i - ox) * STEP);
-				int cz = c.getZ() + (int) Math.round((j - oz) * STEP);
+				int cx = c.getX() + (int) Math.round((i - ox) * step);
+				int cz = c.getZ() + (int) Math.round((j - oz) * step);
 				build(lv, new BlockPos(cx, c.getY(), cz));
-				Vec3 sa = new Vec3(cx - 4 + 0.5, c.getY(), cz + 0.5);
-				Vec3 sb = new Vec3(cx + 4 + 0.5, c.getY(), cz + 0.5);
+				int apart = Math.max(2, half - 3);
+				Vec3 sa = new Vec3(cx - apart + 0.5, c.getY(), cz + 0.5);
+				Vec3 sb = new Vec3(cx + apart + 0.5, c.getY(), cz + 0.5);
 				Copy cp = new Copy(made, sa, sb, teamSize);
+				cp.centre = new BlockPos(cx, c.getY(), cz);
+				cp.ladder = 1;
+				int drill = switch (opts.practice()) {
+					case "crits" -> 1;
+					case "wtap" -> 2;
+					case "shields" -> 3;
+					case "mixed" -> made % 4;
+					default -> 0;
+				};
+				cp.objective = DRILLS[drill];
 				copies.add(cp);
 				spawn(cp);
 				made++;
@@ -176,15 +255,29 @@ public final class MultiTrainer {
 		var stone = net.minecraft.world.level.block.Blocks.SMOOTH_STONE.defaultBlockState();
 		var glass = net.minecraft.world.level.block.Blocks.GLASS.defaultBlockState();
 		var air = net.minecraft.world.level.block.Blocks.AIR.defaultBlockState();
-		BlockPos min = c.offset(-HALF, -1, -HALF);
-		BlockPos max = c.offset(HALF, 5, HALF);
+		var water = net.minecraft.world.level.block.Blocks.WATER.defaultBlockState();
+		boolean edge = "edge".equals(opts.type());
+		boolean pillars = "pillars".equals(opts.type());
+		int p4 = Math.max(2, half / 2);
+		BlockPos min = c.offset(-half, edge ? -4 : -1, -half);
+		BlockPos max = c.offset(half, 5, half);
 		for (BlockPos p : BlockPos.betweenClosed(min, max)) {
 			if (lv.getBlockEntity(p) != null) {
 				continue; // Never overwrite chests and the like.
 			}
-			boolean floor = p.getY() == min.getY();
+			int dx = p.getX() - c.getX();
+			int dz = p.getZ() - c.getZ();
+			int dy = p.getY() - c.getY();
 			boolean wall = p.getX() == min.getX() || p.getX() == max.getX() || p.getZ() == min.getZ() || p.getZ() == max.getZ();
-			var want = floor ? stone : wall && p.getY() <= c.getY() + 2 ? glass : air;
+			BlockState want;
+			if (edge) {
+				// A platform with a drop all round (water at the bottom): off the edge = out.
+				boolean on = Math.abs(dx) <= half - 2 && Math.abs(dz) <= half - 2;
+				want = dy == -4 ? stone : wall && dy <= 2 ? glass : dy == -3 ? water : dy == -1 && on ? stone : dy == -2 && on ? stone : air;
+			} else {
+				boolean pillar = pillars && Math.abs(dx) == p4 && Math.abs(dz) == p4 && dy >= 0 && dy <= 2;
+				want = dy == -1 ? stone : pillar ? stone : wall && dy <= 2 ? glass : air;
+			}
 			var had = lv.getBlockState(p);
 			if (had != want) {
 				replaced.add(java.util.Map.entry(p.immutable(), had));
@@ -249,22 +342,49 @@ public final class MultiTrainer {
 		c.opponents.clear();
 		c.lastHitOn.clear();
 		c.lastAttackBy.clear();
+		c.age = 0;
+		String st = switch (opts.mix()) {
+			case "mixed" -> MIX[lv.getRandom().nextInt(MIX.length)];
+			case "ladder" -> LADDER[Math.max(0, Math.min(LADDER.length - 1, c.ladder))];
+			default -> style;
+		};
+		// The shield drill needs something to break: an axe for the learner, a shield for the opponent.
+		String kit = "shield_drill".equals(c.objective) ? "axe" : opts.kit();
 		for (int k = 0; k < c.size; k++) {
 			// Teams line up side by side, 2 blocks apart, facing each other.
 			Vec3 side = new Vec3(0, 0, (k - (c.size - 1) / 2.0) * 2);
 			Mannequin l = dummies.spawnAt(lv, c.a.add(side), -90, DummySettings.style("self"), false);
-			Mannequin o = dummies.spawnAt(lv, c.b.add(side), 90, DummySettings.style(style), false);
+			Mannequin o = dummies.spawnAt(lv, c.b.add(side), 90, DummySettings.style(st), false);
 			if (l != null) {
 				dummies.setPuppetOwner(l.getUUID(), owner);
 				scoreboard.addPlayerToTeam(l.getScoreboardName(), learnTeam);
 				c.learners.add(l.getUUID());
+				Kits.apply(l, dummies.byId(l.getUUID()), kit, false);
 			}
 			if (o != null) {
 				dummies.byId(o.getUUID()).settings.infiniteHealth = false;
 				scoreboard.addPlayerToTeam(o.getScoreboardName(), oppTeam);
 				c.opponents.add(o.getUUID());
+				Kits.apply(o, dummies.byId(o.getUUID()), "shield_drill".equals(c.objective) ? "shield" : kit, true);
 			}
 		}
+	}
+
+	/** Ends a world's round for every learner in it: "win", "loss" or "draw" (time's up). */
+	private void endRound(Copy c, String result) {
+		for (int k = 0; k < c.size; k++) {
+			JsonObject end = event("tg_episode_end", null, 0);
+			end.getAsJsonObject("data").addProperty("result", result);
+			c.events.get(k).add(end);
+		}
+		if ("win".equals(result)) {
+			c.ladder++;
+		} else if ("loss".equals(result)) {
+			c.ladder--;
+		}
+		c.ladder = Math.max(0, Math.min(LADDER.length - 1, c.ladder));
+		c.restartIn = RESPAWN_DELAY;
+		rounds++;
 	}
 
 	private void removeBodies(Copy c) {
@@ -368,6 +488,10 @@ public final class MultiTrainer {
 	}
 
 	public void onDamage(LivingEntity victim, DamageSource source, float taken) {
+		onDamage(victim, source, taken, false);
+	}
+
+	public void onDamage(LivingEntity victim, DamageSource source, float taken, boolean blocked) {
 		Copy c = copyOf(victim);
 		if (c == null) {
 			return;
@@ -392,6 +516,23 @@ public final class MultiTrainer {
 		}
 		JsonArray ev = c.events.get(attacker);
 		ev.add(event("damage_dealt", "amount", taken));
+		if (by instanceof Mannequin bm) {
+			// How the hit was made, for the technique drills (crits, W-taps, shields).
+			JsonObject t = event("tg_damage_dealt", "amount", taken);
+			JsonObject d = t.getAsJsonObject("data");
+			float[] sw = dummies.lastSwing(bm.getUUID());
+			if (sw != null) {
+				d.addProperty("charge", Math.round(sw[0] * 100) / 100.0);
+				d.addProperty("sprint_hit", sw[1] > 0);
+				d.addProperty("crit", sw[2] > 0);
+			}
+			d.addProperty("blocked", blocked);
+			if (blocked) {
+				var w = bm.getMainHandItem().get(net.minecraft.core.component.DataComponents.WEAPON);
+				d.addProperty("shield_disabled", w != null && w.disableBlockingForSeconds() > 0);
+			}
+			ev.add(t);
+		}
 		if (c.size > 1) {
 			long[] hit = c.lastHitOn.get(victim.getUUID());
 			if (hit != null && hit[0] != attacker && now - hit[1] <= 60) {
@@ -433,13 +574,7 @@ public final class MultiTrainer {
 		if (learnersLeft && opponentsLeft) {
 			return; // The round goes on.
 		}
-		for (int k = 0; k < c.size; k++) {
-			JsonObject end = event("tg_episode_end", null, 0);
-			end.getAsJsonObject("data").addProperty("result", learnersLeft ? "win" : "loss"); // Shared: the team wins or loses.
-			c.events.get(k).add(end);
-		}
-		c.restartIn = RESPAWN_DELAY;
-		rounds++;
+		endRound(c, learnersLeft ? "win" : "loss"); // Shared: the team wins or loses.
 	}
 
 	public void tick(net.minecraft.server.MinecraftServer server) {
@@ -464,6 +599,19 @@ public final class MultiTrainer {
 				removeBodies(c);
 				spawn(c);
 			}
+			if (c.restartIn < 0) {
+				c.age++;
+				if (opts.round() > 0 && c.age > opts.round() * 20) {
+					endRound(c, "draw"); // Time's up.
+				} else if ("edge".equals(opts.type()) && level != null) {
+					for (UUID u : java.util.stream.Stream.concat(c.learners.stream(), c.opponents.stream()).toList()) {
+						LivingEntity b = entity(u);
+						if (b != null && b.isAlive() && b.getY() < c.centre.getY() - 1.5) {
+							b.kill(level); // Fell off the edge.
+						}
+					}
+				}
+			}
 			for (int k = 0; k < c.learners.size(); k++) {
 				LivingEntity l = entity(c.learners.get(k));
 				JsonArray ev = c.events.get(k);
@@ -472,6 +620,9 @@ public final class MultiTrainer {
 				if (c.size > 1) {
 					o1.addProperty("slot", k);
 					o1.addProperty("team", true);
+				}
+				if (!c.objective.isEmpty()) {
+					o1.addProperty("objective", c.objective);
 				}
 				if (l == null || !l.isAlive()) {
 					if (ev.size() > 0) {

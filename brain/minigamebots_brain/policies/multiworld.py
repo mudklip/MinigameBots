@@ -30,13 +30,17 @@ class MultiWorldPolicy(PracticePolicy):
         super().__init__(profile, objective=objective, **kw)
         self.copies: dict[int | tuple, _Copy] = {}
 
-    def _copy(self, i, team: bool = False) -> _Copy:
+    def _copy(self, i, team: bool = False, drill: str = "") -> _Copy:
         from ..rl import objective as obj
         from ..rl.ppo import Rollout
 
         if i not in self.copies:
             goal = self.objective
-            if team:
+            if drill:
+                # This world practises a technique (crits, W-taps, breaking shields) instead of duelling.
+                from .practice import load_objective
+                goal = load_objective(self.profile, drill)
+            elif team:
                 # Team worlds: the team fight rules (shared round result, focus, help, no friendly fire).
                 from .practice import load_objective
                 goal = load_objective(self.profile, "team_fight")
@@ -61,7 +65,7 @@ class MultiWorldPolicy(PracticePolicy):
         for e in entries:
             # Each learner body has its own memory and rollout: teammates share nothing but the world.
             key = int(e.get("copy", 0)) if e.get("slot") is None else (int(e.get("copy", 0)), int(e.get("slot")))
-            c = self._copy(key, bool(e.get("team")))
+            c = self._copy(key, bool(e.get("team")), str(e.get("objective") or ""))
             c.tick += 1
             events = e.get("events") or []
             if events:

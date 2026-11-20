@@ -65,6 +65,25 @@ public final class MgbConfig {
 	@SerialEntry
 	public boolean keepRunningUnfocused = true;
 
+	// Training worlds (set on the Worlds tab > Customize; defaults = the classic setup)
+	@SerialEntry
+	public String worldKit = "default";
+	@SerialEntry
+	public String worldSize = "normal";
+	@SerialEntry
+	public String worldType = "flat";
+	@SerialEntry
+	public String worldMix = "single";
+	@SerialEntry
+	public int worldRound = 0;
+	@SerialEntry
+	public String worldPractice = "duel";
+	@SerialEntry
+	public int worldSpeed = 2;
+	/** Core minigames: the bots also fight each other (off: they all play against the AI). */
+	@SerialEntry
+	public boolean coreFreeForAll = false;
+
 	@AutoGen(category = "background")
 	@IntSlider(min = 10, max = 120, step = 5, format = "%d FPS")
 	@SerialEntry

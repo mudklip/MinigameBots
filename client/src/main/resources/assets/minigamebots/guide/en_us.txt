@@ -205,7 +205,7 @@ The Core is the first card in the Skills list (the light block). It's common sen
 
 # Core plan (no setup)
 Training Hub > Plans > [Core] > [Start coaching]: it builds a random little minigame around you (Snowball Fight, One Hit, Sumo, King of the Hill, Spleef, TNT Run), learns it for a while, then switches to a new random game, again and again. Every game teaches it to pick up new games faster. The ground goes back as it was when the plan ends.
-The opponents in these games play them properly, like a good bot would: in Spleef they keep a safe distance and dig the snow out from under you, in TNT Run they never stop running and head for the biggest patch of floor left, in Sumo they get between you and the middle and knock you outwards, in King of the Hill they take the gold and knock others off, and in Snowball Fight they strafe, dodge and throw ahead of where you're going. They find their way around holes and jump single gaps. TNT Run gives everyone 3 seconds at the start before the floor starts to fall.
+The opponents in these games play them properly, like a good bot would: in Spleef they keep a safe distance and dig the snow out from under you, in TNT Run they never stop running and head for the biggest patch of floor left, in Sumo they get between you and the middle and knock you outwards, in King of the Hill they take the gold and knock others off, and in Snowball Fight they strafe, dodge and throw ahead of where you're going. They find their way around holes and jump single gaps. TNT Run and Spleef give everyone 3 seconds at the start before the floor starts to go. By default every bot plays against your AI; on the Core screen, [Practice minigames: free-for-all] makes the bots go after each other too, like a real free-for-all lobby.
 - Each game gets its own network: a new game starts from the AI's skill that fits the rules best (e.g. its combat network), a game it knows continues where it left off. Its main network is never overwritten.
 > Command: /tg coregame <snowball|one_hit|sumo|king|spleef|tnt_run|random>, /tg coregame stop.
 - The Core screen shows, for every game it knows, how many rounds it needed to play well (3 of 5 won) and how often it wins now. That number dropping over new games means it's getting better at learning games.
@@ -356,6 +356,15 @@ The route to a strong fighter, with no PvP skill needed from you. Each step buil
 # Teams
 Pick [Teams: 2v2] (up to 4v4) and each training world holds a team of your AI against a team of opponents. Every teammate is steered by the same AI on its own and only knows what it can see: who's on its side (team colours), where they are, who is hitting them. There's no hidden link. The round is won or lost by the team, so a teammate knocked out early still learns from the win. It's rewarded for going after the same target as a teammate, for helping a teammate who's being hit, and for spreading out, and it loses points for hitting its own side.
 Outside training, with chat replies on (the language model), it calls things out in normal chat ("2 on me, help", "low, backing off") and answers a teammate's call for help, whether that teammate is a human or another copy. A stray hit from a teammate is remembered as an accident, not an attack.
+
+# Customize the worlds
+[Customize...] on the Worlds tab changes how the training worlds are set up. Every row starts on the classic setup, so you only change what you want:
+- Kit: the same gear on both sides (Sword + shield, Axe + shield, Diamond, Bare hands). Shields wear out and break like a player's.
+- Arena: Small, Normal or Large. Type: Flat, Pillars (four pillars to fight around) or Edge (a platform with a drop all round: off it and you're out).
+- Opponents: One style, Mixed (a different style every round) or Ladder (a harder opponent after a win, an easier one after a loss).
+- Round: a time limit; when time's up it's a draw.
+- Practice: what the worlds reward. Duel (win fights), Crits, W-tap, Shields (break shields with an axe) or Mixed (each world its own).
+- Speed: how fast the worlds run in singleplayer (1x, 2x, 3x).
 
 # Fast & light (singleplayer)
 With [Fast & light] on (the default), the brain steers the training worlds directly instead of through your player (you keep your own controls), the worlds run twice as fast, and the game draws as little as possible (10 FPS, short view) so you can minimise it and keep using your PC. Your settings and normal speed come back when you stop.

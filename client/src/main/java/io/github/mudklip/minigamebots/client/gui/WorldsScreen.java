@@ -64,13 +64,17 @@ public final class WorldsScreen extends Screen {
 					Coach.stop("Stopped for training worlds");
 				}
 				io.github.mudklip.minigamebots.client.profile.Backups.auto(mgb.profiles().store().dir(p.id), "Before training worlds");
-				cmd("tg multitrain here " + COUNTS[count] + " " + OPPONENTS[opponent] + (team > 0 ? " " + (team + 1) : ""));
-				if (fast && minecraft.getSingleplayerServer() != null) {
-					io.github.mudklip.minigamebots.client.brain.FastTraining.start(minecraft);
+				cmd("tg multitrain here " + COUNTS[count] + " " + OPPONENTS[opponent] + " " + (team + 1) + WorldsCustomizeScreen.options());
+				if (minecraft.getSingleplayerServer() != null) {
+					io.github.mudklip.minigamebots.client.brain.FastTraining.start(minecraft,
+							io.github.mudklip.minigamebots.client.config.MgbConfig.get().worldSpeed, fast);
 				}
 				message = "Starting... (the AI takes control; F9 stops it)";
 				rebuildWidgets();
 			}).pos(width / 2 - 70, 112).width(140).build()).active = grounds && minecraft.player != null;
+			addRenderableWidget(Button.builder(Component.literal("Customize..."), b -> minecraft.gui.setScreen(new WorldsCustomizeScreen(this)))
+					.pos(width / 2 - 70 - 82, 112).width(78).tooltip(Tooltip.create(Component.literal("Kit, arena size and type, opponent "
+							+ "mix, round length, what each world practises and the speed. The defaults are fine to start with."))).build());
 			addRenderableWidget(Button.builder(Component.literal("Fast & light: " + (fast ? "§aon" : "off")), b -> {
 				fast = !fast;
 				rebuildWidgets();
@@ -166,7 +170,7 @@ public final class WorldsScreen extends Screen {
 		chips.clear();
 		long s = MultiWorldStats.runningMs() / 1000;
 		if (io.github.mudklip.minigamebots.client.brain.FastTraining.on()) {
-			g.text(font, Component.literal("§a⚡ fast & light: 2x speed, 10 FPS (minimise the game if you like)"), 8, height - 12, Ui.MUTED, false);
+			g.text(font, Component.literal("§a⚡ " + io.github.mudklip.minigamebots.client.brain.FastTraining.describe()), 8, height - 12, Ui.MUTED, false);
 		}
 		double wr = MultiWorldStats.recentWinRate();
 		String stats = MultiWorldStats.worlds().size() + " worlds · " + MultiWorldStats.rounds() + " rounds · "
@@ -269,10 +273,14 @@ public final class WorldsScreen extends Screen {
 				}
 			}
 		}
+		String custom = WorldsCustomizeScreen.summary();
+		if (!custom.isEmpty()) {
+			g.text(font, Component.literal("§bCustom: " + font.plainSubstrByWidth(custom, width - 80)), 8, 148, Ui.TEXT, false);
+		}
 		g.text(font, Component.literal("§7Tip: 4-6 worlds suit most PCs. The arenas go when you stop."),
 				8, 136, Ui.MUTED, false);
 		if (message != null) {
-			g.text(font, Component.literal(font.plainSubstrByWidth(message, width - 16)), 8, 150, Ui.WARN, false);
+			g.text(font, Component.literal(font.plainSubstrByWidth(message, width - 16)), 8, 162, Ui.WARN, false);
 		}
 	}
 

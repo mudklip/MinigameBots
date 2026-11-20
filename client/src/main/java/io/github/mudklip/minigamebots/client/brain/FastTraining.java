@@ -27,18 +27,35 @@ public final class FastTraining {
 		return on && System.currentTimeMillis() - since > 8000;
 	}
 
+	private static boolean light;
+	private static int speed = 1;
+
 	public static void start(Minecraft mc) {
+		start(mc, 2, true);
+	}
+
+	/** Runs the training worlds at {@code times} normal speed; {@code lightMode} also draws less. */
+	public static void start(Minecraft mc, int times, boolean lightMode) {
 		var server = mc.getSingleplayerServer();
-		if (on || server == null) {
+		if (on || server == null || (times <= 1 && !lightMode)) {
 			return;
 		}
 		on = true;
+		light = lightMode;
+		speed = Math.max(1, Math.min(3, times));
 		since = System.currentTimeMillis();
-		fps = mc.options.framerateLimit().get();
-		view = mc.options.renderDistance().get();
-		mc.options.framerateLimit().set(10);
-		mc.options.renderDistance().set(2);
-		server.execute(() -> server.tickRateManager().setTickRate(40));
+		if (light) {
+			fps = mc.options.framerateLimit().get();
+			view = mc.options.renderDistance().get();
+			mc.options.framerateLimit().set(10);
+			mc.options.renderDistance().set(2);
+		}
+		int tps = 20 * speed;
+		server.execute(() -> server.tickRateManager().setTickRate(tps));
+	}
+
+	public static String describe() {
+		return speed + "x speed" + (light ? ", 10 FPS (minimise the game if you like)" : "");
 	}
 
 	public static void stop(Minecraft mc) {
@@ -46,8 +63,10 @@ public final class FastTraining {
 			return;
 		}
 		on = false;
-		mc.options.framerateLimit().set(fps);
-		mc.options.renderDistance().set(view);
+		if (light) {
+			mc.options.framerateLimit().set(fps);
+			mc.options.renderDistance().set(view);
+		}
 		var server = mc.getSingleplayerServer();
 		if (server != null) {
 			server.execute(() -> server.tickRateManager().setTickRate(20));

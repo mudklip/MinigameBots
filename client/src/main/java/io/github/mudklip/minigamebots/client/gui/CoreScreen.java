@@ -77,6 +77,14 @@ public final class CoreScreen extends Screen {
 				.tooltip(Tooltip.create(Component.literal("For the game you're in now (by its scoreboard title). It starts out "
 						+ "believing it; play can still prove it wrong."))).build());
 		games.removeIf(g -> g.endsWith(".told"));
+		var cfg = io.github.mudklip.minigamebots.client.config.MgbConfig.get();
+		addRenderableWidget(Button.builder(Component.literal("Practice minigames: " + (cfg.coreFreeForAll ? "§efree-for-all" : "all vs AI")), b -> {
+			cfg.coreFreeForAll = !cfg.coreFreeForAll;
+			io.github.mudklip.minigamebots.client.config.MgbConfig.HANDLER.save();
+			rebuildWidgets();
+		}).pos(8, height - 26).width(180).tooltip(Tooltip.create(Component.literal("The little games the Core plan builds (Spleef, "
+				+ "TNT Run, Sumo...). All vs AI: every bot plays against your AI (the default). Free-for-all: the bots also go "
+				+ "after each other, like a real free-for-all lobby. Takes effect from the next game."))).build());
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(width - 60, height - 26).width(52).build());
 	}
 

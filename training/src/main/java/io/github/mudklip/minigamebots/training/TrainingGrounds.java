@@ -213,7 +213,7 @@ public final class TrainingGrounds implements ModInitializer {
 			truth.onDamage(entity, source, taken, blocked);
 			dummies.afterDamage(entity, source, base, taken, blocked);
 			if (multi != null) {
-				multi.onDamage(entity, source, blocked ? 0 : taken);
+				multi.onDamage(entity, source, blocked ? 0 : taken, blocked);
 			}
 			if (coreGames != null) {
 				coreGames.onDamage(entity, source, blocked ? 0 : taken);

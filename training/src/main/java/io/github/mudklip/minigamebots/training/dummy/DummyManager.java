@@ -79,6 +79,8 @@ public final class DummyManager {
 		/** An axe hit knocked the shield down until this tick (like a player's shield cooldown). */
 		transient long shieldDisabledUntil;
 		transient long shieldRaisedAt;
+		/** The last swing as a puppet: {charge, sprint (1/0), crit (1/0)}. */
+		transient float @Nullable [] lastSwing;
 
 		Dummy(UUID id, String dimension, double[] anchor, DummySettings settings) {
 			this.id = id;
@@ -209,6 +211,12 @@ public final class DummyManager {
 		}
 		d.control = c;
 		d.controlTick = tick;
+	}
+
+	/** How a puppet dummy's last swing was made, or null: {charge, sprint, crit}. */
+	public float @Nullable [] lastSwing(UUID id) {
+		Dummy d = dummies.get(id);
+		return d == null ? null : d.lastSwing;
 	}
 
 	public void setPaused(UUID id, boolean paused) {
@@ -544,6 +552,7 @@ public final class DummyManager {
 			return;
 		}
 		boolean crit = charge > 0.9f && !m.onGround() && m.getDeltaMovement().y < 0 && !sprint;
+		d.lastSwing = new float[] {charge, sprint ? 1 : 0, crit ? 1 : 0};
 		float dmg = d.settings.damage * (0.2f + charge * charge * 0.8f) * (crit ? 1.5f : 1f);
 		hit.hurtServer(level, attack(m, level), dmg);
 		if (crit) {

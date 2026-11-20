@@ -62,3 +62,14 @@ class TeamTalkTest(unittest.TestCase):
             said = [m.act(obs(t, [mate, a1, a2]), None).say for t in range(10, 40)]
             self.assertIn("2 on me, help", said)
             self.assertEqual(sum(1 for x in said if x), 1)  # Once, not spammed.
+
+
+class WorldPracticeTest(unittest.TestCase):
+    def test_each_world_can_practise_its_own_drill(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = create("multiworld", {"profile": d})
+            p.act({"multiworld": [{"copy": 0, "puppet_id": 1, "obs": body(0), "events": []},
+                                  {"copy": 1, "puppet_id": 2, "obs": body(1), "events": [], "objective": "crit_drill"}]}, None)
+            self.assertEqual(p.copies[0].engine.objective["name"], "Duel")
+            crit = p.copies[1].engine.step(5, [{"type": "tg_damage_dealt", "data": {"amount": 6, "crit": True, "charge": 1.0}}], None)
+            self.assertGreater(crit.reward, 0.5)

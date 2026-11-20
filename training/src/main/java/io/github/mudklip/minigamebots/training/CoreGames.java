@@ -59,6 +59,8 @@ public final class CoreGames {
 	private int restartIn = -1;
 	private int age;
 	private int myPoints;
+	/** Free-for-all: the bots also fight each other (only when asked for; off by default). */
+	private boolean ffa;
 
 	public CoreGames(DummyManager dummies, GroundTruth truth) {
 		this.dummies = dummies;
@@ -70,7 +72,12 @@ public final class CoreGames {
 	}
 
 	public String start(ServerPlayer p, String wanted) {
+		return start(p, wanted, false);
+	}
+
+	public String start(ServerPlayer p, String wanted, boolean freeForAll) {
 		stop(p.level().getServer());
+		ffa = freeForAll;
 		String k = wanted.equals("random") ? KINDS.get(p.getRandom().nextInt(KINDS.size())) : wanted;
 		if (!KINDS.contains(k)) {
 			return "Games: random, " + String.join(", ", KINDS);
@@ -183,7 +190,7 @@ public final class CoreGames {
 				dummies.setBrain(m.getUUID(), io.github.mudklip.minigamebots.training.dummy.ModeBots.of(
 						new io.github.mudklip.minigamebots.training.dummy.ModeBots.Field(centre,
 								"sumo".equals(game) ? 5 : fallGame() ? 7 : HALF - 1, game,
-								b -> crumbling.containsKey(b))));
+								b -> crumbling.containsKey(b), ffa, this::contestants)));
 			}
 		}
 		p.setGameMode(GameType.SURVIVAL);
@@ -318,6 +325,25 @@ public final class CoreGames {
 		} else if (age > 20 * 120) {
 			end(p, "king".equals(kind) && myPoints > points.values().stream().mapToInt(Integer::intValue).max().orElse(0));
 		}
+	}
+
+	/** Everyone still in the round: you and the bots left. */
+	private List<LivingEntity> contestants() {
+		List<LivingEntity> out = new ArrayList<>();
+		ServerLevel lv = level;
+		if (lv == null) {
+			return out;
+		}
+		ServerPlayer p = player(lv.getServer());
+		if (p != null && !ownerOut) {
+			out.add(p);
+		}
+		for (UUID id : foes) {
+			if (lv.getEntity(id) instanceof LivingEntity e) {
+				out.add(e);
+			}
+		}
+		return out;
 	}
 
 	private boolean fallGame() {

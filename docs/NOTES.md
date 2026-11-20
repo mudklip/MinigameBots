@@ -131,3 +131,14 @@ centre side and sprint-hit outwards, Snowball strafes, dodges and throws with le
 Skill from the dummy level. Baritone itself only drives a player's client, so it can't steer these.
 Vanilla `BlocksAttacks.hurtBlockingItem` only wears players' shields: `afterDamage` now wears and
 breaks a mannequin's shield the same way. TNT Run: 3 s grace before crumbling.
+
+## 1.21.0: training-worlds customization, free-for-all minigames
+`MultiTrainer.Options` (kit, size, type flat/pillars/edge, mix single/mixed/ladder, round seconds
+with "draw", practice duel/crits/wtap/shields/mixed) from `/tg multitrain here <n> <style> <team>
+<k=v ...>`; client keeps them in MgbConfig (world*) and sends them only when not default.
+`Kits` gives both sides the same gear; the shield drill gives learner an axe and opponent a shield.
+Learner hits now also emit `tg_damage_dealt` with charge/sprint_hit/crit/blocked/shield_disabled
+(from `DummyManager.lastSwing`), so the drill templates work in training worlds; the brain picks
+a world's objective from its `objective` field. Speed 1-3x via FastTraining (light mode separate).
+Core minigames: `/tg coregame <kind> ffa` (Core screen toggle, off by default) makes the mode bots
+target the nearest contestant instead of only the player. Spleef bots wait 3 s before digging.

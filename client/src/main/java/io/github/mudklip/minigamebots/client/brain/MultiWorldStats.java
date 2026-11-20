@@ -101,6 +101,10 @@ public final class MultiWorldStats {
 					}
 					case "tg_episode_end" -> {
 						boolean won = d.has("result") && "win".equals(d.get("result").getAsString());
+						if (d.has("result") && "draw".equals(d.get("result").getAsString())) {
+							rounds++; // Time ran out: a round, but neither a win nor a loss.
+							continue;
+						}
 						if (won) {
 							w.wins++;
 						} else {

@@ -34,8 +34,16 @@ import org.jspecify.annotations.Nullable;
  * Server-side only: Baritone itself can only drive a player's own client, never these opponents.
  */
 public final class ModeBots {
-	/** The game field: floor at centre.y - 1, from -half to +half around the centre. */
-	public record Field(BlockPos centre, int half, String game, Predicate<BlockPos> crumbling) {
+	/**
+	 * The game field: floor at centre.y - 1, from -half to +half around the centre. With
+	 * {@code ffa} (free-for-all, only when asked for) the bots also go after each other: each takes
+	 * on whoever is nearest among {@code players}; otherwise they all play against you.
+	 */
+	public record Field(BlockPos centre, int half, String game, Predicate<BlockPos> crumbling, boolean ffa,
+			java.util.function.Supplier<java.util.List<LivingEntity>> players) {
+		public Field(BlockPos centre, int half, String game, Predicate<BlockPos> crumbling) {
+			this(centre, half, game, crumbling, false, java.util.List::of);
+		}
 	}
 
 	private ModeBots() {
@@ -81,6 +89,16 @@ public final class ModeBots {
 		public boolean tick(Mannequin m, DummyManager.Dummy d, @Nullable LivingEntity target, ServerLevel level) {
 			age++;
 			int lv = Mth.clamp(d.settings.level, 1, 5);
+			if (f.ffa()) {
+				LivingEntity best = null;
+				for (LivingEntity e : f.players().get()) {
+					if (e != m && e.isAlive() && !(e instanceof net.minecraft.world.entity.player.Player p && p.isSpectator())
+							&& (best == null || e.distanceToSqr(m) < best.distanceToSqr(m))) {
+						best = e;
+					}
+				}
+				target = best;
+			}
 			if (!equipped) {
 				equipped = true;
 				m.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(switch (game) {
@@ -292,7 +310,8 @@ public final class ModeBots {
 			}
 			look(m, tp);
 			// Dig: the block under them first, then where they're heading, then next to them.
-			if (act == 0) {
+			// (Not in the first 3 seconds of a round, like the grace period on servers.)
+			if (act == 0 && age > 60) {
 				Vec3 v = t.getDeltaMovement();
 				Vec3[] picks = {tp, tp.add(v.x * 6, 0, v.z * 6), tp.add(1, 0, 0), tp.add(-1, 0, 0), tp.add(0, 0, 1), tp.add(0, 0, -1)};
 				for (Vec3 p : picks) {
