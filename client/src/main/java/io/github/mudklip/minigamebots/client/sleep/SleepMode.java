@@ -169,6 +169,11 @@ public final class SleepMode {
 			return;
 		}
 		if (current >= 0 && current < steps.size() && !steps.get(current).done().getAsBoolean()) {
+			var tr = MinigameBotsClient.instance().training();
+			if (tr.busy() && tr.totalSteps() > 0) {
+				status = steps.get(current).label() + ": " + tr.step() + "/" + tr.totalSteps() + " (about "
+						+ Math.max(1, Math.round(tr.etaSeconds() / 60)) + " min left)";
+			}
 			return;
 		}
 		current++;
