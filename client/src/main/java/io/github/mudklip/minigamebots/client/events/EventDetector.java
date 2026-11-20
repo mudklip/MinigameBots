@@ -228,7 +228,8 @@ public final class EventDetector {
 				}
 			}
 			if (dead) {
-				emit(KILL, Map.of("target", typeOf(e)));
+				emit(KILL, e instanceof net.minecraft.world.entity.player.Player pl
+						? Map.of("target", typeOf(e), "name", pl.getGameProfile().name()) : Map.of("target", typeOf(e)));
 				it.remove();
 			} else if (e.isRemoved() || tick - t.lastHitTick() > KILL_CREDIT_TICKS) {
 				// Despawned, out of range, or not hit for a while: no longer ours to credit.

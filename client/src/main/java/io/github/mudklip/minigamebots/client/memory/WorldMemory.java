@@ -48,6 +48,8 @@ public final class WorldMemory {
 	public Map<String, String> insigniaLooks = new LinkedHashMap<>();
 	/** Mark the insignia (and name) of whoever attacks the AI or the person it protects as enemies. */
 	public boolean autoMarkAttackers = true;
+	/** Remembered moments, person profiles, insignia trust. */
+	public Mind mind = new Mind();
 	/** Players on a different scoreboard team count as enemies. */
 	public boolean otherTeamsAreEnemies = true;
 	public Trust trust = Trust.NAME_TEAM_INSIGNIA;
@@ -66,6 +68,12 @@ public final class WorldMemory {
 			byInsignia = insignias.get(insignia);
 			if (byInsignia == null && insignia.equals(mine)) {
 				byInsignia = Relation.FRIEND;
+			}
+			// A friendly insignia that has been abused isn't trusted blindly any more.
+			Mind.Trust t = mind == null ? null : mind.trust.get(insignia);
+			if (byInsignia == Relation.FRIEND && t != null) {
+				String level = t.level(System.currentTimeMillis());
+				byInsignia = level.equals("trusted") ? Relation.FRIEND : level.equals("careful") ? null : Relation.ENEMY;
 			}
 		}
 		Relation[] order = switch (trust) {

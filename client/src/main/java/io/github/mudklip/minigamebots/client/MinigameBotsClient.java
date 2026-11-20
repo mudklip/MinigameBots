@@ -287,6 +287,14 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		});
 
 		events.addListener(recorder::onEvent);
+		events.addListener(e -> {
+			// Memory: who knocked it out, whom it knocked out.
+			if ("death".equals(e.type())) {
+				memory.onMyDeath();
+			} else if ("kill".equals(e.type()) && e.data().get("name") instanceof String n) {
+				memory.onIKnockedOut(n);
+			}
+		});
 		events.addListener(brain::onEvent);
 		events.addListener(exams::onEvent);
 		events.addListener(io.github.mudklip.minigamebots.client.control.Autonomy::onEvent);

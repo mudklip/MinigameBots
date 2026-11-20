@@ -91,6 +91,9 @@ public final class MemoryManager {
 
 	/** Called every client tick. */
 	public void tick(Minecraft client) {
+		if (client.player != null && client.player.tickCount % 20 == 0) {
+			notePeople(client);
+		}
 		tick++;
 		ProfileManifest profile = MinigameBotsClient.instance().profiles().active();
 		String world = worldKey(client);
@@ -263,27 +266,183 @@ public final class MemoryManager {
 		dirty = true;
 	}
 
-	/** The AI (or the person it protects) was hit by this entity: remember them as an enemy. */
+	/** Recent hits on the AI per attacker (ms), to tell a joke punch from a real attack. */
+	private final Map<String, java.util.ArrayDeque<Long>> recentHits = new java.util.HashMap<>();
+	private @Nullable String lastRealAttacker;
+	private long lastRealAttackAt;
+
+	/**
+	 * The AI (or the person it protects) was hit by this entity. A real attack (a weapon in hand,
+	 * several hits in a row, or an enemy) makes them an enemy and is remembered with a bad feeling;
+	 * a lone punch is only counted as a joke. A real attack under a friendly insignia, or by a
+	 * friend, is a betrayal: that insignia loses trust.
+	 */
 	public void onAttackedBy(@Nullable Entity attacker) {
 		WorldMemory m = memory;
-		if (m == null || attacker == null || !m.autoMarkAttackers || !(attacker instanceof LivingEntity living)
-				|| attacker instanceof Enemy) {
+		if (m == null || attacker == null || !(attacker instanceof LivingEntity living) || attacker instanceof Enemy) {
 			return;
 		}
+		long now = System.currentTimeMillis();
 		Insignia.Info ins = Insignia.of(living);
-		if (ins.present() && !ins.id().equals(myInsignia) && m.insignias.get(ins.id()) != Relation.FRIEND) {
-			if (m.insignias.put(ins.id(), Relation.ENEMY) != Relation.ENEMY) {
-				m.insigniaLooks.put(ins.id(), ins.description());
-				events.emit("insignia_marked_enemy", Map.of("insignia", ins.id()));
+		String name = attacker instanceof Player p ? p.getGameProfile().name() : null;
+		String key = name != null ? name : attacker.getStringUUID();
+		var hits = recentHits.computeIfAbsent(key, k -> new java.util.ArrayDeque<>());
+		hits.addLast(now);
+		while (!hits.isEmpty() && now - hits.peekFirst() > 10_000) {
+			hits.removeFirst();
+		}
+		String held = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(living.getMainHandItem().getItem()).getPath();
+		boolean armed = held.endsWith("_sword") || held.endsWith("_axe") || held.equals("trident") || held.equals("mace")
+				|| held.equals("bow") || held.equals("crossbow");
+		Relation known = name == null ? null : m.players.get(name);
+		Mind.Person who = name == null ? null : m.mind.people.computeIfAbsent(name, k -> new Mind.Person());
+		boolean grudge = who != null && (who.betrayals > 0 || who.like() < -0.3);
+		boolean real = armed || hits.size() >= 2 || known == Relation.ENEMY || grudge;
+		if (!real) {
+			if (who != null) {
+				who.jokeHits++;
 			}
 			dirty = true;
+			return; // A joke punch: noted, not held against them.
 		}
-		if (attacker instanceof Player p) {
-			String name = p.getGameProfile().name();
-			if (m.players.get(name) != Relation.FRIEND && m.players.put(name, Relation.ENEMY) != Relation.ENEMY) {
-				dirty = true;
+		boolean friendInsignia = ins.present() && (m.insignias.get(ins.id()) == Relation.FRIEND || ins.id().equals(myInsignia));
+		boolean betrayal = known == Relation.FRIEND || friendInsignia;
+		if (who != null) {
+			who.realAttacks++;
+			who.weapons.merge(held, 1, Integer::sum);
+			if (betrayal) {
+				who.betrayals++;
 			}
 		}
+		if (friendInsignia) {
+			Mind.Trust t = m.mind.trust.computeIfAbsent(ins.id(), k -> new Mind.Trust());
+			t.trust = t.now(now) - (t.betrayers.add(key) ? 0.35 : 0.2); // Several different betrayers: worse.
+			t.betrayals++;
+			t.lastIncident = now;
+			m.insigniaLooks.putIfAbsent(ins.id(), ins.description());
+		}
+		remember(betrayal ? "betrayed_me" : "attacked_me", name != null ? name : attacker.getType().toShortString(), ins.present() ? ins.id() : "",
+				held, betrayal ? -0.9 : -0.5, betrayal ? 0.9 : 0.5);
+		lastRealAttacker = name;
+		lastRealAttackAt = now;
+		if (m.autoMarkAttackers) {
+			if (ins.present() && !ins.id().equals(myInsignia) && m.insignias.get(ins.id()) != Relation.FRIEND) {
+				if (m.insignias.put(ins.id(), Relation.ENEMY) != Relation.ENEMY) {
+					m.insigniaLooks.put(ins.id(), ins.description());
+					events.emit("insignia_marked_enemy", Map.of("insignia", ins.id()));
+				}
+			}
+			if (name != null && (known != Relation.FRIEND || betrayal && who.betrayals >= 2)
+					&& m.players.put(name, Relation.ENEMY) != Relation.ENEMY) {
+				events.emit("player_marked_enemy", Map.of("player", name));
+			}
+		}
+		dirty = true;
+	}
+
+	/** The AI was knocked out: blame the last real attacker (within 10 s). */
+	public void onMyDeath() {
+		WorldMemory m = memory;
+		if (m == null || lastRealAttacker == null || System.currentTimeMillis() - lastRealAttackAt > 10_000) {
+			return;
+		}
+		m.mind.people.computeIfAbsent(lastRealAttacker, k -> new Mind.Person()).knockedMeOut++;
+		remember("knocked_me_out", lastRealAttacker, "", "", -1.0, 1.0);
+		dirty = true;
+	}
+
+	/** The AI knocked someone out. */
+	public void onIKnockedOut(String name) {
+		WorldMemory m = memory;
+		if (m == null || name == null) {
+			return;
+		}
+		m.mind.people.computeIfAbsent(name, k -> new Mind.Person()).iKnockedOut++;
+		remember("i_knocked_out", name, "", "", 0.7, 0.6);
+		dirty = true;
+	}
+
+	private void remember(String what, String who, String insignia, String weapon, double feeling, double strength) {
+		WorldMemory m = memory;
+		var mc = net.minecraft.client.Minecraft.getInstance();
+		if (m == null || mc.player == null || mc.level == null) {
+			return;
+		}
+		Mind.Episode e = new Mind.Episode();
+		e.time = System.currentTimeMillis();
+		e.what = what;
+		e.who = who;
+		e.insignia = insignia;
+		e.weapon = weapon;
+		e.feeling = feeling;
+		e.strength = strength;
+		e.x = mc.player.blockPosition().getX();
+		e.y = mc.player.blockPosition().getY();
+		e.z = mc.player.blockPosition().getZ();
+		e.dimension = mc.level.dimension().identifier().toString();
+		var near = nearest(e.dimension, e.x, e.y, e.z, 1);
+		if (!near.isEmpty() && near.get(0).distanceSq(e.x, e.y, e.z) < 48 * 48) {
+			e.place = near.get(0).name.isEmpty() ? near.get(0).type : near.get(0).name;
+		}
+		m.mind.episodes.add(e);
+		m.mind.forget(e.time);
+	}
+
+	/** Every second: who is around (profiles: seen, where, what they carry). */
+	private void notePeople(net.minecraft.client.Minecraft client) {
+		WorldMemory m = memory;
+		if (m == null || client.level == null || client.player == null) {
+			return;
+		}
+		long now = System.currentTimeMillis();
+		for (Player p : client.level.players()) {
+			if (p == client.player || p.isSpectator() || p.distanceTo(client.player) > 48 || !client.player.hasLineOfSight(p)) {
+				continue;
+			}
+			Mind.Person who = m.mind.people.computeIfAbsent(p.getGameProfile().name(), k -> new Mind.Person());
+			if (now - who.lastSeen > 60_000) {
+				who.seen++; // Counted once per meeting.
+			}
+			who.lastSeen = now;
+			var near = nearest(client.level.dimension().identifier().toString(), p.getX(), p.getY(), p.getZ(), 1);
+			who.lastPlace = near.isEmpty() ? "" : near.get(0).name.isEmpty() ? near.get(0).type : near.get(0).name;
+			dirty = true;
+		}
+	}
+
+	/** What it recalls about the players in view, for the brain (cheap lookups). */
+	public com.google.gson.JsonArray recall(net.minecraft.client.Minecraft client) {
+		com.google.gson.JsonArray out = new com.google.gson.JsonArray();
+		WorldMemory m = memory;
+		if (m == null || client.level == null || client.player == null) {
+			return out;
+		}
+		long now = System.currentTimeMillis();
+		for (Player p : client.level.players()) {
+			if (p == client.player || p.distanceTo(client.player) > 48) {
+				continue;
+			}
+			Mind.Person who = m.mind.people.get(p.getGameProfile().name());
+			if (who == null) {
+				continue;
+			}
+			var o = new com.google.gson.JsonObject();
+			o.addProperty("id", p.getId());
+			o.addProperty("name", p.getGameProfile().name());
+			o.addProperty("danger", Math.round(who.danger() * 100) / 100.0);
+			o.addProperty("like", Math.round(who.like() * 100) / 100.0);
+			o.addProperty("betrayals", who.betrayals);
+			o.addProperty("knockedMeOut", who.knockedMeOut);
+			o.addProperty("iKnockedOut", who.iKnockedOut);
+			o.addProperty("realAttacks", who.realAttacks);
+			o.addProperty("weapon", who.usualWeapon());
+			Insignia.Info ins = Insignia.of(p);
+			if (ins.present() && m.mind.trust.containsKey(ins.id())) {
+				o.addProperty("insigniaTrust", Math.round(m.mind.trust.get(ins.id()).now(now) * 100) / 100.0);
+			}
+			out.add(o);
+		}
+		return out;
 	}
 
 	/** Remembers what an insignia looks like (for the Memory screen) when it's seen. */

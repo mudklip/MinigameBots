@@ -75,7 +75,10 @@
   ambush, pick winnable fights); rules first, later learned in sped-up whole-session games
   (instant modes such as "Manhunt vs bots" and free-for-all survival with bot players). The mind
   may suggest plans.
-- **Insignia trust:** trust per shield/banner insignia that drops on real attacks by its wearers
+- **Memory** (done in 1.14.0: remembered moments with feelings and forgetting, person profiles,
+  recall by cue into the brain, joke vs real attacks, betrayal and insignia trust, Memory screen).
+  Next for memory: places with feelings, sleep consolidation.
+- **Insignia trust** (done in 1.14.0): trust per shield/banner insignia that drops on real attacks by its wearers
   (more for several different betrayers), suspicious wearers with a bad history, trusted ->
   careful -> enemy, slow recovery, shown in the Memory screen with the reason and a reset.
 - Auto curriculum, per-skill rating graphs, thought overlay, replay with thoughts, global

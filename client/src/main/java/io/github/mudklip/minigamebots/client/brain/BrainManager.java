@@ -483,6 +483,8 @@ public final class BrainManager {
 		}
 		m.getAsJsonObject("obs").add("look", look());
 		m.getAsJsonObject("obs").add("healthMemory", io.github.mudklip.minigamebots.client.observe.Observer.healthMemory.toJson());
+		// Recall by cue: what it remembers about the players in view.
+		m.getAsJsonObject("obs").add("people", MinigameBotsClient.instance().memory().recall(Minecraft.getInstance()));
 		JsonObject puppet = SelfPlayLink.describe();
 		if (puppet != null) {
 			m.getAsJsonObject("obs").add("puppet", puppet);

@@ -48,6 +48,30 @@ class HitJudgeTest(unittest.TestCase):
         self.assertTrue(j.real(7))
 
 
+class MemoryTest(unittest.TestCase):
+    def test_a_grudge_makes_one_punch_real(self):
+        j = drives.HitJudge()
+        o1 = obs(1, [player(hit=10)])
+        o2 = obs(2, [player(hit=0)])
+        for o in (o1, o2):
+            o["people"] = [{"id": 7, "betrayals": 1, "like": -0.5}]
+        j.update(1, o1, [])
+        j.update(2, o2, [{"type": "damage_taken", "data": {"amount": 1}}])
+        self.assertTrue(j.real(7))
+
+    def test_remembered_danger_raises_fear_and_hunters_avoid_it(self):
+        d = drives.Drives("neutral")
+        t = player(hit=0, held="minecraft:iron_sword")
+        o = obs(0, [t], health=10)
+        calm = d.needs(o, t, True)["fear"]
+        o["people"] = [{"id": 7, "danger": 1.0}]
+        self.assertGreater(d.needs(o, t, True)["fear"], calm)
+        h = drives.Drives("hunter")
+        o = obs(0, [player(i=1, dz=5), player(i=2, dz=5)])
+        o["people"] = [{"id": 1, "danger": 1.0}, {"id": 2, "iKnockedOut": 3}]
+        self.assertEqual(h.prey(o)["id"], 2)
+
+
 class ModesTest(unittest.TestCase):
     def test_neutral_ignores_a_joke_but_fights_back_for_real(self):
         with tempfile.TemporaryDirectory() as tmp:

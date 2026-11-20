@@ -438,6 +438,12 @@ Baritone is NOT a fighter: it's a pathfinding bot (it walks, digs and mines by i
 - Or a teacher demo with the [Fighter] teacher, against a dummy
 
 === memory | Memory, allies and zones
+# Remembering people (like a person would)
+- It remembers what happened with each player: real attacks, betrayals, who knocked it out and whom it beat, where, with what. Trivial things fade after days; strong ones last weeks.
+- Seeing someone brings their memory up at once: someone who betrayed it gets no benefit of the doubt, someone dangerous makes it more careful, a hunter prefers players it has beaten before.
+- A lone punch is a joke: counted, not held against them. A weapon, several hits or a known enemy make it real.
+- Betrayal under a friendly insignia (banner, shield) lowers that insignia's trust, more when different players do it: trusted -> careful (no free pass) -> distrusted (enemy). Trust recovers slowly. Allies & enemies shows why; [↺] resets it.
+
 # Places
 - [F10] > [Memory...] shows a map and remembered places (base, chests, mines, danger)
 - The AI marks places itself, or use the [Mark base] key

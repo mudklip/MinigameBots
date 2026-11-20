@@ -93,6 +93,14 @@ class HitJudge:
         if any(h[3] for h in hits):
             score += 1
             why.append("crit")
+        mem = {p.get("id"): p for p in obs.get("people") or []}.get(e.get("id"))
+        if mem is not None:
+            # Memory: no benefit of the doubt for someone with a grudge; a bit more for someone liked.
+            if mem.get("betrayals", 0) > 0 or float(mem.get("like", 0)) < -0.3:
+                score += 3
+                why.append("remembered")
+            elif float(mem.get("like", 0)) > 0.3:
+                score -= 1
         rel = e.get("relation", 0)
         if rel < 0 or e.get("enemyInsignia"):
             score += 3
@@ -133,6 +141,13 @@ class Drives:
             return float(m.get("est", e.get("health", 20))), float(m.get("sure", 0.5))
         return float(e.get("health", 20)), 1.0
 
+    @staticmethod
+    def recall(obs: dict, e: dict | None) -> dict:
+        """What it remembers about this entity (empty if nothing)."""
+        if not e:
+            return {}
+        return next((p for p in obs.get("people") or [] if p.get("id") == e.get("id")), {})
+
     def prey(self, obs: dict):
         """A hunter's best target: a visible non-friend player it can probably beat."""
         memory = {m.get("id"): m for m in obs.get("healthMemory") or []}
@@ -146,6 +161,8 @@ class Drives:
             odds = float(e.get("fightOdds", 0.0))
             # Weak (or probably weak) targets close by first; unsure counts as a bit healthier.
             score = odds * 2 - d * 0.05 - (hp + (1 - sure) * 4) * 0.1
+            mem = self.recall(obs, e)
+            score += 0.3 * min(3, mem.get("iKnockedOut", 0)) - 1.0 * float(mem.get("danger", 0))
             if score > best_score:
                 best, best_score = e, score
         return best
@@ -173,6 +190,11 @@ class Drives:
             if self.mode == "peaceful" and threat.get("player"):
                 anger = 0.0
                 fear += 0.8 if real_threat else 0.0
+        mem = self.recall(obs, threat)
+        if mem:
+            fear += 0.5 * float(mem.get("danger", 0)) * (1.0 if health < 14 else 0.5)
+            if float(mem.get("like", 0)) < -0.3 and real_threat:
+                anger += 0.3
         hunger = max(0.0, (16 - food) / 8)
         duty = c["duty"]
         if self.mode == "hunter" and self.geared(obs) and self.prey(obs) is not None:

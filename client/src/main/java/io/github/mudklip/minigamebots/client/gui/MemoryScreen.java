@@ -268,6 +268,14 @@ public final class MemoryScreen extends Screen {
 				mm().changed();
 				rebuildWidgets();
 			}).pos(width - 120, yy).width(70).build());
+			if (e.insignia() && m.mind != null && m.mind.trust.containsKey(e.key())) {
+				addRenderableWidget(Button.builder(Component.literal("↺"), b -> {
+					m.mind.trust.remove(e.key());
+					mm().changed();
+					rebuildWidgets();
+				}).pos(width - 142, yy).width(20).tooltip(Tooltip.create(Component.literal("Trust this insignia fully again "
+						+ "(forget the betrayals)"))).build());
+			}
 			addRenderableWidget(Button.builder(Component.literal("x"), b -> {
 				(e.insignia() ? m.insignias : m.players).remove(e.key());
 				mm().changed();
@@ -290,8 +298,56 @@ public final class MemoryScreen extends Screen {
 		for (int i = 0; i < Math.min(rows, list.size()); i++) {
 			Entry e = list.get(i);
 			String label = e.insignia() ? "Insignia: " + m.insigniaLooks.getOrDefault(e.key(), e.key()) : "Player: " + e.key();
-			g.text(font, font.plainSubstrByWidth(label, width - 140), 10, ry + i * 22 + 6, e.relation().color, false);
+			String note = memoryNote(m, e);
+			int room = width - 160;
+			g.text(font, font.plainSubstrByWidth(label, room), 10, ry + i * 22 + 2, e.relation().color, false);
+			if (!note.isEmpty()) {
+				g.text(font, Component.literal("§7" + font.plainSubstrByWidth(note, room)), 10, ry + i * 22 + 12, 0xFF909090, false);
+			}
 		}
+	}
+
+	/** What it remembers: "danger 70% · betrayed it 2x · knocked it out 1x · usually axe" or an insignia's trust. */
+	private static String memoryNote(WorldMemory m, Entry e) {
+		if (m.mind == null) {
+			return "";
+		}
+		if (e.insignia()) {
+			var t = m.mind.trust.get(e.key());
+			if (t == null) {
+				return "";
+			}
+			long now = System.currentTimeMillis();
+			return t.level(now) + " (" + Math.round(t.now(now) * 100) + "%): " + t.betrayals + " betrayal(s) by " + t.betrayers.size()
+					+ " player(s)";
+		}
+		var p = m.mind.people.get(e.key());
+		if (p == null) {
+			return "";
+		}
+		java.util.List<String> parts = new java.util.ArrayList<>();
+		if (p.danger() > 0.05) {
+			parts.add("danger " + Math.round(p.danger() * 100) + "%");
+		}
+		if (p.betrayals > 0) {
+			parts.add("betrayed it " + p.betrayals + "x");
+		}
+		if (p.knockedMeOut > 0) {
+			parts.add("knocked it out " + p.knockedMeOut + "x");
+		}
+		if (p.iKnockedOut > 0) {
+			parts.add("it won " + p.iKnockedOut + "x");
+		}
+		if (p.jokeHits > 0) {
+			parts.add(p.jokeHits + " joke hit(s)");
+		}
+		if (!p.usualWeapon().isEmpty()) {
+			parts.add("usually " + p.usualWeapon().replace('_', ' '));
+		}
+		if (!p.lastPlace.isEmpty()) {
+			parts.add("last seen near " + p.lastPlace);
+		}
+		return String.join(" · ", parts);
 	}
 
 	@Override
