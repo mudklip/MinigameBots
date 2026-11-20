@@ -211,7 +211,8 @@ public final class SleepMode {
 			}
 		}, () -> !mgb.training().busy()));
 		List<RecordingMeta> today = since(sinceIso);
-		List<RecordingMeta> builds = today.stream().filter(m -> "teacher".equals(m.source) && m.name.startsWith("Build: ")).toList();
+		List<RecordingMeta> builds = today.stream().filter(m -> "teacher".equals(m.source)
+				&& (m.name.startsWith("Build: ") || m.name.toLowerCase(java.util.Locale.ROOT).contains("baritone: build"))).toList();
 		if (!builds.isEmpty()) {
 			steps.add(new Step("Going over its own builds (" + builds.size() + ")", () -> train(p, builds, "building"),
 					() -> !mgb.training().busy()));

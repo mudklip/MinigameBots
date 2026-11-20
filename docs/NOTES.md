@@ -215,3 +215,25 @@ day), saved in <skill>/fast_weights.json (200 most recent opponents). LearnedPol
 `adapting_to` and `adapted`. Human floor: `HumanBench` (Progress.human: "duel" win rate over 10
 rounds of the running match, "aim" best 60 s flick score), only while the human plays; Exams
 screen shows AI vs you.
+
+## 1.28.0: facing, filling, lessons, dreaming, sleep when minimised, Baritone building demos
+- Build: `placement_ok` encodes vanilla getStateForPlacement facing rules (toward: dispenser,
+  dropper, piston, barrel; away: observer; horizontal: door, stairs; horizontal opposite: chest,
+  furnace family; trapdoor clicked face / opposite horizontal; hopper opposite of clicked face).
+  Planning requires the look to clearly pick that direction (margin 1.4) and re-checks with the
+  actual look before clicking; inner standing ring (1 out) is a fallback. Thin blocks (plates,
+  torches...) are looked over and never used as supports. Fill steps (design "items"): find a spot
+  with a clear view, right-click, move the cursor to its own stack (learning px/degree), shift-click,
+  close with the inventory key. Observer `gui.slotPos` = every slot centre + mine flag (accessor
+  mixin on AbstractContainerScreen leftPos/topPos). Sandbox/kit fill any Container.
+- Lessons: Mind.Lesson (careful_with / can_beat / avoid_place / idea); facts from Person/Place
+  counters; brain `lessons` message (mind/lessons.py phrases; templates without the mind); trust
+  0.3 + 0.2*confirm - 0.3*contradict since made; trusted (>= 0.6) adjust recalled danger/place
+  feeling. LessonsScreen from the Memory screen.
+- Dreaming: dream.py tiny MLP (situation + action -> next-second dealt-taken) on own recordings;
+  skip if held-out correlation < 0.3; hard moments get the best alternative if clearly better ->
+  "dream" recording (weight 0.3) included in the sleep replay.
+- Sleep when minimised: MgbConfig.sleepWhenMinimised (off); Window.isIconified for 5 s starts,
+  restore wakes. Never time-based.
+- Baritone BUILD teacher: kept invention as a Proxy ISchematic (cells outside the design are
+  "don't care"), kit requested, demos named "Baritone: build" feed the building skill in sleep.

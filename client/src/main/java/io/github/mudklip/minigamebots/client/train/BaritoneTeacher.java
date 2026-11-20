@@ -24,7 +24,8 @@ public final class BaritoneTeacher {
 	public enum Task {
 		TRAVEL("Baritone: travel", "Walks, jumps, bridges and digs its way to far-away places"),
 		MINE("Baritone: mine ores", "Finds and mines coal, iron, copper, gold and diamond ore"),
-		HOME("Baritone: go home", "Paths back to the marked base");
+		HOME("Baritone: go home", "Paths back to the marked base"),
+		BUILD("Baritone: build", "Builds one of the AI's own inventions efficiently and safely, so its building skill can learn how");
 
 		public final String label;
 		public final String help;
@@ -98,6 +99,12 @@ public final class BaritoneTeacher {
 				case MINE -> call(call(b, "getMineProcess", new Class<?>[0]), "mineByName", new Class<?>[] {int.class, String[].class},
 						64, new String[] {"coal_ore", "iron_ore", "copper_ore", "gold_ore", "diamond_ore", "deepslate_iron_ore",
 								"deepslate_diamond_ore", "deepslate_gold_ore", "deepslate_coal_ore", "deepslate_copper_ore"});
+				case BUILD -> {
+					String err = build(b, client);
+					if (err != null) {
+						return err;
+					}
+				}
 				case HOME -> {
 					var base = MinigameBotsClient.instance().memory()
 							.nearest(p.level().dimension().identifier().toString(), p.getX(), p.getY(), p.getZ(), 64).stream()
@@ -116,6 +123,96 @@ public final class BaritoneTeacher {
 		haveRotation = false;
 		lastSlot = -1;
 		idleTicks = 0;
+		return null;
+	}
+
+	/**
+	 * Hands one of the AI's kept inventions to Baritone's builder, as a schematic that only covers
+	 * the design's own blocks (everything else is "don't care", so the ground around isn't dug up).
+	 * Baritone is only ever a teacher here: the AI learns from watching it build.
+	 */
+	private static @Nullable String build(Object b, Minecraft client) throws ReflectiveOperationException {
+		var hall = io.github.mudklip.minigamebots.client.invent.InventSession.hall();
+		if (hall == null || !hall.has("hall")) {
+			io.github.mudklip.minigamebots.client.invent.InventSession.refresh();
+			return "No inventions yet to build: invent some first (main menu > Inventions)";
+		}
+		java.util.List<com.google.gson.JsonObject> designs = new java.util.ArrayList<>();
+		for (var kind : hall.getAsJsonObject("hall").entrySet()) {
+			for (var q : kind.getValue().getAsJsonObject().entrySet()) {
+				q.getValue().getAsJsonArray().forEach(d -> designs.add(d.getAsJsonObject()));
+			}
+		}
+		if (designs.isEmpty()) {
+			return "No inventions yet to build: invent some first (main menu > Inventions)";
+		}
+		var d = designs.get(client.player.getRandom().nextInt(designs.size()));
+		var lookup = client.level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.BLOCK);
+		var pal = d.getAsJsonArray("palette");
+		java.util.List<net.minecraft.world.level.block.state.BlockState> states = new java.util.ArrayList<>();
+		for (var el : pal) {
+			try {
+				states.add(net.minecraft.commands.arguments.blocks.BlockStateParser.parseForBlock(lookup, el.getAsString(), false).blockState());
+			} catch (Exception e) {
+				states.add(net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
+			}
+		}
+		int minX = Integer.MAX_VALUE;
+		int minY = Integer.MAX_VALUE;
+		int minZ = Integer.MAX_VALUE;
+		int maxX = Integer.MIN_VALUE;
+		int maxY = Integer.MIN_VALUE;
+		int maxZ = Integer.MIN_VALUE;
+		for (var el : d.getAsJsonArray("blocks")) {
+			var a = el.getAsJsonArray();
+			minX = Math.min(minX, a.get(0).getAsInt());
+			minY = Math.min(minY, a.get(1).getAsInt());
+			minZ = Math.min(minZ, a.get(2).getAsInt());
+			maxX = Math.max(maxX, a.get(0).getAsInt());
+			maxY = Math.max(maxY, a.get(1).getAsInt());
+			maxZ = Math.max(maxZ, a.get(2).getAsInt());
+		}
+		java.util.Map<Long, net.minecraft.world.level.block.state.BlockState> cells = new java.util.HashMap<>();
+		for (var el : d.getAsJsonArray("blocks")) {
+			var a = el.getAsJsonArray();
+			cells.put(net.minecraft.core.BlockPos.asLong(a.get(0).getAsInt() - minX, a.get(1).getAsInt() - minY, a.get(2).getAsInt() - minZ),
+					states.get(a.get(3).getAsInt()));
+		}
+		int w = maxX - minX + 1;
+		int h = maxY - minY + 1;
+		int l = maxZ - minZ + 1;
+		Class<?> iface = Class.forName("baritone.api.schematic.ISchematic");
+		Object schematic = java.lang.reflect.Proxy.newProxyInstance(iface.getClassLoader(), new Class<?>[] {iface}, (proxy, m, args) -> {
+			switch (m.getName()) {
+				case "widthX":
+					return w;
+				case "heightY":
+					return h;
+				case "lengthZ":
+					return l;
+				case "inSchematic":
+					return cells.containsKey(net.minecraft.core.BlockPos.asLong((int) args[0], (int) args[1], (int) args[2]));
+				case "desiredState":
+					var st = cells.get(net.minecraft.core.BlockPos.asLong((int) args[0], (int) args[1], (int) args[2]));
+					return st != null ? st : args[3];
+				default:
+					if (m.isDefault()) {
+						return java.lang.reflect.InvocationHandler.invokeDefault(proxy, m, args);
+					}
+					return m.getName().equals("hashCode") ? System.identityHashCode(proxy) : m.getName().equals("equals") ? proxy == args[0] : null;
+			}
+		});
+		// A few blocks ahead, at the player's feet level.
+		var dir = client.player.getDirection();
+		var anchor = client.player.blockPosition().relative(dir, 6);
+		var origin = new net.minecraft.core.Vec3i(anchor.getX() + minX, anchor.getY() + minY, anchor.getZ() + minZ);
+		if (io.github.mudklip.minigamebots.client.invent.InventSession.available()) {
+			net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(
+					new io.github.mudklip.minigamebots.common.net.TgRequestPayload("design_kit", d.toString()));
+		}
+		Object builder = call(b, "getBuilderProcess", new Class<?>[0]);
+		call(builder, "build", new Class<?>[] {String.class, iface, net.minecraft.core.Vec3i.class}, d.get("name").getAsString(),
+				schematic, origin);
 		return null;
 	}
 
@@ -146,6 +243,9 @@ public final class BaritoneTeacher {
 		try {
 			Object pathing = call(baritone(), "getPathingBehavior", new Class<?>[0]);
 			boolean on = Boolean.TRUE.equals(call(pathing, "isPathing", new Class<?>[0]));
+			if (task == Task.BUILD) {
+				on = on || Boolean.TRUE.equals(call(call(baritone(), "getBuilderProcess", new Class<?>[0]), "isActive", new Class<?>[0]));
+			}
 			idleTicks = on ? 0 : idleTicks + 1;
 		} catch (ReflectiveOperationException | RuntimeException e) {
 			return false;
