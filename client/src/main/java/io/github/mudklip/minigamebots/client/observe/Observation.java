@@ -44,7 +44,9 @@ public record Observation(
 			float xpProgress, int air, int maxAir, boolean onGround, boolean inWater, boolean inLava,
 			boolean sneaking, boolean sprinting, boolean usingItem, float yaw, float pitch, double x, double y,
 			double z, double vx, double vy, double vz, String dimension, List<String> effects, boolean dead,
-			float attackReady, boolean critReady, float fallDamage, long timeOfDay, boolean dark) {
+			float attackReady, boolean critReady, float fallDamage, long timeOfDay, boolean dark,
+			/** The block under its feet (id), and the marked zone it's in ("" if none). */
+			String standingOn, String zone) {
 	}
 
 	/** An item stack. {@code slot} follows the player inventory (0-8 hotbar, 9-35 main, then armor, offhand). */

@@ -91,6 +91,31 @@ public final class RulesScreen extends Screen {
 				rebuildWidgets();
 			}).pos(x0, y).width(20).tooltip(Tooltip.create(Component.literal(r.off ? "Off: click to switch on" : "On: click to switch off"))).build());
 			int bx = x0 + w - 104;
+			// Only if it stays safe for a while (off, 3, 5, 10 s), and only beyond its best this round.
+			int sx = bx - (targetField(r.event) != null ? 144 : 48);
+			String safeLabel = r.safe == null ? "§8⏳" : "§e⏳" + (int) r.safe.seconds;
+			addRenderableWidget(Button.builder(Component.literal(safeLabel), b -> {
+				double next = r.safe == null ? 3 : r.safe.seconds < 5 ? 5 : r.safe.seconds < 10 ? 10 : 0;
+				if (next == 0) {
+					r.safe = null;
+				} else {
+					if (r.safe == null) {
+						r.safe = new Objective.Safe();
+					}
+					r.safe.seconds = next;
+				}
+				parent.changed();
+				rebuildWidgets();
+			}).pos(sx, y).width(24).tooltip(Tooltip.create(Component.literal(r.safe == null
+					? "Only if safe: off. Click: the points are held back and paid only if it isn't hurt or killed in the next 3 s (click again for 5, 10, off)."
+					: "Only if safe for " + (int) r.safe.seconds + " s: points are paid once it stayed unhurt that long."))).build());
+			addRenderableWidget(Button.builder(Component.literal(r.beyond ? "§b★" : "§8★"), b -> {
+				r.beyond = !r.beyond;
+				parent.changed();
+				rebuildWidgets();
+			}).pos(sx + 26, y).width(20).tooltip(Tooltip.create(Component.literal(r.beyond
+					? "Only beyond its best: on. Only new progress this round counts (new depth, new height, further away); others count once a round."
+					: "Only beyond its best: off. Click so repeating the same ground earns nothing."))).build());
 			if (targetField(r.event) != null) {
 				addRenderableWidget(Button.builder(Component.literal("§b⌖ §f" + targetLabel(r)), b -> pickTarget(minecraft, this, r,
 						parent::changed)).pos(bx - 96, y).width(92).tooltip(Tooltip.create(Component.literal("Which "

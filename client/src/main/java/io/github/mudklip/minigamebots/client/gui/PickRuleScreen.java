@@ -71,12 +71,39 @@ public final class PickRuleScreen extends Screen {
 		if (event.y() >= 48 && event.x() < width - 8 && i >= scroll && i < Math.min(rows.size(), scroll + visible())) {
 			String[] r = rows.get(i);
 			Objective.Rule rule = new Objective.Rule();
-			rule.event = r[0];
+			// "event?key=value&key2=value2": a rule with conditions; a value "[block]" or "[item]" is
+			// chosen with the item picker first.
+			String key = r[0];
+			rule.where = new java.util.LinkedHashMap<>();
+			String pick = null;
+			if (key.contains("?")) {
+				for (String kv : key.substring(key.indexOf('?') + 1).split("&")) {
+					String[] p2 = kv.split("=", 2);
+					if (p2.length < 2) {
+						continue;
+					}
+					if (p2[1].startsWith("[")) {
+						pick = p2[0];
+					} else {
+						rule.where.put(p2[0], p2[1].equals("true") ? Boolean.TRUE : p2[1].equals("false") ? Boolean.FALSE : p2[1]);
+					}
+				}
+				key = key.substring(0, key.indexOf('?'));
+			}
+			rule.event = key;
 			rule.note = r[1].toLowerCase(Locale.ROOT);
 			boolean behaviour = r[2].equals("behaviour");
 			rule.per = behaviour ? "units" : "event";
 			rule.value = behaviour ? 0.01 : 1;
-			rule.where = new java.util.LinkedHashMap<>();
+			if (pick != null) {
+				String field = pick;
+				minecraft.gui.setScreen(new ItemPickerScreen(parent, id -> {
+					rule.where.put(field, id);
+					rule.note = rule.note.replace("…", "") + " " + id.replace("minecraft:", "").replace('_', ' ');
+					onPick.accept(rule);
+				}));
+				return true;
+			}
 			onPick.accept(rule);
 			onClose();
 			return true;

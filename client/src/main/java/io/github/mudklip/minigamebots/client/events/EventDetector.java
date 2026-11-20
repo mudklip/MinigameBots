@@ -62,6 +62,54 @@ public final class EventDetector {
 		placements.clear();
 	}
 
+	private long lastAttackedTick = -1000;
+
+	/**
+	 * What hurt it: the cause (explosion, fall, fire, lava, melee, arrow, drown, void, other) from the
+	 * game's damage event, and whether it did it to itself: its own doing (its crystal, its TNT), or
+	 * the world (a fall, lava, fire, the void, drowning) when nobody knocked it there just before.
+	 */
+	private Map<String, Object> damageInfo(float amount) {
+		Map<String, Object> m = new java.util.HashMap<>();
+		m.put("amount", amount);
+		var p = net.minecraft.client.Minecraft.getInstance().player;
+		var src = p == null ? null : p.getLastDamageSource();
+		String cause = "other";
+		boolean self = false;
+		String by = "";
+		if (src != null) {
+			if (src.is(net.minecraft.tags.DamageTypeTags.IS_EXPLOSION)) {
+				cause = "explosion";
+			} else if (src.is(net.minecraft.world.damagesource.DamageTypes.FELL_OUT_OF_WORLD)) {
+				cause = "void";
+			} else if (src.is(net.minecraft.tags.DamageTypeTags.IS_FALL)) {
+				cause = "fall";
+			} else if (src.is(net.minecraft.world.damagesource.DamageTypes.LAVA)) {
+				cause = "lava";
+			} else if (src.is(net.minecraft.tags.DamageTypeTags.IS_FIRE)) {
+				cause = "fire";
+			} else if (src.is(net.minecraft.tags.DamageTypeTags.IS_DROWNING)) {
+				cause = "drown";
+			} else if (src.is(net.minecraft.tags.DamageTypeTags.IS_PROJECTILE)) {
+				cause = "arrow";
+			} else if (src.getDirectEntity() instanceof net.minecraft.world.entity.LivingEntity) {
+				cause = "melee";
+			}
+			var who = src.getEntity();
+			if (who != null && who != p) {
+				lastAttackedTick = tick;
+				by = who instanceof net.minecraft.world.entity.player.Player pl ? pl.getGameProfile().name()
+						: net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(who.getType()).toString();
+			}
+			boolean world = java.util.Set.of("fall", "lava", "fire", "void", "drown", "explosion").contains(cause);
+			self = who == p || (who == null && world && tick - lastAttackedTick > 60);
+		}
+		m.put("cause", cause);
+		m.put("self", self);
+		m.put("by", by);
+		return m;
+	}
+
 	public void emit(String type, Map<String, Object> data) {
 		publish(GameEvent.client(tick, type, data));
 	}
@@ -137,7 +185,7 @@ public final class EventDetector {
 		if (!b.dead() && !a.dead()) {
 			float dh = b.health() - a.health();
 			if (dh < -0.01f) {
-				emit(DAMAGE_TAKEN, Map.of("amount", -dh));
+				emit(DAMAGE_TAKEN, damageInfo(-dh));
 			} else if (dh > 0.01f) {
 				emit(HEALED, Map.of("amount", dh));
 			}

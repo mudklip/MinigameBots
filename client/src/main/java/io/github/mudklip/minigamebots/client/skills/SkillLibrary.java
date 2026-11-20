@@ -55,7 +55,16 @@ public final class SkillLibrary {
 	/** Plain-language name of a rule's event or behaviour. */
 	public String label(String event) {
 		if (event.startsWith("b:")) {
-			return behaviours.getOrDefault(event.substring(2), event.substring(2));
+			String name = event.substring(2);
+			if (behaviours.containsKey(name)) {
+				return behaviours.get(name);
+			}
+			for (var e : behaviours.entrySet()) {
+				if (e.getKey().startsWith(name + "?")) {
+					return e.getValue().replace("…", "");
+				}
+			}
+			return name;
 		}
 		return events.getOrDefault(event, event);
 	}

@@ -179,6 +179,8 @@ class Behaviours:
         self.seen = set()
         self.best_y = None
         self.prev_hits = {}
+        self.combo = 0
+        self.in_void = False
 
     def _target(self, obs: dict):
         best = None
@@ -271,7 +273,21 @@ class Behaviours:
                 put("ate", 1)
             elif t == "screen_opened" and "inventory" in str(data.get("screen", "")).lower():
                 put("inventory_open", 1)
+            elif t == "damage_dealt":
+                self.combo += 1
+                if self.combo >= 3:
+                    put("combo", 1)
+            elif t == "damage_taken":
+                self.combo = 0
+                if data.get("cause") == "void" and not self.in_void:
+                    self.in_void = True
+                    put("fell_into_void", 1)
         for e in obs.get("entities") or []:
+            d2 = math.hypot(float(e.get("dx", 0)), float(e.get("dz", 0)))
+            if (e.get("sameTeam") or e.get("allyInsignia")) and d2 < 4:
+                put("near_teammate", 1)
+            if e.get("protectedTarget") and d2 < 5:
+                put("near_protectee", 1)
             if e.get("sameTeam") or e.get("allyInsignia"):
                 h = int(e.get("hitByMe", 0))
                 if h > self.prev_hits.get(e.get("id"), h):
@@ -304,6 +320,18 @@ class Behaviours:
             self.best_y = y
         if me.get("sneaking") and me.get("onGround"):
             put("sneak_edge", 1)
+        drop = float(pme.get("y", y)) - y
+        if drop > 0.01 and moved < 2:
+            put("going_down", drop)
+        if me.get("onGround"):
+            self.in_void = False
+            edge = _edge_distance(obs)
+            if edge is not None and edge <= 1:
+                put("near_edge", 1)
+            elif edge is None or edge > 2:
+                put("away_from_edge", 1)
+        if me.get("inWater") and not pme.get("inWater") and float(pme.get("vy", 0)) < -0.4:
+            put("landed_in_water", 1)
         max_air = float(me.get("maxAir", 300) or 300)
         air = float(me.get("air", max_air))
         if air < max_air * 0.3:
@@ -322,7 +350,38 @@ class Behaviours:
             put("menu_time", 1)
         put("hotbar_tidy", hotbar_score(obs))
         self.prev = obs
-        return [{"type": "b:" + k, "data": {"units": v}} for k, v in out.items()]
+        res = [{"type": "b:" + k, "data": {"units": v}} for k, v in out.items()]
+        # Behaviours with a choice (matched against the rule's "where"): always on, with the detail.
+        if me.get("onGround") and me.get("standingOn"):
+            res.append({"type": "b:standing_on", "data": {"units": 1.0, "block": me.get("standingOn")}})
+        if me.get("zone"):
+            res.append({"type": "b:in_zone", "data": {"units": 1.0, "zone": me.get("zone")}})
+        if held:
+            res.append({"type": "b:holding", "data": {"units": 1.0, "item": held}})
+        return res
+
+
+def _edge_distance(obs: dict):
+    """Blocks to the nearest drop of 2+ (open air below the floor level next to it), within 3; None if none."""
+    from ..learn.features import decode_blocks
+
+    g = obs.get("blocks")
+    if not g:
+        return None
+    try:
+        grid = decode_blocks(g)
+    except Exception:
+        return None
+    r = grid.shape[0] // 2
+    best = None
+    for dx in range(-3, 4):
+        for dz in range(-3, 4):
+            if dx == 0 and dz == 0:
+                continue
+            if int(grid[r - 1][dz + r][dx + r]) == 1 and int(grid[r - 2][dz + r][dx + r]) == 1:
+                dist = max(abs(dx), abs(dz))
+                best = dist if best is None else min(best, dist)
+    return best
 
 
 def hotbar_score(obs: dict) -> float:

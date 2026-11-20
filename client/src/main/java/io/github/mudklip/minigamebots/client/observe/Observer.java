@@ -137,7 +137,8 @@ public final class Observer {
 				p.getAirSupply(), p.getMaxAirSupply(), p.onGround(), p.isInWater(), p.isInLava(), p.isShiftKeyDown(),
 				p.isSprinting(), p.isUsingItem(), p.getYRot(), p.getXRot(), p.getX(), p.getY(), p.getZ(), v.x, v.y, v.z,
 				level.dimension().identifier().toString(), effects, p.isDeadOrDying(), p.getAttackStrengthScale(0.5f),
-				Calculator.critReady(p), Calculator.fallDamage(p), level.getOverworldClockTime() % 24000L, level.isDarkOutside());
+				Calculator.critReady(p), Calculator.fallDamage(p), level.getOverworldClockTime() % 24000L, level.isDarkOutside(),
+				standingOn(p, level), zoneAt(p, level));
 	}
 
 	private static List<Observation.ItemInfo> inventory(LocalPlayer player) {
@@ -402,5 +403,30 @@ public final class Observer {
 
 	private static @Nullable String string(@Nullable Component component) {
 		return component == null ? null : component.getString();
+	}
+
+	/** The block it stands on (or would land on just below), as an id. */
+	private static String standingOn(net.minecraft.world.entity.player.Player p, net.minecraft.client.multiplayer.ClientLevel level) {
+		var pos = net.minecraft.core.BlockPos.containing(p.getX(), p.getY() - 0.2, p.getZ());
+		var st = level.getBlockState(pos);
+		if (st.isAir()) {
+			st = level.getBlockState(pos.below());
+		}
+		return net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(st.getBlock()).toString();
+	}
+
+	/** The name of the marked zone (Memory screen) it's standing in, or "". */
+	private static String zoneAt(net.minecraft.world.entity.player.Player p, net.minecraft.client.multiplayer.ClientLevel level) {
+		var m = io.github.mudklip.minigamebots.client.MinigameBotsClient.instance().memory().memory();
+		if (m == null) {
+			return "";
+		}
+		String dim = level.dimension().identifier().toString();
+		for (var z : m.zones) {
+			if (z.contains(dim, p.getX(), p.getY(), p.getZ())) {
+				return z.name.isEmpty() ? "zone" : z.name;
+			}
+		}
+		return "";
 	}
 }

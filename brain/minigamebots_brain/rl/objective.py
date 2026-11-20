@@ -16,6 +16,11 @@ A rule:
             20 s), penalties from less important tiers are scaled down (x0.25 per tier).
 - forgive:  for penalties: held back, and cancelled if one of "by" happens within "within"
             seconds; otherwise applied at the moment it happened (the trainer rewrites that step).
+- safe:     {"seconds": N}: a reward is held back and paid only if it isn't hurt or killed in the
+            next N seconds (paid at the moment it was earned; cancelled otherwise).
+- beyond:   true: only progress past its best this round counts (new depth for "going down", new
+            height for "going up", further from the start for "moving"); rules without a measure
+            count only the first time in a round.
 - budget:   for costs: free while the episode total stays under "limit"; above it, the cost
             counts with a weight that grows each episode the budget is broken, and shrinks
             again while it's kept. "value" is then the cost per unit.
@@ -71,9 +76,29 @@ class _Escrow:
 
 
 @dataclass
+@dataclass
+class _Held:
+    tick: int
+    amount: float
+    rule: int
+    pays: int
+
+
+# What "beyond its best" measures, per rule event (bigger = further).
+BEYOND = {
+    "b:going_down": lambda o: -float((o.get("self") or {}).get("y", 0)),
+    "b:going_up": lambda o: float((o.get("self") or {}).get("y", 0)),
+    "b:moving": None,  # Distance from where the round started (set in step).
+    "b:new_area": None,
+}
+HURT = {"damage_taken", "death", "tg_damage_taken"}
+
+
+@dataclass
 class StepResult:
     reward: float = 0.0
-    # (original tick, amount): penalties released from escrow, to add at the step they belong to.
+    # (original tick, amount): penalties released from escrow (and rewards held until safe), to add
+    # at the step they belong to.
     delayed: list = field(default_factory=list)
     parts: dict = field(default_factory=dict)
 
@@ -94,6 +119,10 @@ class RewardEngine:
         self.costs = [0.0 for _ in self.rules]
         self.last_fired = [-10**9 for _ in self.rules]
         self.escrow: list[_Escrow] = []
+        self.held: list[_Held] = []
+        self.best: dict = {}
+        self.start = None
+        self.cancelled: list = []  # (rule, amount) held rewards lost this step (for the popups).
         self.episode_return = 0.0
 
     def _active_tier(self, tick: int) -> int:
@@ -116,6 +145,19 @@ class RewardEngine:
                 self.escrow.remove(e)
                 out.delayed.append((e.tick, e.amount))
                 self._count(e.rule, e.amount, out)
+        # Held rewards: lost if it got hurt, paid once it stayed safe long enough.
+        self.cancelled = []
+        if any(ev.get("type") in HURT for ev in events):
+            self.cancelled = [(h.rule, h.amount) for h in self.held]
+            self.held = []
+        for h in list(self.held):
+            if tick >= h.pays:
+                self.held.remove(h)
+                out.delayed.append((h.tick, h.amount))
+                self._count(h.rule, h.amount, out)
+        me = (obs or {}).get("self") or {}
+        if self.start is None and "x" in me:
+            self.start = (float(me.get("x", 0)), float(me.get("z", 0)))
 
         for ev in events:
             data = ev.get("data") or {}
@@ -131,6 +173,10 @@ class RewardEngine:
                         units = abs(float(data.get(r["per"], 0.0)))
                     except (TypeError, ValueError):
                         units = 0.0
+                if r.get("beyond"):
+                    units = self._beyond(i, r, obs, units)
+                    if units <= 0:
+                        continue
                 amount = float(r["value"]) * units
                 self.last_fired[i] = tick
                 if "budget" in r:
@@ -153,9 +199,40 @@ class RewardEngine:
                     self.escrow.append(_Escrow(tick, amount, i, tick + int(float(forgive.get("within", 20)) * TICKS_PER_SECOND),
                                                list(forgive["by"])))
                     continue
+                safe = r.get("safe")
+                if amount > 0 and safe:
+                    self.totals[i] += amount
+                    secs = float(safe.get("seconds", 5) if isinstance(safe, dict) else 5)
+                    self.held.append(_Held(tick, amount, i, tick + int(secs * TICKS_PER_SECOND)))
+                    continue
                 self.totals[i] += amount
                 self._count(i, amount, out, now=True)
         return out
+
+    def _beyond(self, i: int, r: dict, obs: dict | None, units: float) -> float:
+        """Only the part past its best this round (or the first time, for rules without a measure)."""
+        ev = r.get("event")
+        me = (obs or {}).get("self") or {}
+        if ev in BEYOND and obs is not None and me:
+            if BEYOND[ev] is not None:
+                m = BEYOND[ev](obs)
+            else:
+                sx, sz = self.start or (float(me.get("x", 0)), float(me.get("z", 0)))
+                m = ((float(me.get("x", 0)) - sx) ** 2 + (float(me.get("z", 0)) - sz) ** 2) ** 0.5
+            best = self.best.get(i)
+            if best is None:
+                # The first measure is where it starts: progress is counted from there.
+                self.best[i] = m - (units if r.get("per", "event") != "event" else 0.0)
+                best = self.best[i]
+            if m <= best + 1e-6:
+                return 0.0
+            gain = m - best
+            self.best[i] = m
+            return gain if r.get("per", "event") != "event" else 1.0
+        if self.best.get(i):
+            return 0.0
+        self.best[i] = 1
+        return units
 
     def _budget(self, i: int, r: dict, units: float) -> float:
         limit = float(r["budget"].get("limit", 0))
@@ -174,7 +251,7 @@ class RewardEngine:
     def end_episode(self) -> list:
         """Applies every penalty still held (nothing can forgive it now), adjusts budget weights,
         and starts a new episode. Returns the (tick, amount) penalties released."""
-        released = [(e.tick, e.amount) for e in self.escrow]
+        released = [(e.tick, e.amount) for e in self.escrow] + [(h.tick, h.amount) for h in self.held]
         self.episode_return += sum(a for _, a in released)
         for i, r in enumerate(self.rules):
             if "budget" in r:

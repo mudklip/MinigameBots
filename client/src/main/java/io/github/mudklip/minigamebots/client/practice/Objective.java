@@ -21,6 +21,11 @@ public final class Objective {
 		public double limit = 10;
 	}
 
+	/** Paid only if it isn't hurt or killed in the next {@code seconds}. */
+	public static final class Safe {
+		public double seconds = 5;
+	}
+
 	public static final class Rule {
 		public String event = "kill";
 		public Map<String, Object> where = new LinkedHashMap<>();
@@ -31,6 +36,9 @@ public final class Objective {
 		public int tier = 2;
 		public @Nullable Forgive forgive;
 		public @Nullable Budget budget;
+		public @Nullable Safe safe;
+		/** Only progress past its best this round counts. */
+		public boolean beyond;
 		public String note = "";
 		/** Switched off in a skill (kept so it can be switched back on). */
 		public boolean off;
