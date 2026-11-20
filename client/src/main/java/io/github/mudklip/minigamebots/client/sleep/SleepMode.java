@@ -186,8 +186,13 @@ public final class SleepMode {
 					} catch (RuntimeException e) {
 						since = System.currentTimeMillis() / 1000.0 - 86400;
 					}
-					var r = io.github.mudklip.minigamebots.client.video.VideoLab.run(List.of("dream", "--recordings",
-							mgb.recorder().store().root().toString(), "--since", String.valueOf(since)), m -> { });
+					List<String> dreamArgs = new java.util.ArrayList<>(List.of("dream", "--recordings",
+							mgb.recorder().store().root().toString(), "--since", String.valueOf(since)));
+					var dreamer = mgb.profiles().active();
+					if (dreamer != null) {
+						dreamArgs.addAll(List.of("--profile", mgb.profiles().store().dir(dreamer.id).toString()));
+					}
+					var r = io.github.mudklip.minigamebots.client.video.VideoLab.run(dreamArgs, m -> { });
 					int better = r.has("better") ? r.get("better").getAsInt() : 0;
 					int moments = r.has("moments") ? r.get("moments").getAsInt() : 0;
 					report.add(better > 0 ? "Dreams: went over " + moments + " hard moments, found a better choice for " + better

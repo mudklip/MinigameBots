@@ -300,10 +300,10 @@ S = small, M = medium, (check) = needs an in-game check (batch these).
 - ~~B4 item wasted (budget cost, scaled by scarcity = how many left): projectiles that hit nothing; food by hunger+saturation overflow; golden apples by absorption soaked + regen healed before effects end M~~ done
 - ~~B5 item wasted: healing by % actually used (setting, default 50%, self + allies); splash/lingering by type (healing used / harmful reached enemies / buffs reached self-ally + used where measurable); pearls (closed in + damage, escaped, reached height/gap); wind charges (damage/knockback, escape, real height/distance toward something). Waste only ever costs, never pays. No blocks. M~~ done
 - ~~B6 optional popups (off / points / points+knowledge; side; small stuff), per-second aggregation, held ⏳ -> ✓/✗, knowledge lines (needs A3) S~~ done
-- C1 learn from who beats it: opponent's play from lost/heavy-damage fights -> player-source clips weighted by damage dealt, tagged by mode/kit; "what hurt it" tally -> lessons/strategist M
-- C2 skill card "Learns from" row: [Your play] [Watching others] [Who beats it] with weights (on for PvP); reward entry "Uses what beat it"; "Learned from N defeats" S
-- C3 opponent style traits as network inputs; one combined adaptation layer instead of stacked nudges (fast weights, counters, bluff judgement, mixing) M
-- C4 dreaming via the main network instead of the tiny MLP S
+- ~~C1 learn from who beats it: opponent's play from lost/heavy-damage fights -> player-source clips weighted by damage dealt, tagged by mode/kit; "what hurt it" tally -> lessons/strategist M~~ done
+- ~~C2 skill card "Learns from" row: [Your play] [Watching others] [Who beats it] with weights (on for PvP); reward entry "Uses what beat it"; "Learned from N defeats" S~~ done
+- ~~C3 opponent style traits as network inputs; one combined adaptation layer instead of stacked nudges (fast weights, counters, bluff judgement, mixing) M~~ done
+- ~~C4 dreaming via the main network instead of the tiny MLP S~~ done
 - D1 UI kit: switches, sliders, tabs, list rows, dialogs, empty states, "?" help M
 - D2-D5 old screens rebuilt in batches: main menu -> dashboard; Brain+Profiles; Training+Practice+Exams; rest incl. Settings (custom, internal values hidden) M each (check)
 - E1 reward weights learned from good clips vs marked mistakes (preference learning) M
@@ -335,3 +335,13 @@ relaunch script lives in the session scratchpad (recreate: Xvfb :99, ./gradlew :
   params (PickRuleScreen opens ItemPickerScreen). rl/skills.py new behaviours; rl/waste.py WasteTracker
   -> b:item_wasted {units (scarcity-scaled), item, why, used}; objective.py safe/beyond/min_use;
   feed.py -> "feed" messages (server.send_feed, 0.5 s) -> overlay/Popups (config popup*), /mgb popuptest.
+- Section C notes: defeats.py DefeatWatcher (server, for learned/manager/practice/multiworld with a
+  profile): 30 s buffer; trigger = death or 10+ damage from one player in 10 s (1 clip/player/min);
+  writes a temp "fight-*" recording, players.convert_one(only=name, boost=1+dmg/10, prefix="defeat",
+  extra defeat/kit/game_tag), deletes the temp; <profile>/hurt_by.json {game: {causes, held}}.
+  SkillDef.learnFrom {own, others, defeats} -> TrainingManager drops kinds at 0 and passes
+  --learn-weights -> recording.SOURCE_SCALE. Behaviours.load_beaten -> b:uses_what_beat_it (using, not
+  holding). features.OPP_DIM=10 "opp" from obs["opponent"] (Reading.vector), model.opp_in zero-init
+  (optional prefix: old checkpoints load), filled in learned, practice and recording windows; mirror
+  flips strafe. OpponentModel.combine: per-opponent trust in fast/counter nudges + clip ±2.
+  dream.py --profile: main network memory state (SVD 16) added, used only if it predicts better.

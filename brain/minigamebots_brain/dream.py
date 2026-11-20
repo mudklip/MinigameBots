@@ -12,7 +12,11 @@
    moments it didn't learn from, there is no dreaming at all that night, and dream demos always
    count less than real experience.
 
-CLI: python -m minigamebots_brain dream --recordings DIR [--since ISO] -> {"moments", "better", "skill", ...}
+With --profile, each moment is also described by the main network's own sense of it (its memory
+state after seeing that moment, compressed to 16 numbers): far richer than the hand-picked numbers,
+so the dream model predicts better and dreaming happens more often.
+
+CLI: python -m minigamebots_brain dream --recordings DIR [--since ISO] [--profile DIR] -> {"moments", "better", ...}
 """
 
 import argparse
@@ -140,7 +144,37 @@ class DreamModel:
             self.b2 -= lr * gb2
 
 
-def dream(root: str, since: float = 0.0, out_dir: str | None = None, seed: int = 0) -> dict:
+def embed(observations: list, profile: str, dims: int = 16):
+    """The main network's memory state after each moment (one step from a fresh state), compressed
+    to `dims` numbers. None if there's no trained network."""
+    try:
+        import torch
+
+        from .learn import checkpoint, features
+        from .learn.model import to_tensors
+
+        model, _ = checkpoint.load(profile, "model", "cpu")
+        model.eval()
+    except Exception:
+        return None
+    out = []
+    with torch.no_grad():
+        for i in range(0, len(observations), 256):
+            feats = [features.featurize(o) for o in observations[i:i + 256]]
+            batch = {k: np.stack([f[k] for f in feats])[:, None] for k in feats[0]}
+            n = len(feats)
+            batch["frames"] = np.zeros((n, 1, features.FRAME_SIZE, features.FRAME_SIZE, 3), dtype=np.uint8)
+            batch["has_frame"] = np.zeros((n, 1), dtype=np.float32)
+            _, state = model(to_tensors(batch, "cpu"), None)
+            out.append(state.reshape(n, -1).float().numpy())
+    e = np.concatenate(out)
+    e = e - e.mean(0)
+    _, _, vt = np.linalg.svd(e, full_matrices=False)
+    z = e @ vt[:dims].T
+    return (z / (z.std(0) + 1e-6)).astype(np.float32)
+
+
+def dream(root: str, since: float = 0.0, out_dir: str | None = None, seed: int = 0, profile: str | None = None) -> dict:
     data = samples(root, since)
     if data is None:
         return {"moments": 0, "better": 0, "why": "no fights in today's recordings"}
@@ -152,13 +186,27 @@ def dream(root: str, since: float = 0.0, out_dir: str | None = None, seed: int =
     idx = rng.permutation(n)
     split = int(n * 0.8)
     tr, va = idx[:split], idx[split:]
-    XA = np.concatenate([X, A], axis=1)
-    model = DreamModel(XA.shape[1], seed)
-    model.fit(XA[tr], Y[tr])
-    # Can it predict moments it didn't learn from? If not, its imagination isn't worth trusting.
-    pv = model.predict(XA[va])
     yv = Y[va]
-    corr = float(np.corrcoef(pv, yv)[0, 1]) if np.std(pv) > 1e-6 and np.std(yv) > 1e-6 else 0.0
+
+    def fit(Xs):
+        XA_ = np.concatenate([Xs, A], axis=1)
+        m = DreamModel(XA_.shape[1], seed)
+        m.fit(XA_[tr], Y[tr])
+        # Can it predict moments it didn't learn from? If not, its imagination isn't worth trusting.
+        pv = m.predict(XA_[va])
+        c = float(np.corrcoef(pv, yv)[0, 1]) if np.std(pv) > 1e-6 and np.std(yv) > 1e-6 else 0.0
+        return m, c
+
+    model, corr = fit(X)
+    used_network = False
+    if profile:
+        emb = embed([r.get("obs") or {} for r in refs], profile)
+        if emb is not None:
+            Xn = np.concatenate([X, emb], axis=1)
+            model_n, corr_n = fit(Xn)
+            if corr_n > corr:  # The network's sense of the moment only if it predicts better.
+                X, model, corr, used_network = Xn, model_n, corr_n, True
+    XA = np.concatenate([X, A], axis=1)
     if corr < 0.3:
         return {"moments": 0, "better": 0, "accuracy": round(corr, 2), "why": "its imagination isn't good enough yet"}
     hard = [i for i in range(n) if Y[i] < -0.05]
@@ -175,7 +223,7 @@ def dream(root: str, since: float = 0.0, out_dir: str | None = None, seed: int =
             inp = dict(row.get("input") or {})
             inp.update(ALTERNATIVES[best])
             rows.append({"input": inp, "obs": row.get("obs"), "events": [], "frameAge": -1, "w": WEIGHT, "dream": best})
-    result = {"moments": len(hard), "better": len(rows), "accuracy": round(corr, 2)}
+    result = {"moments": len(hard), "better": len(rows), "accuracy": round(corr, 2), "network": used_network}
     if rows and out_dir is not None:
         from . import players
 
@@ -198,7 +246,8 @@ def main(argv) -> int:
     ap = argparse.ArgumentParser(prog="dream")
     ap.add_argument("--recordings", required=True)
     ap.add_argument("--since", type=float, default=0.0, help="epoch seconds")
+    ap.add_argument("--profile", help="the AI's folder: use its network's sense of each moment")
     a = ap.parse_args(argv)
-    print(json.dumps(dream(a.recordings, a.since, a.recordings)))
+    print(json.dumps(dream(a.recordings, a.since, a.recordings, profile=a.profile)))
     sys.stdout.flush()
     return 0
