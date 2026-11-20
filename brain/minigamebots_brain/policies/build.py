@@ -50,6 +50,7 @@ class BuildPolicy(Policy):
         x0, x1, z0, z1 = self.box[0] - 2, self.box[1] + 2, self.box[2] - 2, self.box[3] + 2
         self.ring = [(x, z) for x in range(x0, x1 + 1) for z in range(z0, z1 + 1) if x in (x0, x1) or z in (z0, z1)]
         self.idle = 0
+        self.clicked = {}  # Placements already clicked: pos -> tick (a second click would stack blocks).
         self.done = set()
         self.failed = set()
         self.missing = set()
@@ -172,6 +173,13 @@ class BuildPolicy(Policy):
             if (s["dig"] and not filled) or (not s["dig"] and filled):
                 self.done.add(key)
                 continue
+            if not s["dig"] and pos in self.clicked:
+                # Clicked already: placed, unless it can clearly see air there after a moment.
+                if self._cat(grid, feet, pos) != AIR or self.tick - self.clicked[pos] < 15:
+                    if self.tick - self.clicked[pos] >= 15:
+                        self.done.add(key)
+                    continue
+                del self.clicked[pos]  # Really didn't take: try again.
             if not s["dig"]:
                 item = self._item(s["block"])
                 if not self._has(obs, item):
@@ -236,9 +244,10 @@ class BuildPolicy(Policy):
         if on:
             a.keys.add("use")
             self.tries[(pos, step["dig"])] = self.tries.get((pos, step["dig"]), 0) + 1
-            if self.tries[(pos, False)] > 4:
+            if self.tries[(pos, False)] > 3:
                 self.failed.add((pos, False))
-            self.wait = 3  # Let the block appear before checking.
+            self.clicked[pos] = self.tick
+            self.wait = 4
         return a
 
     def status(self):
