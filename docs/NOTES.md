@@ -306,11 +306,11 @@ S = small, M = medium, (check) = needs an in-game check (batch these).
 - ~~C4 dreaming via the main network instead of the tiny MLP S~~ done
 - ~~D1 UI kit: switches, sliders, tabs, list rows, dialogs, empty states, "?" help M~~ done
 - ~~D2-D5 old screens rebuilt in batches: main menu -> dashboard; Brain+Profiles; Training+Practice+Exams; rest incl. Settings (custom, internal values hidden) M each (check)~~ done
-- E1 reward weights learned from good clips vs marked mistakes (preference learning) M
-- E2 automatic difficulty by success rate; watchdog acts on its diagnosis M
-- E3 overnight population-based evolution of settings + hand-picked constants, judged by auto exams M
-- E4 mind as middleman (goal, scope, explanation) + playbook notes per minigame; form fallback without the mind M
-- E5 program card UI (timeline, editable, Accept creates skills/rules, follow-up on stalls) M (check)
+- ~~E1 reward weights learned from good clips vs marked mistakes (preference learning) M~~ done
+- ~~E2 automatic difficulty by success rate; watchdog acts on its diagnosis M~~ done
+- ~~E3 overnight population-based evolution of settings + hand-picked constants, judged by auto exams M~~ done
+- ~~E4 mind as middleman (goal, scope, explanation) + playbook notes per minigame; form fallback without the mind M~~ done
+- ~~E5 program card UI (timeline, editable, Accept creates skills/rules, follow-up on stalls) M (check)~~ done
 - F1 guard orders: "Takes orders from" list (empty default), only signed player chat/whispers by sender UUID; guard <player> <dist> <ring|line|front|wedge|square> with <names>; standby/follow/stop; cooldown, max distance, allowed protectees M
 - F2 slots = sorted names index + simple math, rotate with protectee facing, optional close gaps from visible guards; nearest guard engages, others hold; safety first; scripted (no training, no Baritone) M (check)
 
@@ -353,3 +353,14 @@ relaunch script lives in the session scratchpad (recreate: Xvfb :99, ./gradlew :
   @AutoGen fields (tabs per category, switches, sliders, hover help; HIDDEN internal fields; "All
   settings" opens YACL); Mod Menu opens it. BrainScreen = Setup / Run it / add-ons cards + log.
   GoalsScreen subtitle + empty state. Other old screens keep their layout with the new style.
+- Section E notes: rl/rewardfit.py (windows ±40 ticks around good/mistake marks, per-rule units via
+  Behaviours + game events, logistic fit pulled to current weights, ranking accuracy now vs fitted;
+  CLI fitrewards; brain request fit_rewards). RulesScreen "Fit to my clips". StageTracker steps back
+  when the last 10 tries average < 25% of the previous stage's advance avg (hold = 2x episodes).
+  designer.py + playbook.json (modes/problems; mind.generate only picks listed ids; scope rule/skill/
+  program; check(): catalog-only rewards, bad things never positive); brain request design ->
+  design_result. DesignerScreen (quick chips, Mind switch, timeline with toggles + scroll, Accept
+  applies skill/rules/learn_from/setup/fit; saves designer.json). Dashboard "Design training";
+  ProgressScreen "Ask the designer" when flat. sleep/EvolveSession: base snapshot, 4 variants of
+  advanced lr/entropy/stay_human (x0.5/x2), each: revert base, apply, practice 6 min, release ->
+  AutoExam, snapshot; keep best by Watchdog.score (ties keep current). Sleep "Also evolve" switch.

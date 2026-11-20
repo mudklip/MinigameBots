@@ -75,9 +75,15 @@ public final class MainScreen extends Screen {
 		}).pos(10, y + 24).size(lw, 20).tooltip(Tooltip.create(Component.literal(inWorld
 				? "Let it play. F8 takes control back, F9 stops it." : "Join a world first."))).build());
 		control.active = inWorld;
+		if (active != null) {
+			addRenderableWidget(Button.builder(Component.literal("✎ Design training"),
+					b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.DesignerScreen(this, active, ""))).pos(10, y + 48)
+					.size(lw, 20).tooltip(Tooltip.create(Component.literal("Say what it should get better at; it builds a checked training plan.")))
+					.build());
+		}
 		if (verdict != null && (verdict.state() == Watchdog.State.FLAT || verdict.state() == Watchdog.State.DROPPING)) {
 			addRenderableWidget(Button.builder(Component.literal("§6⚠ " + verdict.state().label + ": see why"),
-					b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.ProgressScreen(this, active))).pos(10, y + 48)
+					b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.ProgressScreen(this, active))).pos(10, y + 72)
 					.size(lw, 20).tooltip(Tooltip.create(Component.literal(verdict.why()))).build());
 		}
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(width - 60, 6).width(52).build());

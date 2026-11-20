@@ -17,6 +17,7 @@ import org.jspecify.annotations.Nullable;
 public final class SleepScreen extends Screen {
 	private static boolean minimise = true;
 	private static boolean invent;
+	private static boolean evolve;
 
 	private final @Nullable Screen parent;
 	private @Nullable String message;
@@ -37,11 +38,17 @@ public final class SleepScreen extends Screen {
 				rebuildWidgets();
 			}).pos(x, 92).width(220).tooltip(Tooltip.create(Component.literal("Minimises Minecraft while it sleeps, so your PC "
 					+ "is free for other things. Click it in the taskbar to come back."))).build());
-			addRenderableWidget(Button.builder(Component.literal("Also invent: " + (invent ? "§aon" : "off")), b -> {
+			addRenderableWidget(Button.builder(Component.literal("Invent: " + (invent ? "§aon" : "off")), b -> {
 				invent = !invent;
 				rebuildWidgets();
-			}).pos(x, 116).width(220).tooltip(Tooltip.create(Component.literal("Keeps inventing traps and shelters (needs "
+			}).pos(x, 116).width(108).tooltip(Tooltip.create(Component.literal("Keeps inventing traps and shelters (needs "
 					+ "Training Grounds). The world keeps running for that, so only in a safe place."))).build());
+			addRenderableWidget(Button.builder(Component.literal("Also evolve: " + (evolve ? "§aon" : "off")), b -> {
+				evolve = !evolve;
+				rebuildWidgets();
+			}).pos(x + 112, 116).width(108).tooltip(Tooltip.create(Component.literal("Tries a few variants of how its fighting skill "
+					+ "learns (speed, curiosity, staying close to your style), each with a short practice and an exam, and keeps the best "
+					+ "(needs Training Grounds; about 45 min)."))).build());
 			var cfg = io.github.mudklip.minigamebots.client.config.MgbConfig.get();
 			addRenderableWidget(Button.builder(Component.literal("Sleep when I minimise the game: " + (cfg.sleepWhenMinimised ? "§aon" : "off")), b -> {
 				cfg.sleepWhenMinimised = !cfg.sleepWhenMinimised;
@@ -51,7 +58,7 @@ public final class SleepScreen extends Screen {
 					+ "(after a few seconds), and bringing the window back wakes it. It only ever starts because you minimised; "
 					+ "nothing happens on a timer."))).build());
 			addRenderableWidget(Button.builder(Component.literal("§a☾ Go to sleep"), b -> {
-				message = SleepMode.start(minecraft, minimise, invent);
+				message = SleepMode.start(minecraft, minimise, invent, evolve);
 				rebuildWidgets();
 			}).pos(x, 146).width(220).build());
 		} else {

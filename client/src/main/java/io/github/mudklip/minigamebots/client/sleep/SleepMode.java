@@ -65,6 +65,11 @@ public final class SleepMode {
 	}
 
 	public static String start(Minecraft mc, boolean minimise, boolean invent) {
+		return start(mc, minimise, invent, false);
+	}
+
+	/** With evolve: also tries variants of its learning settings, judged by exams (needs Training Grounds). */
+	public static String start(Minecraft mc, boolean minimise, boolean invent, boolean evolve) {
 		var mgb = MinigameBotsClient.instance();
 		ProfileManifest p = mgb.profiles().active();
 		if (p == null) {
@@ -77,7 +82,8 @@ public final class SleepMode {
 			AgentControl.get().stop(mc, Component.literal("Going to sleep"));
 		}
 		sleeping = true;
-		worldRuns = invent && InventSession.available();
+		boolean evolveOk = evolve && io.github.mudklip.minigamebots.client.TrainingLink.active();
+		worldRuns = (invent && InventSession.available()) || evolveOk;
 		startedAt = System.currentTimeMillis();
 		report.clear();
 		steps.clear();
@@ -222,7 +228,20 @@ public final class SleepMode {
 			steps.add(new Step("Going over its own builds (" + builds.size() + ")", () -> train(p, builds, "building"),
 					() -> !mgb.training().busy()));
 		}
-		if (worldRuns) {
+		if (evolveOk) {
+			steps.add(new Step("Evolving its settings (about 45 min)", () -> {
+				var who = MinigameBotsClient.instance().profiles().active();
+				if (who == null || !EvolveSession.start(who)) {
+					report.add(EvolveSession.lastOutcome());
+				}
+			}, () -> {
+				if (!EvolveSession.running() && !EvolveSession.lastOutcome().isEmpty() && !report.contains(EvolveSession.lastOutcome())) {
+					report.add(EvolveSession.lastOutcome());
+				}
+				return !EvolveSession.running();
+			}));
+		}
+		if (invent && InventSession.available()) {
 			steps.add(new Step("Inventing traps (5 min)", () -> InventSession.start("trap", 5), () -> !InventSession.running()));
 			steps.add(new Step("Inventing shelters (5 min)", () -> InventSession.start("shelter", 5), () -> !InventSession.running()));
 		}
@@ -300,6 +319,7 @@ public final class SleepMode {
 
 	/** Every client tick while asleep: one step after another. */
 	public static void tick(Minecraft mc) {
+		EvolveSession.tick(mc);
 		watchMinimise(mc);
 		if (!sleeping) {
 			return;

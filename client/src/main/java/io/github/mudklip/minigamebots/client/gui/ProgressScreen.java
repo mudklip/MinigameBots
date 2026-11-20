@@ -39,6 +39,12 @@ public final class ProgressScreen extends Screen {
 	@Override
 	protected void init() {
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(width - 60, 6).width(52).build());
+		if (verdict.state() == Watchdog.State.FLAT || verdict.state() == Watchdog.State.DROPPING) {
+			addRenderableWidget(Button.builder(Component.literal("§a✎ Ask the designer"), b -> minecraft.gui.setScreen(
+					new DesignerScreen(this, profile, "it's not improving"))).pos(width - 172, 6).width(108)
+					.tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(
+							"Builds steps for this: re-check rewards against your clips, different practice, what to record."))).build());
+		}
 	}
 
 	private static double value(Watchdog.Point p, int series) {

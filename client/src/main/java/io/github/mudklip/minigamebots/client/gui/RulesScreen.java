@@ -155,6 +155,9 @@ public final class RulesScreen extends Screen {
 				}))).pos(x0, by).width(90).build());
 		addRenderableWidget(Button.builder(Component.literal("Every detail..."), b -> details()).pos(x0 + 94, by).width(90)
 				.tooltip(Tooltip.create(Component.literal("The full rule editor: conditions, caps, cooldowns, importance, forgiving..."))).build());
+		addRenderableWidget(Button.builder(Component.literal(fitting ? "Checking..." : "Fit to my clips"), b -> fitToClips()).pos(x0 + 188, by)
+				.width(90).tooltip(Tooltip.create(Component.literal("Learns these weights from the moments you marked good or mistake in "
+						+ "your recordings, so good moments score higher. Applied only if they clearly agree better."))).build()).active = !fitting;
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(x0 + w - 60, by).width(60).build());
 	}
 
@@ -225,5 +228,37 @@ public final class RulesScreen extends Screen {
 	@Override
 	public void onClose() {
 		minecraft.gui.setScreen(parent);
+	}
+
+	private boolean fitting;
+
+	/** Reward weights fitted to your marked clips (rl/rewardfit.py), applied if they clearly agree better. */
+	private void fitToClips() {
+		var m = new com.google.gson.JsonObject();
+		m.addProperty("type", "fit_rewards");
+		var sk = new com.google.gson.JsonObject();
+		sk.add("rules", io.github.mudklip.minigamebots.client.skills.SkillLibrary.GSON.toJsonTree(rules));
+		m.add("skill", sk);
+		m.addProperty("recordings", io.github.mudklip.minigamebots.client.MinigameBotsClient.instance().recorder().store().root().toString());
+		fitting = true;
+		rebuildWidgets();
+		io.github.mudklip.minigamebots.client.MinigameBotsClient.instance().brain().ask(m, r -> {
+			fitting = false;
+			if (r.has("rules")) {
+				var live = rules.stream().filter(x -> !x.off).toList();
+				for (var s2 : r.getAsJsonArray("rules")) {
+					var o = s2.getAsJsonObject();
+					int i = o.get("index").getAsInt();
+					if (i < live.size()) {
+						live.get(i).value = o.get("suggested").getAsDouble();
+					}
+				}
+				parent.changed();
+			}
+			io.github.mudklip.minigamebots.client.overlay.Overlay.toast(new net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId(),
+					Component.literal(r.has("rules") ? "Rewards fitted to your clips" : "Rewards check"),
+					Component.literal(r.has("error") ? r.get("error").getAsString() : r.has("why") ? r.get("why").getAsString() : ""));
+			rebuildWidgets();
+		});
 	}
 }
