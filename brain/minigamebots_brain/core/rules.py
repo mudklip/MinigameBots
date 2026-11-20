@@ -103,7 +103,9 @@ class RuleFinder:
         self.recent = [(t, c) for t, c in self.recent if self.tick - t <= WINDOW]
         bad = [e for e in effects if self.value(e) < 0]
         if bad:
-            self.last_reason = self.explain(bad[0], {c for _, c in self.recent} | set(causes))
+            when = {c: t for t, c in self.recent}
+            when.update({c: self.tick for c in causes})
+            self.last_reason = self.explain(bad[0], when)
         for e in effects:
             self.n_e[e] = self.n_e.get(e, 0) + 1
             for c in {c for _, c in self.recent} | set(causes):
@@ -137,12 +139,18 @@ class RuleFinder:
         out.sort(key=lambda r: -r["sure"] * abs(r["value"]))
         return out
 
-    def explain(self, effect: str, recent: set) -> str:
-        """Why a bad thing happened: the best-known rule whose cause happened just before."""
-        best = None
+    def explain(self, effect: str, recent) -> str:
+        """Why a bad thing happened: a known rule whose cause happened just before; the closest in
+        time counts most (getting hit 2 ticks before beats a throw 10 ticks before)."""
+        when = recent if isinstance(recent, dict) else {c: self.tick for c in recent}
+        best, best_score = None, -1.0
         for r in self.rules(min_count=1):
-            if r["effect"] == effect and r["cause"] in recent and (best is None or r["sure"] > best["sure"]):
-                best = r
+            if r["effect"] != effect or r["cause"] not in when:
+                continue
+            age = max(0, self.tick - when[r["cause"]])
+            score = r["sure"] / (1.0 + age / 5.0)
+            if score > best_score:
+                best, best_score = r, score
         if best is None:
             return ""
         return f"{self._effect_name(effect)} because of {self._cause_name(best['cause'])}"
