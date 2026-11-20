@@ -107,7 +107,12 @@ public final class AgentControl {
 		humanizer.reset();
 		camera.reset();
 		lastInput = GameInput.NONE;
+		ActionSource ended = source;
 		source = ActionSource.IDLE;
+		if (ended instanceof io.github.mudklip.minigamebots.client.brain.BrainSource b) {
+			// The brain keeps running; a practice that was learning saves and gets its exam (A1, A2).
+			io.github.mudklip.minigamebots.client.MinigameBotsClient.instance().brain().controlStopped(b);
+		}
 		// Pick up whatever the human is physically holding right now.
 		KeyMapping.setAll();
 		if (client.gui.screen() == null && client.isWindowActive()) {

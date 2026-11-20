@@ -353,6 +353,12 @@ public final class TrainingManager {
 				io.github.mudklip.minigamebots.client.coach.Progress.addXp(
 						"general".equals(skillTrained) ? "pvp" : skillTrained.equals("travel") ? "movement" : skillTrained, 15,
 						"training finished");
+				// A2: a quick exam of what it just learned (fighting networks, singleplayer).
+				var trainedProfile = profileId == null ? null : profiles.get(profileId);
+				if (trainedProfile != null) {
+					io.github.mudklip.minigamebots.client.practice.AutoExam.afterTraining(trainedProfile, skillTrained,
+							"imitation training", Long.MAX_VALUE);
+				}
 			});
 		}
 		process = null;

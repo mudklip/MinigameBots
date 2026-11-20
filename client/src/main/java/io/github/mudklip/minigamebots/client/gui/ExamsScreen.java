@@ -61,6 +61,15 @@ public final class ExamsScreen extends Screen {
 			io.github.mudklip.minigamebots.client.coach.HumanBench.startAim(minecraft);
 			minecraft.gui.setScreen(null);
 		}).pos(124, height - 28).width(100).tooltip(Tooltip.create(Component.literal("A 60-second aim trainer test, played by you."))).build());
+		var cfg = io.github.mudklip.minigamebots.client.config.MgbConfig.get();
+		addRenderableWidget(Button.builder(Component.literal("After training: " + (cfg.autoExam ? "§aexam" : "no exam")), b -> {
+			cfg.autoExam = !cfg.autoExam;
+			io.github.mudklip.minigamebots.client.config.MgbConfig.HANDLER.save();
+			rebuildWidgets();
+		}).pos(228, height - 28).width(Math.min(120, width - 70 - 232)).tooltip(Tooltip.create(Component.literal("After practice, "
+				+ "training worlds or training of a fighting skill, the AI plays "
+				+ io.github.mudklip.minigamebots.client.practice.AutoExam.ROUNDS + " quick rounds in training worlds with learning off "
+				+ "(singleplayer, your player stays yours). Always the same test, so the results line up here and in Progress."))).build());
 	}
 
 	private Component roundsLabel() {
@@ -113,6 +122,11 @@ public final class ExamsScreen extends Screen {
 		if (error != null) {
 			g.textWithWordWrap(font, Component.literal(error), 10, y, width - 20, 0xFFFF8080);
 			y += 22;
+		}
+		String auto = io.github.mudklip.minigamebots.client.practice.AutoExam.status();
+		if (!auto.isEmpty()) {
+			g.text(font, auto, 10, y, 0xFF80E080, false);
+			y += 14;
 		}
 		if (em.running()) {
 			g.text(font, String.format("Exam running: %d / %d rounds", em.done(), em.target()), 10, y, 0xFF80E080, false);

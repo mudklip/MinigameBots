@@ -29,6 +29,11 @@ public final class WorldsScreen extends Screen {
 	private static final String[] TEAMS = {"1v1", "2v2", "3v3", "4v4"};
 	private static boolean fast = true;
 
+	/** "Fast & light" as last chosen here (the exam after training runs the same way). */
+	public static boolean fastLight() {
+		return fast;
+	}
+
 	private final @Nullable Screen parent;
 	private final List<int[]> chips = new ArrayList<>();
 	private @Nullable String message;

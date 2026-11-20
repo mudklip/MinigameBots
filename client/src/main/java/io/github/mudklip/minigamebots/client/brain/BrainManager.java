@@ -73,7 +73,8 @@ public final class BrainManager {
 					return;
 				}
 				policy = "multiworld";
-				sendSetPolicy("multiworld", args);
+				// The exam after training reuses the worlds with learning off (A2).
+				sendSetPolicy("multiworld", io.github.mudklip.minigamebots.client.practice.AutoExam.worldArgs(args));
 			});
 		}
 		if (status == Status.RUNNING && "multiworld".equals(policy) && pendingSends.get() < MAX_PENDING_SENDS) {
@@ -203,6 +204,7 @@ public final class BrainManager {
 		args.addProperty("stay_human", stayHuman);
 		args.addProperty("resources", resources);
 		play(client, "practice", args);
+		learning = learn ? new Learning(profile, skill, "practice") : null;
 	}
 
 	/**
@@ -238,7 +240,18 @@ public final class BrainManager {
 		play(client, policyName, args, () -> { });
 	}
 
+	/** A practice that learns, for the exam after it (A2). */
+	private record Learning(io.github.mudklip.minigamebots.client.profile.ProfileManifest profile, String network, String what,
+			long since) {
+		Learning(io.github.mudklip.minigamebots.client.profile.ProfileManifest profile, String network, String what) {
+			this(profile, network, what, System.currentTimeMillis());
+		}
+	}
+
+	private volatile @Nullable Learning learning;
+
 	private void play(Minecraft client, String policyName, JsonObject args, Runnable afterStart) {
+		learning = null; // practice() sets it again right after.
 		policy = policyName;
 		control.execute(() -> {
 			if (status != Status.RUNNING && !startBlocking()) {
@@ -272,6 +285,12 @@ public final class BrainManager {
 	 * and the brain waits, loaded, for the next play (no Python/PyTorch restart, no GPU reload).
 	 */
 	public void release() {
+		Learning l = learning;
+		learning = null;
+		if (l != null) {
+			io.github.mudklip.minigamebots.client.practice.AutoExam.afterTraining(l.profile(), l.network(), l.what(),
+					System.currentTimeMillis() - l.since());
+		}
 		policy = "idle";
 		source = null;
 		control.execute(() -> {
@@ -279,6 +298,13 @@ public final class BrainManager {
 				sendSetPolicy("idle", new JsonObject());
 			}
 		});
+	}
+
+	/** The AI stopped playing (you took over, F9, a screen's Stop): a learning practice ends here. */
+	public void controlStopped(BrainSource s) {
+		if (s == source && learning != null) {
+			release();
+		}
 	}
 
 	/** How long the last policy swap took inside the brain (ms), or a negative number before the first one. */
@@ -713,6 +739,7 @@ public final class BrainManager {
 		java.util.List<String> keys = lockedKeys(def);
 		play(client, "practice", args, () -> io.github.mudklip.minigamebots.client.control.ActionLocks.set(keys,
 				def.locks.contains("camera")));
+		learning = learn ? new Learning(profile, network, "practicing " + def.name) : null;
 	}
 
 	private void sendAsync(JsonObject m) {

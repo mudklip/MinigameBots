@@ -45,6 +45,7 @@ public final class MultiWorldLink {
 		watching = -1;
 		var mc = net.minecraft.client.Minecraft.getInstance();
 		mc.execute(() -> FastTraining.stop(mc));
+		io.github.mudklip.minigamebots.client.practice.AutoExam.worldsStopped(MultiWorldStats.runningMs());
 	}
 
 	private MultiWorldLink() {
@@ -52,6 +53,9 @@ public final class MultiWorldLink {
 
 	public static void onEvent(GameEvent e) {
 		if ("tg_mw_stop".equals(e.type())) {
+			if (running) {
+				io.github.mudklip.minigamebots.client.practice.AutoExam.worldsStopped(MultiWorldStats.runningMs());
+			}
 			running = false;
 			watching = -1;
 			latest = null;
@@ -94,7 +98,8 @@ public final class MultiWorldLink {
 			if (profile != null) {
 				JsonObject args = new JsonObject();
 				args.addProperty("profile", MinigameBotsClient.instance().profiles().store().dir(profile.id).toString());
-				c.execute(() -> MinigameBotsClient.instance().brain().play(c, "multiworld", args));
+				c.execute(() -> MinigameBotsClient.instance().brain().play(c, "multiworld",
+						io.github.mudklip.minigamebots.client.practice.AutoExam.worldArgs(args)));
 			}
 		}
 	}

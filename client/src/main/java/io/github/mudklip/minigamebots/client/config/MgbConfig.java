@@ -80,6 +80,9 @@ public final class MgbConfig {
 	public String worldPractice = "duel";
 	@SerialEntry
 	public int worldSpeed = 2;
+	/** A short exam in training worlds after every training of a fighting network (singleplayer). */
+	@SerialEntry
+	public boolean autoExam = true;
 	/** Core minigames: the bots also fight each other (off: they all play against the AI). */
 	@SerialEntry
 	public boolean coreFreeForAll = false;

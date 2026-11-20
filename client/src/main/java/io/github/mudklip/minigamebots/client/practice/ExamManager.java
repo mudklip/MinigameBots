@@ -116,18 +116,22 @@ public final class ExamManager {
 		if (p == null) {
 			return;
 		}
-		Path dir = MinigameBotsClient.instance().profiles().store().dir(p.id);
-		List<Result> all = load(dir);
-		all.add(r);
-		try {
-			Files.writeString(dir.resolve("exams.json"), ObjectiveStore.GSON.toJson(all));
-		} catch (IOException e) {
-			MinigameBotsClient.LOGGER.warn("Couldn't save exam result", e);
-		}
+		save(MinigameBotsClient.instance().profiles().store().dir(p.id), r);
 		Minecraft c = Minecraft.getInstance();
 		String text = String.format("%s: won %d of %d rounds", p.name, r.wins, r.rounds);
 		c.execute(() -> SystemToast.addOrUpdate(c.gui.toastManager(), TOAST, Component.literal("Exam finished"),
 				Component.literal(text)));
+	}
+
+	/** Adds a finished exam to the profile's {@code exams.json}. */
+	public static void save(Path profileDir, Result r) {
+		List<Result> all = load(profileDir);
+		all.add(r);
+		try {
+			Files.writeString(profileDir.resolve("exams.json"), ObjectiveStore.GSON.toJson(all));
+		} catch (IOException e) {
+			MinigameBotsClient.LOGGER.warn("Couldn't save exam result", e);
+		}
 	}
 
 	public static List<Result> load(Path profileDir) {
