@@ -55,6 +55,21 @@ public final class InventionsScreen extends Screen {
 		}).pos(8, 48).width(70).tooltip(Tooltip.create(Component.literal("Tests every idea for real in a sandbox "
 				+ "high above you (needs Training Grounds); you can keep playing meanwhile. The sky there is put back as it was."))).build());
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(width - 62, 6).width(54).build());
+		// The selected idea: get the blocks (Training Grounds) and let the AI build it by hand.
+		addRenderableWidget(Button.builder(Component.literal("Give me the blocks"), b -> {
+			if (selected != null) {
+				message = io.github.mudklip.minigamebots.client.invent.BuildRunner.giveBlocks(selected);
+			}
+		}).pos(width - 196, height - 26).width(100).tooltip(Tooltip.create(Component.literal("Training Grounds puts the blocks this "
+				+ "idea needs in your inventory (hotbar first)."))).build());
+		addRenderableWidget(Button.builder(Component.literal("§aBuild it here"), b -> {
+			if (selected != null) {
+				message = io.github.mudklip.minigamebots.client.invent.BuildRunner.build(minecraft, selected);
+				onClose();
+			}
+		}).pos(width - 92, height - 26).width(84).tooltip(Tooltip.create(Component.literal("The AI builds it a few blocks in front of "
+				+ "you with its own hands (walking, picking blocks, looking, clicking), from what it has in its hotbar. It's recorded as "
+				+ "a building demo, so its building skill can learn from it. F9 stops it."))).build());
 	}
 
 	@Override

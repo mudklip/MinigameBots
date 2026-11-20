@@ -177,6 +177,8 @@ public final class TrainingGrounds implements ModInitializer {
 					// The AI's inventor: test a design in the sandbox (needs permission to manage the grounds).
 					if ("sandbox_test".equals(payload.kind()) && sandbox != null && canManage(context.player().createCommandSourceStack())) {
 						sandbox.request(context.player(), payload.json());
+					} else if ("design_kit".equals(payload.kind()) && sandbox != null && canManage(context.player().createCommandSourceStack())) {
+						Sandbox.giveKit(context.player(), payload.json());
 					}
 				});
 

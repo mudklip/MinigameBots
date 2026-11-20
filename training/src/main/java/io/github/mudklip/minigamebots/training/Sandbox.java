@@ -310,6 +310,45 @@ public final class Sandbox {
 		}
 	}
 
+	/** The blocks a design needs, into the player's inventory (Training Grounds managers only). */
+	public static void giveKit(ServerPlayer p, String json) {
+		JsonObject d;
+		try {
+			d = JsonParser.parseString(json).getAsJsonObject();
+		} catch (RuntimeException e) {
+			return;
+		}
+		JsonArray palette = d.getAsJsonArray("palette");
+		int[] counts = new int[palette.size()];
+		for (var el : d.getAsJsonArray("blocks")) {
+			counts[el.getAsJsonArray().get(3).getAsInt()]++;
+		}
+		for (int i = 0; i < counts.length; i++) {
+			String id = palette.get(i).getAsString().split("\\[")[0];
+			if (id.equals("minecraft:air")) {
+				continue;
+			}
+			if (id.equals("minecraft:lava")) {
+				id = "minecraft:lava_bucket";
+			} else if (id.equals("minecraft:water")) {
+				id = "minecraft:water_bucket";
+			}
+			var item = BuiltInRegistries.ITEM.getValue(Identifier.tryParse(id));
+			if (item == net.minecraft.world.item.Items.AIR) {
+				continue;
+			}
+			int n = id.endsWith("_bucket") ? counts[i] : counts[i];
+			if (id.equals("minecraft:oak_door")) {
+				n = Math.max(1, n / 2); // One door item makes both halves.
+			}
+			while (n > 0) {
+				int k = Math.min(n, item.getDefaultMaxStackSize());
+				p.getInventory().add(new ItemStack(item, k));
+				n -= k;
+			}
+		}
+	}
+
 	public void stop() {
 		for (int s = 0; s < running.length; s++) {
 			if (running[s] != null) {

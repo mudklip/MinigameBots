@@ -37,6 +37,12 @@ def _core(**kwargs) -> Policy:
     return CoreGamePolicy(**kwargs)
 
 
+def _build(**kwargs) -> Policy:
+    from .build import BuildPolicy
+
+    return BuildPolicy(**kwargs)
+
+
 def _practice(**kwargs) -> Policy:
     from .practice import PracticePolicy  # Imported on use: it needs torch.
 
@@ -56,6 +62,7 @@ POLICIES = {
     "practice": _practice,
     "core": _core,
     "manager": _manager,
+    "build": _build,
 }
 
 
