@@ -4,12 +4,17 @@ Everything goes through normal input, like a player: walk within reach, pick the
 hotbar, turn to look at the face of the block it builds against, right-click; hold left-click to
 dig. It checks each block in its block sense (the 11x11x11 cube around it) and moves on or tries
 again. Order: digging first (top down), then placing bottom-up, always against something solid.
+Deep pits (deeper than it can reach from the edge) are done like a player does them: a one-wide
+shaft straight down beside the pit, dig the bottom out from in there, pour any lava from a block
+above it (so it can't flow onto it), then climb out by jumping and placing blocks under itself,
+which fills the shaft back in.
 
 args: design {"palette", "blocks"} (from invent.py), anchor [x, y, z] (world block where the
 design's (0, 0, 0) goes: ground level at the design's centre).
 """
 
 import math
+import os
 
 from ..actions import Action
 from ..learn.features import decode_blocks
@@ -18,6 +23,10 @@ from .follow import wrap_degrees
 
 # Block sense categories (BlockSense.Category on the Java side).
 UNKNOWN, AIR = 0, 1
+WATER, LAVA = 4, 5
+# Blocks it can stand on to climb back out of a shaft (it digs most of them on the way down).
+FILLERS = ("minecraft:dirt", "minecraft:cobblestone", "minecraft:cobbled_deepslate", "minecraft:stone", "minecraft:netherrack",
+           "minecraft:oak_planks", "minecraft:spruce_planks", "minecraft:birch_planks", "minecraft:stone_bricks", "minecraft:sandstone")
 R = 5
 REACH = 4.3
 ITEM_FOR = {"minecraft:lava": "minecraft:lava_bucket", "minecraft:water": "minecraft:water_bucket"}
@@ -141,6 +150,9 @@ class BuildPolicy(Policy):
         self.ordered = [0.0, 0.0]
         self.observed = [0.0, 0.0]
         self.previous = None
+        self.bad_spots = {}  # pos -> standing spots that turned out not to see it.
+        self.shaft = None  # Working a deep pit from a shaft beside it (see _shaft_act).
+        self.shafts = 0
 
     # --- seeing ---
 
@@ -218,19 +230,27 @@ class BuildPolicy(Policy):
     def _walk_to(self, me, pos, stop=2.6):
         dx, dz = pos[0] + 0.5 - me["x"], pos[2] + 0.5 - me["z"]
         a, _ = self._look(me, (pos[0] + 0.5, me["y"] + 1.62, pos[2] + 0.5))
-        if math.hypot(dx, dz) > stop and self._hole_ahead(me, dx, dz):
-            a.keys.add("left" if (self.tick // 40) % 2 else "right")  # Edge along it instead of falling in.
+        # Turn first: walking while still facing elsewhere goes elsewhere (into a pit, say).
+        yaw = math.radians(float(me.get("yaw", 0)))
+        fx, fz = -math.sin(yaw), math.cos(yaw)
+        if math.hypot(dx, dz) > stop and math.degrees(abs(wrap_degrees(math.degrees(math.atan2(-dx, dz)) - float(me.get("yaw", 0))))
+                                                       * math.pi / 180) > 40:
+            return a
+        if math.hypot(dx, dz) > stop and (self._hole_ahead(me, dx, dz) or self._hole_ahead(me, fx, fz)):
+            a.keys.add("left" if (self.tick // 40) % 2 else "right")  # Edge along it instead of falling in,
+            a.keys.add("sneak")  # sneaking, so it can't slip off the edge.
             return a
         if math.hypot(dx, dz) > stop:
             a.keys.add("forward")
-            if self.tick % 30 == 0:
-                a.keys.add("jump")  # Over small bumps.
+            x0, x1, z0, z1 = self.box[0] - 2.5, self.box[1] + 3.5, self.box[2] - 2.5, self.box[3] + 3.5
+            if self.tick % 30 == 0 and not (x0 <= me["x"] <= x1 and z0 <= me["z"] <= z1):
+                a.keys.add("jump")  # Over small bumps (never next to the build: it could land in a pit).
         return a
 
-    def _clear(self, grid, feet, eye, point, skip) -> bool:
+    def _clear(self, grid, feet, eye, point, skip, step=0.1) -> bool:
         """Nothing solid between the eye and the point (except the cells in skip)."""
         d = math.dist(eye, point)
-        n = max(2, int(d / 0.1))
+        n = max(2, int(d / step))
         for i in range(1, n):
             t = i / n
             c = tuple(math.floor(eye[k] + (point[k] - eye[k]) * t) for k in range(3))
@@ -252,15 +272,18 @@ class BuildPolicy(Policy):
 
     def _find_spot(self, grid, feet, pos, centre, block=""):
         """A standing spot and face to click; the block's facing comes out right if at all possible."""
-        for ring, strict in ((self.ring, True), (self.ring_in, True), (self.ring, False)):
-            found = self._find_spot_any(grid, feet, pos, centre, block, strict, ring)
+        # Standing still beats jumping (a jump-place needs a steady aim mid-air): every way
+        # without a jump first.
+        for ring, strict, jumps in ((self.ring, True, (False,)), (self.ring_in, True, (False,)), (self.ring, True, (True,)),
+                                    (self.ring_in, True, (True,)), (self.ring, False, (False, True))):
+            found = self._find_spot_any(grid, feet, pos, centre, block, strict, ring, jumps=jumps)
             if found is not None:
                 self.plan_strict = strict and "facing=" in block
                 self.plan_face_dir = found[3]
                 return found[:3]
         return None
 
-    def _find_spot_any(self, grid, feet, pos, centre, block, strict, ring):
+    def _find_spot_any(self, grid, feet, pos, centre, block, strict, ring, jumps=(False, True)):
         spots = sorted(ring, key=lambda c: math.hypot(c[0] + 0.5 - centre[0], c[1] + 0.5 - centre[2]))
         if self._gate_open(grid, feet):
             spots += sorted(self._interior(), key=lambda c: math.hypot(c[0] + 0.5 - centre[0], c[1] + 0.5 - centre[2]))
@@ -275,7 +298,7 @@ class BuildPolicy(Policy):
                     continue
                 # Aim a little inside the support's face, so the look ray really hits it.
                 face = (centre[0] + n[0] * 0.53, centre[1] + n[1] * 0.53, centre[2] + n[2] * 0.53)
-                for jump in (False, True):
+                for jump in jumps:
                     # Jumping lifts the eye about a block: how players reach the top of a 2-high wall.
                     e = (eye[0], eye[1] + (1.0 if jump else 0.0), eye[2])
                     # The face must point at the eye (you can't click the back of a block).
@@ -293,6 +316,31 @@ class BuildPolicy(Policy):
                     # Exactly what the game would do with this look: lands in the right cell?
                     if self._ray(e, v, grid, feet, frozenset({support})) == pos:
                         return (sx, sz), face, jump, tuple(-x for x in n)
+        return None
+
+    def _aim_from(self, eye, pos, grid, feet, block=""):
+        """A point on a support face that, looked at from this exact eye, puts the block in pos."""
+        centre = (pos[0] + 0.5, pos[1] + 0.5, pos[2] + 0.5)
+        offs = (0.0, -0.3, 0.3, -0.15, 0.15)
+        for n in NEIGHBOURS:
+            support = (pos[0] + n[0], pos[1] + n[1], pos[2] + n[2])
+            if not self._filled(grid, feet, support) or support in self.thin or self._cat(grid, feet, support) == 3:
+                continue
+            axes = [k for k in range(3) if n[k] == 0]
+            for oa in offs:
+                for ob in offs:
+                    face = [centre[k] + n[k] * 0.53 for k in range(3)]
+                    face[axes[0]] += oa
+                    face[axes[1]] += ob
+                    if sum((eye[k] - face[k]) * -n[k] for k in range(3)) <= 0.05 or math.dist(eye, face) > REACH - 0.2:
+                        continue
+                    v = [face[k] - eye[k] for k in range(3)]
+                    length = math.sqrt(sum(x * x for x in v)) or 1.0
+                    v = [x / length for x in v]
+                    if "facing=" in block and not placement_ok(block, v, tuple(-x for x in n)):
+                        continue
+                    if self._ray(eye, v, grid, feet, frozenset({support})) == pos:
+                        return tuple(face), tuple(-x for x in n)
         return None
 
     def _would_place(self, me, grid, feet):
@@ -349,16 +397,36 @@ class BuildPolicy(Policy):
                 return dest
         if not self._crosses(here, goal):
             return dest
-        if not self._crosses(here, goal):
-            return dest
+        if self.gate is None and self._in_box(math.floor(here[0]), math.floor(here[1])):
+            # Standing over the edge of the design (or on it): straight out to the nearest standing
+            # spot first, never across it.
+            out = min(self.ring_in + self.ring, key=lambda c: math.dist(here, (c[0] + 0.5, c[1] + 0.5)))
+            return (out[0], dest[1], out[1])
         x0, x1, z0, z1 = self.box[0] - 2, self.box[1] + 2, self.box[2] - 2, self.box[3] + 2
         corners = [(x, z) for x in (x0, x1) for z in (z0, z1)]
         ok = [c for c in corners if not self._crosses(here, (c[0] + 0.5, c[1] + 0.5))
               and math.dist(here, (c[0] + 0.5, c[1] + 0.5)) > 0.8]  # Not the corner it's already at.
-        best = min(ok or corners, key=lambda c: math.dist(here, (c[0] + 0.5, c[1] + 0.5)) + math.dist((c[0] + 0.5, c[1] + 0.5), goal))
+        # Best a corner that sees the goal from there (else it dithers back and forth between two).
+        seeing = [c for c in ok if not self._crosses((c[0] + 0.5, c[1] + 0.5), goal)]
+        best = min(seeing or ok or corners,
+                   key=lambda c: math.dist(here, (c[0] + 0.5, c[1] + 0.5)) + math.dist((c[0] + 0.5, c[1] + 0.5), goal))
         return (best[0], dest[1], best[1])
 
     def act(self, obs, frame):
+        a = self._act(obs, frame)
+        trace = os.environ.get("MGB_BUILD_TRACE")
+        if trace:  # Debugging aid: one line whenever what it's doing changes.
+            me = obs.get("self") or {}
+            key = (self.shaft and (self.shaft.get("phase"), self.shaft.get("col"), self.shaft.get("out")),
+                   self.current and self.current.get("pos"), tuple(sorted(a.keys)))
+            if key != getattr(self, "_last_trace", None):
+                self._last_trace = key
+                with open(trace, "a", encoding="utf-8") as f:
+                    f.write(f"{self.tick} {key} at {me.get('x', 0):.2f} {me.get('y', 0):.2f} {me.get('z', 0):.2f} "
+                            f"ground={me.get('onGround')}\n")
+        return a
+
+    def _act(self, obs, frame):
         self.tick += 1
         me = obs.get("self") or {}
         if not me or me.get("dead") or "x" not in me:
@@ -405,6 +473,13 @@ class BuildPolicy(Policy):
             step = s
             break
         self.current = step
+        if self.shaft is None and step is None and feet[1] <= self.anchor[1] - 2 and me.get("onGround", True) \
+                and not any((s_["pos"][0], s_["pos"][2]) == (feet[0], feet[2]) for s_ in self.steps) and self._filler(obs):
+            # Done, but down in a hole (it slipped): climb out on blocks, like out of a shaft.
+            self.shaft = {"col": (feet[0], feet[2]), "out": (feet[0], feet[2]), "target": feet[1], "phase": "work",
+                          "top": self.anchor[1], "need": self.anchor[1] - feet[1]}
+        if self.shaft is not None:
+            return self._shaft_act(obs, me, grid, feet)
         if step is None:
             self.idle += 1  # Nothing it can place right now (missing items or out of reach for good).
             return Action()
@@ -424,33 +499,62 @@ class BuildPolicy(Policy):
             return a
         inside = self._in_box(feet[0], feet[2])
         if step["dig"]:
-            if dist > REACH or inside:
-                spot = min(self.ring, key=lambda c: math.hypot(c[0] + 0.5 - centre[0], c[1] + 0.5 - centre[2]))
+            # Dig only with a clear line to the block (attack breaks whatever the crosshair hits first).
+            if dist > REACH or inside or self._dig_point(eye, pos, grid, feet) is None:
+                bad = self.bad_spots.setdefault(pos, set())
+                spots = [c for c in self.ring_in + self.ring if c not in bad
+                         and self._dig_point((c[0] + 0.5, feet[1] + 1.62, c[1] + 0.5), pos, grid, feet, margin=0.3) is not None]
+                if not spots:
+                    if not self._start_shaft(obs, grid, feet, pos):
+                        self.failed.add((pos, True))
+                    return Action()
+                spot = min(spots, key=lambda c: math.hypot(c[0] + 0.5 - me["x"], c[1] + 0.5 - me["z"]))
                 if (feet[0], feet[2]) != spot:
                     return self._walk_to(me, self._via(me, (spot[0], feet[1], spot[1])), stop=0.4)
-                if dist > REACH:
-                    self.failed.add((pos, True))
-                    return Action()
+                # There, but off-centre and the edge hides it: to the middle of the spot, sneaking.
+                self.tries[("centre", pos)] = self.tries.get(("centre", pos), 0) + 1
+                if self.tries[("centre", pos)] > 60:
+                    bad.add(spot)
+                    self.tries[("centre", pos)] = 0
+                a = self._walk_to(me, (spot[0], feet[1], spot[1]), stop=0.1)
+                a.keys.add("sneak")
+                return a
         else:
             # Where to stand and which face to click: outside the design, in reach, with a clear
             # line from the eye to the face (otherwise the click lands on whatever is in the way).
             if self.plan is None or self.plan[0] != pos:
                 found = self._find_spot(grid, feet, pos, centre, step["block"])
                 if found is None:
-                    self.failed.add((pos, False))
+                    if pos[1] >= self.anchor[1] - 2 or not self._start_shaft(obs, grid, feet, pos):
+                        self.failed.add((pos, False))
                     return Action()
                 self.plan = (pos, found[0], found[1], found[2])
             _, spot, face, _jump = self.plan
             if (feet[0], feet[2]) != spot:
                 return self._walk_to(me, self._via(me, (spot[0], feet[1], spot[1])), stop=0.4)
         if step["dig"]:
-            a, on = self._look(me, centre)
+            a, on = self._look(me, self._dig_point(eye, pos, grid, feet) or centre)
+            pend = getattr(self, "_pend", [0.0, 0.0])
+            if on and abs(pend[0]) < 1.0 and abs(pend[1]) < 1.0:
+                # Settled (a turn still easing in would sweep the crosshair onto another block),
+                # and the crosshair really is on it: never on what it stands on.
+                yaw, pitch = math.radians(float(me.get("yaw", 0))), math.radians(float(me.get("pitch", 0)))
+                look = (-math.sin(yaw) * math.cos(pitch), -math.sin(pitch), math.cos(yaw) * math.cos(pitch))
+                hit = self._first_hit(eye, look, grid, feet)
+                under = {(math.floor(me["x"] + ox), feet[1] - 1, math.floor(me["z"] + oz)) for ox in (-0.3, 0.3) for oz in (-0.3, 0.3)}
+                on = hit == pos and hit not in under
+            else:
+                on = False
             if on:
                 a.keys.add("attack")
                 self.tries[(pos, step["dig"])] = self.tries.get((pos, step["dig"]), 0) + 1
                 if self.tries[(pos, True)] > 120:
                     self.failed.add((pos, True))
             return a
+        return self._click_place(obs, me, grid, feet, step)
+
+    def _click_place(self, obs, me, grid, feet, step) -> Action:
+        pos = step["pos"]
         item = self._item(step["block"])
         slot = self._slot(obs, item)
         if slot is None:
@@ -483,6 +587,18 @@ class BuildPolicy(Policy):
             facing_ok = placement_ok(step["block"], look, self.plan_face_dir)
             if not facing_ok and self.steady >= 6:
                 self.plan = None  # From where it actually stands it can't: plan again.
+        if self.steady >= 4 and facing_ok and self._would_place(me, grid, feet) != pos:
+            # Settled, but from where it really stands the click would land elsewhere: aim again.
+            better = self._aim_from((me["x"], me["y"] + 1.62, me["z"]), pos, grid, feet, step["block"])
+            self.steady = 0
+            self.tries[("aim", pos)] = self.tries.get(("aim", pos), 0) + 1
+            if better is not None and self.tries[("aim", pos)] <= 6:
+                self.plan = (pos, self.plan[1], better[0], self.plan[3])
+                self.plan_face_dir = better[1]
+            elif self.tries[("aim", pos)] > 6:
+                self.failed.add((pos, False))
+                self.plan = None
+            return a
         if self.steady >= 2 and facing_ok and self._would_place(me, grid, feet) == pos:
             a.keys.add("use")
             self.steady = 0
@@ -492,6 +608,191 @@ class BuildPolicy(Policy):
             self.clicked[pos] = self.tick
             self.wait = 4
         return a
+
+    # --- deep pits: a shaft beside them ---
+
+    def _filler(self, obs):
+        for f in FILLERS:
+            slot = self._slot(obs, f)
+            if slot is not None:
+                return f, slot
+        return None
+
+    def _start_shaft(self, obs, grid, feet, pos) -> bool:
+        """Plan a shaft next to a deep cell it can't reach from the edge. False if there's no good
+        column for one, or nothing to climb back out on."""
+        if self.shafts >= 3 or pos[1] >= self.anchor[1]:
+            return False
+        design = {}
+        for s_ in self.steps:
+            design.setdefault((s_["pos"][0], s_["pos"][2]), []).append(s_["pos"][1])
+        cx, cz = (self.box[0] + self.box[1]) / 2, (self.box[2] + self.box[3]) / 2
+        cols = []
+        for n in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            c = (pos[0] + n[0], pos[2] + n[1])
+            ys = design.get(c, [])
+            if any(y < self.anchor[1] - 1 for y in ys):
+                continue  # Part of the pit itself (or something built down there): not for a shaft.
+            # The way in: straight out from the pit, away from the design's middle.
+            out = (c[0] + n[0], c[1] + n[1])
+            while self._in_box(*out):
+                out = (out[0] + n[0], out[1] + n[1])
+            cols.append((len(ys), math.hypot(c[0] - cx, c[1] - cz) * -1, c, out))
+        if not cols:
+            return False
+        lowest = min(s_["pos"][1] for s_ in self.steps if (s_["pos"], s_["dig"]) not in self.done
+                     and (s_["pos"], s_["dig"]) not in self.failed and s_["pos"][1] < self.anchor[1]
+                     and abs(s_["pos"][0] - pos[0]) + abs(s_["pos"][2] - pos[2]) <= 2)
+        need = self.anchor[1] - 1 - lowest
+        filler = self._filler(obs)
+        if filler is None:
+            self.missing.add("dirt")  # To climb back out of the shaft.
+            return False
+        _, _, col, out = min(cols)
+        self.shafts += 1
+        self.shaft = {"col": col, "out": out, "target": lowest + 1, "phase": "approach", "top": None, "need": need}
+        return True
+
+    def _shaft_act(self, obs, me, grid, feet) -> Action:
+        sh = self.shaft
+        col = sh["col"]
+        here = (feet[0], feet[2])
+        if sh["phase"] == "approach":
+            if here in (sh["out"], col):
+                sh["phase"] = "enter"
+            else:
+                return self._walk_to(me, self._via(me, (sh["out"][0], feet[1], sh["out"][1])), stop=0.4)
+        if sh["phase"] == "enter":
+            off = math.hypot(me["x"] - col[0] - 0.5, me["z"] - col[1] - 0.5)
+            if here != col or off > 0.15 or not me.get("onGround", True):
+                a = self._walk_to(me, (col[0], feet[1], col[1]), stop=0.12)
+                if here == col:
+                    a.keys.add("sneak")  # Slowly to the middle, and never over the pit's edge.
+                return a
+            sh["top"] = feet[1]
+            sh["phase"] = "down"
+        if sh["phase"] == "down":
+            if not me.get("onGround", True):
+                return Action()  # Still dropping.
+            below = (col[0], feet[1] - 1, col[1])
+            land = (col[0], feet[1] - 2, col[1])
+            if feet[1] <= sh["target"]:
+                sh["phase"] = "work"
+            elif self._cat(grid, feet, below) in (WATER, LAVA) or self._cat(grid, feet, land) in (WATER, LAVA, AIR):
+                sh["phase"] = "work"  # Never dig down into liquid or a drop: work from here.
+            else:
+                off = math.hypot(me["x"] - col[0] - 0.5, me["z"] - col[1] - 0.5)
+                if here != col or off > 0.2:
+                    a = self._walk_to(me, (col[0], feet[1], col[1]), stop=0.12)  # Slid off the middle: back first.
+                    a.keys.add("sneak")
+                    return a
+                self.current = {"pos": below, "block": "minecraft:air", "dig": True}
+                a, on = self._look(me, (col[0] + 0.5, below[1] + 0.98, col[1] + 0.5))
+                pend = getattr(self, "_pend", [0.0, 0.0])
+                if (on or float(me.get("pitch", 0)) > 80) and abs(pend[0]) < 1.0 and abs(pend[1]) < 1.0:
+                    a.keys.add("attack")
+                return a
+        # Work: whatever deep step it can do from here; otherwise one block up.
+        on_ground = me.get("onGround", True)
+        if on_ground:
+            sh["level"] = feet[1]
+        eye = (me["x"], me["y"] + 1.62, me["z"])
+        for s_ in (self.steps if on_ground else ()):
+            pos = s_["pos"]
+            key = (pos, s_["dig"])
+            if s_.get("fill") or key in self.done or key in self.failed or pos[1] >= self.anchor[1] - 1:
+                continue
+            centre = (pos[0] + 0.5, pos[1] + 0.5, pos[2] + 0.5)
+            if s_["dig"]:
+                if not self._filled(grid, feet, pos):
+                    self.done.add(key)
+                    continue
+                if (pos[0], pos[2]) == col or math.dist(eye, centre) > REACH or not self._clear(grid, feet, eye, centre, {pos}):
+                    continue
+                self.current = s_
+                a, on = self._look(me, centre)
+                if on:
+                    a.keys.add("attack")
+                    self.tries[key] = self.tries.get(key, 0) + 1
+                    if self.tries[key] > 120:
+                        self.failed.add(key)
+                return a
+            if self._filled(grid, feet, pos) or pos in self.clicked or (pos[0], pos[2]) == col:
+                continue
+            liquid = s_["block"].split("[")[0] in ITEM_FOR
+            if liquid and pos[1] >= feet[1]:
+                continue  # Only pour from above it, so the liquid can't reach it.
+            if not self._has(obs, self._item(s_["block"])):
+                continue
+            if self.plan is None or self.plan[0] != pos:
+                found = self._find_spot_any(grid, feet, pos, centre, s_["block"], False, [col], jumps=(False,))
+                if found is None:
+                    continue
+                self.plan = (pos, found[0], found[1], False)
+            self.current = s_
+            return self._click_place(obs, me, grid, feet, s_)
+        # Nothing more from this height: climb one block (jump, place a block under itself).
+        level = sh.get("level", feet[1])
+        if on_ground and level >= sh["top"]:
+            self.shaft = None
+            self.current = None
+            return Action()
+        cell = (col[0], level, col[1])
+        block = None
+        for s_ in self.steps:
+            if s_["pos"] == cell and not s_["dig"] and (cell, False) not in self.done and self._slot(obs, self._item(s_["block"])) is not None:
+                block = s_["block"]  # The design wants a block here anyway: climb on that.
+        if block is None:
+            f = self._filler(obs)
+            if f is None:
+                self.missing.add("dirt")
+                self.idle += 1
+                return Action()  # Stuck down here until it has a block to climb on.
+            block = f[0]
+        slot = self._slot(obs, self._item(block))
+        self.current = {"pos": cell, "block": block, "dig": False}
+        yaw = math.radians(float(me.get("yaw", 0)))
+        a, _ = self._look(me, (me["x"] - math.sin(yaw) * 0.05, me["y"] + 1.62 - 3, me["z"] + math.cos(yaw) * 0.05))
+        if obs.get("selectedSlot") != slot:
+            a.keys.add(f"hotbar_{slot + 1}")
+            return a
+        if float(me.get("pitch", 0)) < 86:  # Nearly straight down, so the click stays in its own column.
+            return a
+        if on_ground:
+            a.keys.add("jump")
+        elif level < sh["top"] and float(me["y"]) - level >= 1.0 and (cell not in self.clicked or self.tick - self.clicked[cell] > 10):
+            a.keys.add("use")
+            self.clicked[cell] = self.tick
+            self.wait = 3
+        return a
+
+    def _dig_point(self, eye, pos, grid, feet, margin=0.0):
+        """The middle of the nearest open face of the block that this eye can see, or None."""
+        centre = (pos[0] + 0.5, pos[1] + 0.5, pos[2] + 0.5)
+        best = None
+        for n in NEIGHBOURS:
+            if self._filled(grid, feet, (pos[0] + n[0], pos[1] + n[1], pos[2] + n[2])):
+                continue
+            face = (centre[0] + n[0] * 0.45, centre[1] + n[1] * 0.45, centre[2] + n[2] * 0.45)
+            if sum((eye[k] - face[k]) * n[k] for k in range(3)) <= 0.05:
+                continue  # The back of that face.
+            d = math.dist(eye, face)
+            if d > REACH - margin:
+                continue
+            # Clear with room to spare: the centre and points spread over the face (a line that
+            # only just skims past an edge catches that edge in the game, and the aim isn't perfect).
+            axes = [k for k in range(3) if n[k] == 0]
+            pts = [face]
+            for oa, ob in ((0.3, 0.3), (-0.3, 0.3), (0.3, -0.3), (-0.3, -0.3)):
+                q = list(face)
+                q[axes[0]] += oa
+                q[axes[1]] += ob
+                pts.append(tuple(q))
+            if not all(self._clear(grid, feet, eye, q, {pos}, step=0.03) for q in pts):
+                continue
+            if best is None or d < best[0]:
+                best = (d, face)
+        return None if best is None else best[1]
 
     def _first_hit(self, eye, d, grid, feet):
         """The first block the look ray hits (thin blocks like plates are looked over)."""

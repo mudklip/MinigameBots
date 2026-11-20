@@ -35,6 +35,15 @@ class World:
             prev = c
         return None
 
+    def ground(self):
+        """Falling physics (opt-in): the top of the highest solid block under the player."""
+        # Like the game: held up while any part of the 0.6-wide body is over a block.
+        cols = {(math.floor(self.me["x"] + ox), math.floor(self.me["z"] + oz)) for ox in (-0.29, 0.29) for oz in (-0.29, 0.29)}
+        y = math.floor(self.me["y"] + 1e-6)
+        while y > 0 and not any(self.is_solid((x, y - 1, z)) for x, z in cols):
+            y -= 1
+        return float(y)
+
     def is_solid(self, p):
         return p in self.solid or (p[1] < 64 and ("air", p) not in self.solid)
 
@@ -58,16 +67,26 @@ class World:
         self.me["yaw"] += a.yaw
         self.me["pitch"] += a.pitch
         # Jumping (simple game physics).
-        if "jump" in a.keys and self.me["y"] <= 64.0001:
+        gy = self.ground() if getattr(self, "fall", False) else 64.0
+        if "jump" in a.keys and self.me["y"] <= gy + 0.0001:
             self.vy = 0.42
         self.me["y"] += self.vy
         self.vy = (self.vy - 0.08) * 0.98
-        if self.me["y"] <= 64:
-            self.me["y"], self.vy = 64.0, 0.0
-        self.me["onGround"] = self.me["y"] <= 64.0001
+        if self.me["y"] <= gy:
+            self.me["y"], self.vy = gy, 0.0
+        self.me["onGround"] = self.me["y"] <= gy + 0.0001
         sp = 0.2 if "forward" in a.keys else -0.2 if "back" in a.keys else 0.0
+        if "sneak" in a.keys:
+            sp *= 0.3
         self.me["x"] += -math.sin(math.radians(self.me["yaw"])) * sp
         self.me["z"] += math.cos(math.radians(self.me["yaw"])) * sp
+        before = (self.me["x"], self.me["z"])
+        st = 0.2 if "left" in a.keys else -0.2 if "right" in a.keys else 0.0
+        if st and getattr(self, "fall", False):
+            self.me["x"] += math.cos(math.radians(self.me["yaw"])) * st * (0.3 if "sneak" in a.keys else 1.0)
+            self.me["z"] += math.sin(math.radians(self.me["yaw"])) * st * (0.3 if "sneak" in a.keys else 1.0)
+        if getattr(self, "fall", False) and "sneak" in a.keys and self.me.get("onGround") and self.ground() < self.me["y"] - 0.5:
+            self.me["x"], self.me["z"] = before  # Sneaking: the game won't let you walk off an edge.
         for k in a.keys:
             if k.startswith("hotbar_"):
                 self.selected = int(k[7:]) - 1
@@ -133,6 +152,50 @@ class BuildTest(unittest.TestCase):
             if p.status()["finished"] or (p.current is None and p.tick > 50):
                 break
         self.assertIn("tnt", p.status()["missing"])
+
+
+
+class DeepPitTest(unittest.TestCase):
+    def run_pit(self, genes, ticks=20000):
+        d = invent.trap_from_genes(genes)
+        w = World()
+        w.fall = True
+        p = create("build", {"design": d, "anchor": [0, 64, 0]})
+        inv = [{"slot": 0, "id": "minecraft:dirt", "count": 64}, {"slot": 1, "id": "minecraft:lava_bucket", "count": 1},
+               {"slot": 2, "id": "minecraft:oak_planks", "count": 64}]
+        lowest = 64.0
+        for _ in range(ticks):
+            a = p.act(w.obs(inv), None)
+            w.apply(a, p)
+            lowest = min(lowest, w.me["y"])
+            if p.status()["finished"]:
+                break
+        return d, w, p, lowest
+
+    def check(self, d, w, p, lowest):
+        st = p.status()
+        self.assertTrue(st["finished"])
+        self.assertEqual(st["failed"], 0, p.failed)
+        for b in d["blocks"]:
+            cell = (b[0], 64 + b[1], b[2])
+            if d["palette"][b[3]] == "minecraft:air":
+                self.assertFalse(w.is_solid(cell), cell)
+            else:
+                self.assertTrue(w.is_solid(cell), (cell, d["palette"][b[3]]))
+        design = {(b[0], 64 + b[1], b[2]) for b in d["blocks"]}
+        stray = [c for c in w.placed if c not in design and c[1] >= 64]
+        self.assertEqual(stray, [])  # Nothing sticks out above the ground.
+        holes = [(x, y, z) for x in range(-5, 6) for z in range(-5, 6) for y in range(56, 64)
+                 if (x, y, z) not in design and not w.is_solid((x, y, z))]
+        self.assertEqual(holes, [])  # Shafts filled back in: no holes left around the trap.
+        self.assertLess(lowest, 62)  # It really went down a shaft.
+        self.assertGreaterEqual(w.me["y"], 63)  # And came back up.
+
+    def test_one_wide_lava_pit_under_a_floor(self):
+        self.check(*self.run_pit({"at": 0, "pit": {"w": 1, "depth": 5, "lava": True}, "floor": "minecraft:oak_planks"}))
+
+    def test_wide_deep_pit(self):
+        self.check(*self.run_pit({"at": 0, "pit": {"w": 3, "depth": 5, "lava": True}}))
 
 
 if __name__ == "__main__":

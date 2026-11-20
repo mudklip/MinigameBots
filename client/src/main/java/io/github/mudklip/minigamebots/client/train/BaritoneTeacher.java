@@ -146,13 +146,37 @@ public final class BaritoneTeacher {
 		if (designs.isEmpty()) {
 			return "No inventions yet to build: invent some first (main menu > Inventions)";
 		}
-		var d = designs.get(client.player.getRandom().nextInt(designs.size()));
+		// Only a design that fits here: nothing below the world's bottom and nothing unbreakable in the way.
+		var dir = client.player.getDirection();
+		var anchor = client.player.blockPosition().relative(dir, 6);
+		java.util.Collections.shuffle(designs, new java.util.Random(client.player.getRandom().nextLong()));
+		com.google.gson.JsonObject d = null;
+		for (var cand : designs) {
+			boolean fits = true;
+			for (var el : cand.getAsJsonArray("blocks")) {
+				var a = el.getAsJsonArray();
+				var at = anchor.offset(a.get(0).getAsInt(), a.get(1).getAsInt(), a.get(2).getAsInt());
+				if (at.getY() <= client.level.getMinY() || client.level.getBlockState(at).getDestroySpeed(client.level, at) < 0) {
+					fits = false;
+					break;
+				}
+			}
+			if (fits) {
+				d = cand;
+				break;
+			}
+		}
+		if (d == null) {
+			return "None of its inventions fit here (too close to bedrock or the world's bottom): try somewhere with deeper ground";
+		}
 		var lookup = client.level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.BLOCK);
 		var pal = d.getAsJsonArray("palette");
 		java.util.List<net.minecraft.world.level.block.state.BlockState> states = new java.util.ArrayList<>();
 		for (var el : pal) {
 			try {
-				states.add(net.minecraft.commands.arguments.blocks.BlockStateParser.parseForBlock(lookup, el.getAsString(), false).blockState());
+				var st = net.minecraft.commands.arguments.blocks.BlockStateParser.parseForBlock(lookup, el.getAsString(), false).blockState();
+				// Baritone can't pour liquids: it digs that cell, and the AI's own builder adds the lava or water.
+				states.add(st.getFluidState().isEmpty() ? st : net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
 			} catch (Exception e) {
 				states.add(net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
 			}
@@ -202,13 +226,19 @@ public final class BaritoneTeacher {
 					return m.getName().equals("hashCode") ? System.identityHashCode(proxy) : m.getName().equals("equals") ? proxy == args[0] : null;
 			}
 		});
-		// A few blocks ahead, at the player's feet level.
-		var dir = client.player.getDirection();
-		var anchor = client.player.blockPosition().relative(dir, 6);
+		// A few blocks ahead, at the player's feet level (anchor, chosen above).
 		var origin = new net.minecraft.core.Vec3i(anchor.getX() + minX, anchor.getY() + minY, anchor.getZ() + minZ);
 		if (io.github.mudklip.minigamebots.client.invent.InventSession.available()) {
 			net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(
 					new io.github.mudklip.minigamebots.common.net.TgRequestPayload("design_kit", d.toString()));
+		}
+		// The kit may land outside the hotbar: let the builder take blocks from the whole inventory.
+		try {
+			Object settings = Class.forName("baritone.api.BaritoneAPI").getMethod("getSettings").invoke(null);
+			Object allow = settings.getClass().getField("allowInventory").get(settings);
+			allow.getClass().getField("value").set(allow, Boolean.TRUE);
+		} catch (ReflectiveOperationException | RuntimeException e) {
+			MinigameBotsClient.LOGGER.debug("Couldn't set allowInventory", e);
 		}
 		Object builder = call(b, "getBuilderProcess", new Class<?>[0]);
 		call(builder, "build", new Class<?>[] {String.class, iface, net.minecraft.core.Vec3i.class}, d.get("name").getAsString(),

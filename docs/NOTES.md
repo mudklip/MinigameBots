@@ -237,3 +237,15 @@ screen shows AI vs you.
   restore wakes. Never time-based.
 - Baritone BUILD teacher: kept invention as a Proxy ISchematic (cells outside the design are
   "don't care"), kit requested, demos named "Baritone: build" feed the building skill in sleep.
+  Only designs that fit (nothing below the world bottom / unbreakable in the way); liquid cells are
+  dug instead (Baritone can't pour); `allowInventory` on so a kit outside the hotbar is used.
+- Builder deep pits (build.py shaft mode): a dig or place it can't do from the standing rings
+  starts a shaft in a column next to the cell (no design cells below the floor layer; way in
+  straight out from the design). Phases approach -> enter (centred, sneaking) -> down (dig the
+  block underfoot, never into liquid or a drop) -> work (deep digs with clear sight, places from
+  the shaft; liquids only below its feet) -> climb (jump + place underfoot, design block if the
+  cell is one, else a filler). Also: digs need a clear sight line with margin (centre + 4 face
+  points) and a settled aim, never the block it stands on; no hops near the build; turn before
+  walking; re-aim from the real eye when off-centre; non-jump spots before jump ones; corner
+  routing prefers corners that see the goal; climb out of a hole if done while down in one.
+  MGB_BUILD_TRACE=<file> logs every change of what it's doing (debugging).
