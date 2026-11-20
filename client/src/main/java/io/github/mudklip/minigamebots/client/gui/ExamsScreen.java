@@ -43,6 +43,21 @@ public final class ExamsScreen extends Screen {
 		addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), b -> MinigameBotsClient.instance().exams().cancel())
 				.pos(218, 28).width(60).build());
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(width - 70, height - 28).width(60).build());
+		// The human floor: measure yourself on the same tests.
+		addRenderableWidget(Button.builder(Component.literal("Measure me: duel"), b -> {
+			if (!TrainingLink.active()) {
+				error = "Needs Training Grounds with a match going (the same one the AI's exams use)";
+				return;
+			}
+			io.github.mudklip.minigamebots.client.coach.HumanBench.startDuel();
+			minecraft.gui.setScreen(null);
+		}).pos(10, height - 28).width(110).tooltip(Tooltip.create(Component.literal("You play the next "
+				+ io.github.mudklip.minigamebots.client.coach.HumanBench.ROUNDS + " rounds of the match yourself; your win rate "
+				+ "becomes the human floor the AI's exams are compared with."))).build());
+		addRenderableWidget(Button.builder(Component.literal("Measure me: aim"), b -> {
+			io.github.mudklip.minigamebots.client.coach.HumanBench.startAim(minecraft);
+			minecraft.gui.setScreen(null);
+		}).pos(124, height - 28).width(100).tooltip(Tooltip.create(Component.literal("A 60-second aim trainer test, played by you."))).build());
 	}
 
 	private Component roundsLabel() {
@@ -105,6 +120,19 @@ public final class ExamsScreen extends Screen {
 		}
 		Path dir = MinigameBotsClient.instance().profiles().store().dir(profile.id);
 		List<ExamManager.Result> results = ExamManager.load(dir);
+		// AI vs you (the human floor).
+		var pr = io.github.mudklip.minigamebots.client.coach.Progress.active();
+		String hb = io.github.mudklip.minigamebots.client.coach.HumanBench.status();
+		if (!hb.isEmpty()) {
+			g.text(font, Component.literal("§e" + hb), 10, height - 42, 0xFFFFFFFF, false);
+		} else if (pr != null) {
+			String aiDuel = results.isEmpty() ? "-" : Math.round(results.get(results.size() - 1).winRate() * 100) + "%";
+			String aiAim = pr.rating.containsKey("aim") ? String.valueOf(Math.round(pr.rating.get("aim"))) : "-";
+			String youDuel = pr.human.containsKey("duel") ? Math.round(pr.human.get("duel") * 100) + "%" : "not measured";
+			String youAim = pr.human.containsKey("aim") ? String.valueOf(Math.round(pr.human.get("aim"))) : "not measured";
+			g.text(font, Component.literal("§fAI§7 duel " + aiDuel + ", aim " + aiAim + "   §fYou§7 duel " + youDuel + ", aim " + youAim),
+					10, height - 42, 0xFFFFFFFF, false);
+		}
 		if (results.isEmpty()) {
 			g.text(font, "No exams yet.", 10, y, 0xFF909090, false);
 			return;
@@ -115,7 +143,7 @@ public final class ExamsScreen extends Screen {
 			g.text(font, heads[c], cols[c], y, 0xFFB0B0B0, false);
 		}
 		y += 12;
-		int rowsFit = Math.max(1, (height - 40 - y) / 11);
+		int rowsFit = Math.max(1, (height - 56 - y) / 11);
 		int from = Math.max(0, results.size() - rowsFit);
 		for (int i = results.size() - 1; i >= from; i--) {
 			ExamManager.Result r = results.get(i);

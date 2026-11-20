@@ -205,3 +205,13 @@ running. Low load: 10 FPS, render distance 2, master volume 0, SDL_MinimizeWindo
 not GLFW); the SleepScreen is a pause screen in singleplayer unless inventing. Wake (any key, Wake
 up, or when done) restores everything and shows a morning report. Not yet: dreaming with the world
 model, daily lessons from the language model, automatic sleep when idle.
+
+## 1.27.0: fast weights per opponent, human floor
+`policies/fastweights.py`: per-opponent additive biases on the learned policy's key / attack /
+use logits (opponent = player or mannequin in the latest exchange of hits within 100 ticks),
+updated each tick from events (dealt +a/20, taken -a/20, kill +1, death -1) by a policy-gradient
+step over a 30-tick trace (decay 0.85, lr 0.08), clipped to +-2, faded between fights (half per
+day), saved in <skill>/fast_weights.json (200 most recent opponents). LearnedPolicy status shows
+`adapting_to` and `adapted`. Human floor: `HumanBench` (Progress.human: "duel" win rate over 10
+rounds of the running match, "aim" best 60 s flick score), only while the human plays; Exams
+screen shows AI vs you.

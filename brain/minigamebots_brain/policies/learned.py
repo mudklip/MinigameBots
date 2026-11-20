@@ -46,6 +46,13 @@ class LearnedPolicy(Policy):
         self.temperature = max(0.0, float(temperature))
         self.state = None
         self.decisions = 0
+        # Quick adapting to each opponent, on top of the trained network (see fastweights.py).
+        from .fastweights import FastWeights
+
+        import os
+
+        self.fast = FastWeights(os.path.join(profile, "fast_weights.json") if os.path.isdir(profile) else None)
+        self.opponent = None
 
     def act(self, obs, frame):
         from ..learn import actions, features
@@ -64,19 +71,39 @@ class LearnedPolicy(Policy):
         batch["frames"] = frame_arr[None, None]
         with torch.no_grad():
             logits, self.state = self.model(to_tensors(batch, self.device), self.state)
-        keys = torch.sigmoid(logits["keys"][0, 0]).cpu().numpy()
+        # What happened since the last decision teaches the fast weights for this opponent.
+        self.fast.learn(obs.get("_events"))
+        self.opponent = self.fast.opponent(obs)
+        key_logits = logits["keys"][0, 0].float().cpu().numpy()
+        bias = self.fast.bias(self.opponent, {"keys": len(key_logits), "attacks": int(logits["attacks"].shape[-1]),
+                                              "uses": int(logits["uses"].shape[-1])})
+        keys = 1.0 / (1.0 + np.exp(-(key_logits + bias["keys"])))
         if self.temperature == 0:
             keys_on = keys > 0.5
         else:
             keys_on = np.random.random(len(keys)) < keys
         self.decisions += 1
-        action = actions.decode_action(keys_on, self._pick(logits["attacks"]), self._pick(logits["uses"]),
-                                       self._pick(logits["yaw"]), self._pick(logits["pitch"]))
+        attack, attack_p = self._pick_p(logits["attacks"], bias["attacks"])
+        use, use_p = self._pick_p(logits["uses"], bias["uses"])
+        self.fast.remember(self.opponent, keys_on, keys, attack, attack_p, use, use_p)
+        if self.decisions % 600 == 0:
+            self.fast.save()
+        action = actions.decode_action(keys_on, attack, use, self._pick(logits["yaw"]), self._pick(logits["pitch"]))
         if "mark" in logits:
             m = self._pick(logits["mark"])
             if m > 0:
                 action.mark = features.WAYPOINT_TYPES[m - 1]
         return action
+
+    def _pick_p(self, logit, bias):
+        """Like _pick, with the fast-weight nudge; also returns the probabilities (for learning)."""
+        l = logit[0, 0].float().cpu().numpy() + bias
+        t = max(self.temperature, 1e-3)
+        p = np.exp((l - l.max()) / t)
+        p = p / p.sum()
+        if self.temperature == 0:
+            return int(l.argmax()), p
+        return int(np.random.choice(len(p), p=p)), p
 
     def _pick(self, logit):
         torch = self.torch
@@ -87,4 +114,5 @@ class LearnedPolicy(Policy):
         return int(torch.multinomial(probs, 1))
 
     def status(self):
-        return {"step": self.info.get("step"), "val_loss": self.info.get("val_loss"), "device": self.device}
+        return {"step": self.info.get("step"), "val_loss": self.info.get("val_loss"), "device": self.device,
+                "adapting_to": self.opponent, "adapted": round(self.fast.strength(self.opponent), 2)}

@@ -41,6 +41,8 @@ public final class Progress {
 
 	public Map<String, Integer> xp = new LinkedHashMap<>();
 	public Map<String, Double> rating = new LinkedHashMap<>();
+	/** Your own scores on the same tests (the human floor): "duel" win rate, "aim" score. */
+	public Map<String, Double> human = new LinkedHashMap<>();
 	public List<String> achievements = new ArrayList<>();
 	public List<String> log = new ArrayList<>();
 	public int roundsWon;

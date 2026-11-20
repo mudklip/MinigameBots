@@ -289,6 +289,12 @@ It starts with common sense and learns which plans actually work in which situat
 The PvP plan ends with a free-for-all: a large arena with cover is built around you, with bots of mixed styles that fight everyone, each other included. Nobody really dies: a knocked-out bot comes back somewhere else, and so does your AI (with full health). This is where the strategist learns when to hunt, when to pick fights, when to back off and heal and when to wait in ambush. The ground goes back as it was when it ends.
 
 
+# You vs the AI (the human floor)
+On the Exams screen (Training Hub > More... > Exams), [Measure me: duel] counts your own win rate over the next 10 rounds of the match you're in (the same test the AI's exams use), and [Measure me: aim] runs a 60-second aim test for you. The line above the buttons then shows the AI's latest results next to yours, so you can see when it gets to your level and past it.
+
+# Adapting to each opponent
+In a fight it adapts to that one opponent as it goes: what lands hits against them becomes a little more likely, what gets it hurt a little less. It remembers this per person, so the next fight with the same player starts from what worked last time, and it fades slowly over days. These are small nudges on top of what it was trained to do, never a replacement.
+
 # Sleep
 Main menu > [Sleep...]: let it get better while you're away. It replays the day (trains on everything recorded since it last slept: your play, players it watched, its own builds), tidies its memories (lets small, old moments go once it has learned what they taught it about someone), and if you like keeps inventing traps and shelters.
 It keeps your PC free: the game draws at 10 FPS with a short view and no sound, training runs on Quiet, it can minimise the game (on by default: click it in the taskbar to come back), and in singleplayer the world is paused so nothing can happen to you. Inventing needs the world running, so only turn that on somewhere safe.
