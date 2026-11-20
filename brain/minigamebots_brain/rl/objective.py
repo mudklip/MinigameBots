@@ -21,6 +21,7 @@ A rule:
 - beyond:   true: only progress past its best this round counts (new depth for "going down", new
             height for "going up", further from the start for "moving"); rules without a measure
             count only the first time in a round.
+- min_use:  for "item wasted": healing counts as wasted only if less than this share was used (0..1).
 - budget:   for costs: free while the episode total stays under "limit"; above it, the cost
             counts with a weight that grows each episode the budget is broken, and shrinks
             again while it's kept. "value" is then the cost per unit.
@@ -164,6 +165,8 @@ class RewardEngine:
             for i, r in enumerate(self.rules):
                 if r.get("event") != ev.get("type") or not matches(r.get("where"), data):
                     continue
+                if "min_use" in r and data.get("used") is not None and float(data["used"]) >= float(r["min_use"]):
+                    continue  # Healing used well enough (the rule's own threshold).
                 cooldown = int(float(r.get("cooldown", 0)) * TICKS_PER_SECOND)
                 if cooldown and tick - self.last_fired[i] < cooldown:
                     continue

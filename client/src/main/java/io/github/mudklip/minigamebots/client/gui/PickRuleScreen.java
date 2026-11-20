@@ -95,6 +95,14 @@ public final class PickRuleScreen extends Screen {
 			boolean behaviour = r[2].equals("behaviour");
 			rule.per = behaviour ? "units" : "event";
 			rule.value = behaviour ? 0.01 : 1;
+			if (rule.event.equals("b:item_wasted")) {
+				// A budget cost: a few per round are free, habitual waste costs (never a reward).
+				rule.value = -1;
+				rule.per = "units";
+				rule.budget = new Objective.Budget();
+				rule.budget.limit = 3;
+				rule.minUse = 0.5;
+			}
 			if (pick != null) {
 				String field = pick;
 				minecraft.gui.setScreen(new ItemPickerScreen(parent, id -> {

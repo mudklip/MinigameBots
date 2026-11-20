@@ -184,7 +184,8 @@
   "near_protectee": "Close to the player it protects",
   "combo": "Combo: 3+ hits in a row without being hit",
   "landed_in_water": "Lands in water from a fall",
-  "fell_into_void": "Falls into the void"
+  "fell_into_void": "Falls into the void",
+  "item_wasted": "Item wasted (missed shots, overeating, unused healing, pointless pearls/wind charges)"
  },
  "events": {
   "kill": "Kills something",

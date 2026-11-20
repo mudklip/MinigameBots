@@ -80,3 +80,68 @@ class NewBehavioursTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+from minigamebots_brain.rl.waste import WasteTracker  # noqa: E402
+
+
+def st(inv, **kw):
+    s = {"x": 0.0, "y": 64.0, "z": 0.0, "health": 20.0, "food": 20, "saturation": 5.0, "onGround": True}
+    s.update(kw)
+    return {"self": s, "inventory": [{"slot": i, "id": a, "count": n, "detail": d} for i, (a, n, d) in enumerate(inv)]}
+
+
+def run(w, frames):
+    out = []
+    for obs, events in frames:
+        out += w.step(obs, None, events)
+    return out
+
+
+class WasteTest(unittest.TestCase):
+    def test_missed_arrow_vs_hit(self):
+        w = WasteTracker()
+        frames = [(st([("minecraft:arrow", 10, None)]), [])] + [(st([("minecraft:arrow", 9, None)]), [])] * 70
+        out = run(w, frames)
+        self.assertEqual(len(out), 1)
+        self.assertAlmostEqual(out[0]["data"]["units"], round(1 / (1 + 9 / 16), 3))
+        w2 = WasteTracker()
+        frames = [(st([("minecraft:arrow", 10, None)]), []), (st([("minecraft:arrow", 9, None)]), []),
+                  (st([("minecraft:arrow", 9, None)]), [{"type": "damage_dealt", "data": {}}])] + [(st([("minecraft:arrow", 9, None)]), [])] * 70
+        self.assertEqual(run(w2, frames), [])
+
+    def test_food_overflow_only(self):
+        w = WasteTracker()
+        full = [(st([("minecraft:bread", 5, None)], food=20, saturation=20), [])] + \
+               [(st([("minecraft:bread", 4, None)], food=20, saturation=20), [])] * 10
+        self.assertEqual(len(run(w, full)), 1)
+        w2 = WasteTracker()
+        hungry = [(st([("minecraft:bread", 5, None)], food=10, saturation=0), [])] + \
+                 [(st([("minecraft:bread", 4, None)], food=15, saturation=6), [])] * 10
+        self.assertEqual(run(w2, hungry), [])
+
+    def test_golden_apples_scale_with_supply(self):
+        def eat(n):
+            w = WasteTracker()
+            frames = [(st([("minecraft:golden_apple", n, None)]), [])] + [(st([("minecraft:golden_apple", n - 1, None)]), [])] * 2410
+            return run(w, frames)[0]["data"]["units"]
+        self.assertLess(eat(100), 0.06)
+        self.assertGreater(eat(6), 0.3)
+
+    def test_healing_at_full_health_and_min_use(self):
+        w = WasteTracker()
+        frames = [(st([("minecraft:potion", 2, "minecraft:strong_healing")]), [])] + \
+                 [(st([("minecraft:potion", 1, "minecraft:strong_healing")]), [])] * 20
+        out = run(w, frames)
+        self.assertEqual(out[0]["data"]["used"], 0.0)
+        from minigamebots_brain.rl.objective import RewardEngine
+        eng = RewardEngine({"rules": [{"event": "b:item_wasted", "value": -1, "per": "units", "min_use": 0.5}]})
+        self.assertLess(eng.step(1, out, None).reward, 0)
+        ok = [{"type": "b:item_wasted", "data": {"units": 0.4, "used": 0.6}}]
+        self.assertEqual(eng.step(2, ok, None).reward, 0)
+
+    def test_pearl_that_went_nowhere(self):
+        w = WasteTracker()
+        frames = [(st([("minecraft:ender_pearl", 4, None)]), [])] + [(st([("minecraft:ender_pearl", 3, None)]), [])] * 125
+        out = run(w, frames)
+        self.assertEqual(out[0]["data"]["why"], "went nowhere")

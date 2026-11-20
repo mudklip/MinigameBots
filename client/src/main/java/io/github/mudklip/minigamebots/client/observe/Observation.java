@@ -51,7 +51,9 @@ public record Observation(
 
 	/** An item stack. {@code slot} follows the player inventory (0-8 hotbar, 9-35 main, then armor, offhand). */
 	public record ItemInfo(int slot, String id, int count, int damage, int maxDamage, boolean enchanted,
-			@Nullable String customName) {
+			@Nullable String customName,
+			/** For potions and tipped arrows: which potion (e.g. "minecraft:strong_healing"); else null. */
+			@Nullable String detail) {
 	}
 
 	/**

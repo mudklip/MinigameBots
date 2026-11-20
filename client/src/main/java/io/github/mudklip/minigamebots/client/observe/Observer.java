@@ -157,7 +157,15 @@ public final class Observer {
 		Component custom = stack.getCustomName();
 		return new Observation.ItemInfo(slot, BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(),
 				stack.getCount(), stack.getDamageValue(), stack.getMaxDamage(), stack.isEnchanted(),
-				custom == null ? null : custom.getString());
+				custom == null ? null : custom.getString(), potionOf(stack));
+	}
+
+	private static @Nullable String potionOf(ItemStack stack) {
+		var pc = stack.get(net.minecraft.core.component.DataComponents.POTION_CONTENTS);
+		if (pc == null || pc.potion().isEmpty()) {
+			return null;
+		}
+		return pc.potion().get().unwrapKey().map(k -> k.identifier().toString()).orElse(null);
 	}
 
 	/**

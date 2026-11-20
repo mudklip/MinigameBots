@@ -39,6 +39,9 @@ public final class Objective {
 		public @Nullable Safe safe;
 		/** Only progress past its best this round counts. */
 		public boolean beyond;
+		/** Item wasted: healing counts as wasted only if less than this share was used. */
+		@com.google.gson.annotations.SerializedName("min_use")
+		public @Nullable Double minUse;
 		public String note = "";
 		/** Switched off in a skill (kept so it can be switched back on). */
 		public boolean off;

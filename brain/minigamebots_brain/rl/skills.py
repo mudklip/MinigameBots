@@ -181,6 +181,9 @@ class Behaviours:
         self.prev_hits = {}
         self.combo = 0
         self.in_void = False
+        from .waste import WasteTracker
+
+        self.waste = WasteTracker()
 
     def _target(self, obs: dict):
         best = None
@@ -358,6 +361,7 @@ class Behaviours:
             res.append({"type": "b:in_zone", "data": {"units": 1.0, "zone": me.get("zone")}})
         if held:
             res.append({"type": "b:holding", "data": {"units": 1.0, "item": held}})
+        res += self.waste.step(obs, action, game_events)
         return res
 
 

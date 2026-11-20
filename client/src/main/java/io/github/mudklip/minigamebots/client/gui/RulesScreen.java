@@ -109,6 +109,15 @@ public final class RulesScreen extends Screen {
 			}).pos(sx, y).width(24).tooltip(Tooltip.create(Component.literal(r.safe == null
 					? "Only if safe: off. Click: the points are held back and paid only if it isn't hurt or killed in the next 3 s (click again for 5, 10, off)."
 					: "Only if safe for " + (int) r.safe.seconds + " s: points are paid once it stayed unhurt that long."))).build());
+			if (r.event.equals("b:item_wasted")) {
+				double mu = r.minUse == null ? 0.5 : r.minUse;
+				addRenderableWidget(Button.builder(Component.literal("§d" + Math.round(mu * 100) + "%"), b -> {
+					r.minUse = mu < 0.3 ? 0.5 : mu < 0.6 ? 0.75 : mu < 0.8 ? 0.9 : 0.25;
+					parent.changed();
+					rebuildWidgets();
+				}).pos(sx - 34, y).width(32).tooltip(Tooltip.create(Component.literal("Healing must be at least "
+						+ Math.round(mu * 100) + "% used (itself and allies), or the rest counts as wasted. Click to change."))).build());
+			}
 			addRenderableWidget(Button.builder(Component.literal(r.beyond ? "§b★" : "§8★"), b -> {
 				r.beyond = !r.beyond;
 				parent.changed();
