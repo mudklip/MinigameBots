@@ -13,6 +13,15 @@ Each moment is weighted by what came of it: leading to a hit or kill counts more
 getting hurt counts less, and the seconds before they died count nothing. So it copies the
 good play of enemies and friends, not their mistakes. Player demos weigh half of yours.
 Recordings made while watching a Flashback replay work the same way.
+
+Spectator learning (Phase "watch"):
+- every player gets a **rating** from all the fights seen so far (hits landed vs taken, deaths),
+  kept in <recordings>/player_ratings.json; their demos are weighted by it, so strong players
+  count more while weak players' good moments still count a little;
+- only the **moments with action** are kept (a few seconds around their swings and hits), so
+  hours of watching make compact demos;
+- a recording is converted **once** (a marker file), and demos are tagged with the server and
+  the game (sidebar title) they came from.
 """
 
 from __future__ import annotations
@@ -156,6 +165,47 @@ def _hits_by(track: list[dict]) -> set[int]:
     return out
 
 
+ACTION_MARGIN = 60  # Ticks kept before/after each swing or hit.
+
+
+def action_ticks(track: list[dict]) -> list[bool]:
+    """Which ticks of a track are near action (their swings, their hurt flashes, hits by them)."""
+    n = len(track)
+    near = [False] * n
+    marks = [i for i in range(n) if track[i]["e"].get("swinging") or track[i]["e"].get("hurtTime", 0) > 0]
+    for i in marks:
+        for j in range(max(0, i - ACTION_MARGIN), min(n, i + ACTION_MARGIN + 1)):
+            near[j] = True
+    return near
+
+
+def load_ratings(recordings: str) -> dict:
+    try:
+        with open(os.path.join(recordings, "player_ratings.json"), encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def rating(stats: dict) -> float:
+    """0..1 from hits landed vs taken and deaths, with a prior so few fights stay near 0.5."""
+    landed = stats.get("landed", 0) + 2
+    taken = stats.get("taken", 0) + stats.get("deaths", 0) * 3 + 2
+    return landed / (landed + taken)
+
+
+def game_of(track: list[dict]) -> str:
+    for t in track[:200]:
+        title = ((t["obs"].get("text") or {}).get("sidebarTitle")) or ""
+        title = "".join(ch for ch in str(title) if ch.isprintable())
+        import re
+
+        title = re.sub(r"§.", "", title).strip()
+        if title:
+            return title
+    return ""
+
+
 def write(directory: str, rows: list[dict], meta: dict) -> None:
     os.makedirs(directory, exist_ok=True)
     per = 1200
@@ -174,6 +224,8 @@ def write(directory: str, rows: list[dict], meta: dict) -> None:
 
 def convert(recordings: str, own_name: str = "") -> dict:
     made, players, exact_ticks, ticks = 0, set(), 0, 0
+    ratings = load_ratings(recordings)
+    todo = []
     for d in sorted(glob.glob(os.path.join(recordings, "*", ""))):
         rid = os.path.basename(os.path.normpath(d))
         try:
@@ -183,17 +235,38 @@ def convert(recordings: str, own_name: str = "") -> dict:
             continue
         if meta.get("source") in SKIP_SOURCES or rid.startswith(("players-", "video-")):
             continue
-        for name, segs in tracks(d).items():
+        if os.path.exists(os.path.join(d, "players_done")):
+            continue  # Converted before.
+        todo.append((d, rid, meta, tracks(d)))
+    # Ratings first, from every fight in these recordings, so each demo gets its player's rating.
+    for _, _, _, by_name in todo:
+        for name, segs in by_name.items():
             if name == own_name:
                 continue
+            st = ratings.setdefault(name, {"landed": 0, "taken": 0, "deaths": 0, "seen_ticks": 0})
+            for track in segs:
+                st["landed"] += len(_hits_by(track))
+                st["taken"] += sum(1 for i in range(1, len(track))
+                                   if track[i]["e"].get("hurtTime", 0) > track[i - 1]["e"].get("hurtTime", 0))
+                st["deaths"] += 1 if float(track[-1]["e"].get("health", 20.0)) <= 0.0 else 0
+                st["seen_ticks"] += len(track)
+    for d, rid, meta, by_name in todo:
+        for name, segs in by_name.items():
+            if name == own_name:
+                continue
+            skill = rating(ratings.get(name, {}))
+            scale = 0.4 + 1.2 * skill  # Weak players' moments still count a little, strong players' more.
             for si, track in enumerate(segs):
                 if len(track) < MIN_TICKS:
                     continue
                 last = track[-1]["e"]
                 died = float(last.get("health", 20.0)) <= 0.0
                 weights = outcome_weights(track, _hits_by(track), died)
+                near = action_ticks(track)
                 rows = []
                 for i in range(1, len(track)):
+                    if not near[i]:
+                        continue  # Only the moments with action.
                     prev, cur = track[i - 1], track[i]
                     view = opponent_view(cur["obs"], cur["e"].get("id"))
                     if view is None:
@@ -205,17 +278,31 @@ def convert(recordings: str, own_name: str = "") -> dict:
                         inp["attacks"] = 1 if "attack" in inp["keys"] else 0
                         exact_ticks += 1
                     view.pop("_events", None)
-                    rows.append({"input": inp, "obs": view, "events": [], "frameAge": -1, "w": weights[i]})
-                if len(rows) < MIN_TICKS:
+                    view.pop("privileged", None)
+                    rows.append({"input": inp, "obs": view, "events": [], "frameAge": -1, "w": weights[i] * scale})
+                if len(rows) < MIN_TICKS // 2:
                     continue
+                game = game_of(track)
+                where = " · ".join(x for x in (meta.get("world", ""), game) if x)
                 safe = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in name)[:24]
                 out = os.path.join(recordings, f"players-{rid}-{safe}-{si}")
-                write(out, rows, {"id": os.path.basename(out), "name": f"{name} (from {meta.get('name', rid)})",
-                                  "player": name, "from": rid})
+                write(out, rows, {"id": os.path.basename(out),
+                                  "name": f"{name} ({where or meta.get('name', rid)}, rating {int(skill * 100)})",
+                                  "player": name, "from": rid, "game": game, "server": meta.get("world", ""),
+                                  "rating": round(skill, 3)})
                 made += 1
                 ticks += len(rows)
                 players.add(name)
-    return {"recordings": made, "players": sorted(players), "seconds": round(ticks / 20, 1), "exact_ticks": exact_ticks}
+        try:
+            with open(os.path.join(d, "players_done"), "w", encoding="utf-8") as f:
+                f.write("converted\n")
+        except OSError:
+            pass
+    with open(os.path.join(recordings, "player_ratings.json"), "w", encoding="utf-8") as f:
+        json.dump(ratings, f, indent=1)
+    top = sorted(((rating(v), k) for k, v in ratings.items() if v.get("seen_ticks", 0) > 200), reverse=True)[:5]
+    return {"recordings": made, "players": sorted(players), "seconds": round(ticks / 20, 1), "exact_ticks": exact_ticks,
+            "top": [{"name": k, "rating": round(r, 2)} for r, k in top]}
 
 
 def main(argv=None) -> int:

@@ -13,9 +13,11 @@ final class HubTabs {
 	static final int SKILLS = 1;
 	static final int WORLDS = 2;
 	static final int BACKUPS = 3;
-	private static final String[] NAMES = {"★ Plans", "✦ Skills", "⚡ Worlds", "Backups"};
+	static final int WATCH = 4;
+	private static final String[] NAMES = {"★ Plans", "✦ Skills", "⚡ Worlds", "Backups", "👁 Watch"};
 	private static final String[] HELP = {"Pick a goal and a time: the Coach runs a whole plan", "Every skill, one by one, and your own",
-			"Practice in many worlds at once and watch them live", "Back up the AI, or go back to a backup"};
+			"Practice in many worlds at once and watch them live", "Back up the AI, or go back to a backup",
+			"Learn by watching other players (spectating, PvP servers, minigames)"};
 	static final int Y = 6;
 
 	private HubTabs() {
@@ -68,6 +70,7 @@ final class HubTabs {
 						case SKILLS -> new SkillsScreen(hubParent);
 						case WORLDS -> new WorldsScreen(hubParent);
 						case BACKUPS -> new BackupsScreen(hubParent);
+						case WATCH -> new WatchScreen(hubParent);
 						default -> new HubScreen(hubParent);
 					});
 				}

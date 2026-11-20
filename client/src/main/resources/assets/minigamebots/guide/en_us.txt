@@ -478,6 +478,18 @@ Learn from gameplay videos (YouTube downloads, your own clips).
 
 ! Video demos count half as much as your own recordings: guessed inputs are less sure.
 
+=== watch | Learn by watching (spectator learning)
+The fastest way to learn real play: watch other players. Training Hub > [👁 Watch] > [Start watching].
+1. Spectate games or play near others. On Hypixel, die early and spectate the rest of the match to learn that mode; on PvP servers, watch duels.
+2. Every 10 minutes it turns what it saw into demos: each player's fights from their own point of view.
+3. After an hour or more, press [Train on what it watched].
+- While watching it knows exact positions and actions of everyone nearby (behind walls too), but it counts health like a player: some servers fake health.
+- Every player gets a rating from the fights it saw (hits landed vs taken, deaths). Strong players count more; weak players' good moments still count a little; nobody's mistakes are copied (moments before getting hit or dying count less or not at all).
+- Only the moments with action are kept, so hours of watching make compact demos. A recording is converted once.
+- Demos are tagged with the server and game (sidebar title), e.g. "Steve (mc.hypixel.net · BEDWARS, rating 72)".
+! It never watches while the AI itself is playing, so what it learns this way can't become "seeing through walls" in play.
+! Only where recording other players is allowed.
+
 === players | Learning from players
 Every other player you see while recording can become a lesson.
 

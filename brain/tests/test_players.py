@@ -67,3 +67,40 @@ class PrivilegedTest(unittest.TestCase):
         b = features.featurize({k: v for k, v in obs.items() if k != "privileged"})
         for k in a:
             self.assertTrue(np.array_equal(a[k], b[k]), k)
+
+
+class SpectatorLearningTest(unittest.TestCase):
+    def test_ratings_once_only_action_and_game_tag(self):
+        with tempfile.TemporaryDirectory() as root:
+            d = os.path.join(root, "rec1")
+            source_recording(d, ticks=400)
+            # Steve stands idle (no swings, no hits) for the last 200 ticks: trimmed away.
+            from minigamebots_brain.learn.recording import read_chunk
+            rows = [r for _, r, _ in read_chunk(os.path.join(d, "chunk-00000.bin.gz"))]
+            for r in rows[200:]:
+                for e in r["obs"]["entities"]:
+                    e["swinging"] = False
+                    e["hurtTime"] = 0
+            for r in rows:
+                r["obs"]["text"] = {"sidebarTitle": "§eBEDWARS"}
+            players.write(d, rows, {"id": "src", "world": "mc.example.net"})
+            with open(os.path.join(d, "meta.json")) as f:
+                m = json.load(f)
+            m["source"] = "human"
+            m["world"] = "mc.example.net"
+            with open(os.path.join(d, "meta.json"), "w") as f:
+                json.dump(m, f)
+            out = players.convert(root)
+            self.assertEqual(out["players"], ["Steve"])
+            self.assertLess(out["seconds"], 400 / 20 - 3)  # Idle stretch dropped.
+            ratings = json.load(open(os.path.join(root, "player_ratings.json")))
+            self.assertGreater(ratings["Steve"]["landed"], 0)
+            self.assertGreater(players.rating(ratings["Steve"]), 0.5)  # Lands hits, takes none.
+            meta = json.load(open(os.path.join(root, "players-rec1-Steve-0", "meta.json")))
+            self.assertEqual(meta["game"], "BEDWARS")
+            self.assertIn("mc.example.net", meta["name"])
+            again = players.convert(root)
+            self.assertEqual(again["recordings"], 0)  # Converted once only.
+
+    def test_weak_players_count_less(self):
+        self.assertLess(players.rating({"landed": 1, "taken": 20, "deaths": 3}), players.rating({"landed": 20, "taken": 2}))

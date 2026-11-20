@@ -22,6 +22,27 @@ public final class WatchLearn {
 	private static int ticks;
 	private static volatile boolean converting;
 	private static volatile String status = "";
+	// Live readout (since the switch was turned on).
+	private static final java.util.Set<String> seen = new java.util.HashSet<>();
+	private static final java.util.Map<Integer, Integer> lastHurt = new java.util.HashMap<>();
+	private static int hitsSeen;
+	private static long watchedTicks;
+	private static double demoSeconds;
+	private static int demos;
+	private static java.util.List<String> top = java.util.List.of();
+
+	/** {players seen, hits seen, seconds watched, demos made, demo seconds}. */
+	public static double[] stats() {
+		return new double[] {seen.size(), hitsSeen, watchedTicks / 20.0, demos, demoSeconds};
+	}
+
+	public static java.util.List<String> top() {
+		return top;
+	}
+
+	public static boolean converting() {
+		return converting;
+	}
 
 	private WatchLearn() {
 	}
@@ -61,6 +82,20 @@ public final class WatchLearn {
 			finishPart(c);
 			return;
 		}
+		watchedTicks++;
+		if (c.level != null) {
+			for (var pl : c.level.players()) {
+				if (pl == c.player || pl.isSpectator() || pl.distanceTo(c.player) > 64) {
+					continue;
+				}
+				seen.add(pl.getGameProfile().name());
+				int before = lastHurt.getOrDefault(pl.getId(), 0);
+				if (pl.hurtTime > before) {
+					hitsSeen++;
+				}
+				lastHurt.put(pl.getId(), pl.hurtTime);
+			}
+		}
 		if (!rec.recording()) {
 			rec.start(c);
 			rec.label("Watch & learn", "human");
@@ -91,6 +126,16 @@ public final class WatchLearn {
 				var r = VideoLab.run(List.of("players", "--recordings", rec.store().root().toString(), "--me", me), m -> { });
 				status = r.has("recordings") ? "Last part: " + r.get("recordings").getAsInt() + " demo(s) from "
 						+ r.getAsJsonArray("players").size() + " player(s)" : "Last part: nothing to learn from";
+				if (r.has("recordings")) {
+					demos += r.get("recordings").getAsInt();
+					demoSeconds += r.has("seconds") ? r.get("seconds").getAsDouble() : 0;
+				}
+				if (r.has("top")) {
+					java.util.List<String> t2 = new java.util.ArrayList<>();
+					r.getAsJsonArray("top").forEach(e -> t2.add(e.getAsJsonObject().get("name").getAsString() + " "
+							+ Math.round(e.getAsJsonObject().get("rating").getAsDouble() * 100)));
+					top = t2;
+				}
 			} catch (Exception e) {
 				status = "Couldn't convert: " + e.getMessage();
 			}

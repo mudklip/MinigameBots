@@ -114,8 +114,11 @@ public final class Observer {
 			if (p == me || p.isSpectator() || p.distanceTo(me) > 64) {
 				continue;
 			}
+			// Exact positions and actions, but health counted (servers may fake the real number).
+			HealthMemory.Est est = healthMemory.get(p.getId());
+			float hp = est != null ? (float) est.est : p.getMaxHealth();
 			out.add(new Observation.PrivilegedPlayer(p.getId(), p.getGameProfile().name(), p.getX() - eye.x, p.getY() - eye.y,
-					p.getZ() - eye.z, p.getYHeadRot(), p.getXRot(), p.onGround(), p.getHealth(), p.hurtTime, p.isSwinging(),
+					p.getZ() - eye.z, p.getYHeadRot(), p.getXRot(), p.onGround(), hp, p.hurtTime, p.isSwinging(),
 					p.isUsingItem(), p.isSprinting(), p.isShiftKeyDown(),
 					net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(p.getMainHandItem().getItem()).toString()));
 		}
