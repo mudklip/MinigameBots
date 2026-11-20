@@ -25,6 +25,7 @@ public final class WorldsScreen extends Screen {
 	private static final int CARD_H = 66;
 	private static int count = 2;
 	private static int opponent = 1;
+	private static boolean fast = true;
 
 	private final @Nullable Screen parent;
 	private final List<int[]> chips = new ArrayList<>();
@@ -62,9 +63,18 @@ public final class WorldsScreen extends Screen {
 				}
 				io.github.mudklip.minigamebots.client.profile.Backups.auto(mgb.profiles().store().dir(p.id), "Before training worlds");
 				cmd("tg multitrain here " + COUNTS[count] + " " + OPPONENTS[opponent]);
+				if (fast && minecraft.getSingleplayerServer() != null) {
+					io.github.mudklip.minigamebots.client.brain.FastTraining.start(minecraft);
+				}
 				message = "Starting... (the AI takes control; F9 stops it)";
 				rebuildWidgets();
 			}).pos(width / 2 - 70, 112).width(140).build()).active = grounds && minecraft.player != null;
+			addRenderableWidget(Button.builder(Component.literal("Fast & light: " + (fast ? "§aon" : "off")), b -> {
+				fast = !fast;
+				rebuildWidgets();
+			}).pos(width / 2 + 74, 112).width(96).tooltip(Tooltip.create(Component.literal("Singleplayer: the worlds run twice as "
+					+ "fast, the brain steers them directly (your player stays yours), and the game draws as little as possible "
+					+ "(10 FPS, short view) so you can minimise it. Everything goes back when you stop."))).build());
 		} else {
 			addRenderableWidget(Button.builder(Component.literal("§cStop"), b -> {
 				cmd("tg multitrain stop");
@@ -151,6 +161,9 @@ public final class WorldsScreen extends Screen {
 		}
 		chips.clear();
 		long s = MultiWorldStats.runningMs() / 1000;
+		if (io.github.mudklip.minigamebots.client.brain.FastTraining.on()) {
+			g.text(font, Component.literal("§a⚡ fast & light: 2x speed, 10 FPS (minimise the game if you like)"), 8, height - 12, Ui.MUTED, false);
+		}
 		double wr = MultiWorldStats.recentWinRate();
 		String stats = MultiWorldStats.worlds().size() + " worlds · " + MultiWorldStats.rounds() + " rounds · "
 				+ String.format("%.1f", MultiWorldStats.roundsPerMinute()) + "/min · " + s / 60 + ":" + String.format("%02d", s % 60);

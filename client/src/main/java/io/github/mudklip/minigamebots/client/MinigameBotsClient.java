@@ -286,6 +286,15 @@ public final class MinigameBotsClient implements ClientModInitializer {
 			relations.clear();
 		});
 
+		// Headless training worlds: the training server in this same game steps the brain directly.
+		System.getProperties().put("minigamebots.worldStep", (java.util.function.Function<String, String>) json -> {
+			io.github.mudklip.minigamebots.client.brain.MultiWorldLink.direct(json);
+			return brain.stepWorlds(json);
+		});
+		System.getProperties().put("minigamebots.worldStop", (Runnable) () -> {
+			brain.endWorlds();
+			io.github.mudklip.minigamebots.client.brain.MultiWorldLink.directStopped();
+		});
 		events.addListener(recorder::onEvent);
 		events.addListener(e -> {
 			// Memory: who knocked it out, whom it knocked out.
@@ -321,6 +330,10 @@ public final class MinigameBotsClient implements ClientModInitializer {
 
 	private void endTick(Minecraft client) {
 		tick++;
+		if (io.github.mudklip.minigamebots.client.brain.FastTraining.on() && (client.getSingleplayerServer() == null
+				|| io.github.mudklip.minigamebots.client.brain.FastTraining.settled() && !io.github.mudklip.minigamebots.client.brain.MultiWorldLink.running())) {
+			io.github.mudklip.minigamebots.client.brain.FastTraining.stop(client); // Left the world or training ended.
+		}
 		sounds.setTick(tick);
 		relations.setTick(tick);
 		if (client.level == null || client.player == null) {

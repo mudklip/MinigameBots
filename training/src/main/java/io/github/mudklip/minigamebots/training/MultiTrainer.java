@@ -285,6 +285,9 @@ public final class MultiTrainer {
 			}
 		}
 		copies.clear();
+		if (System.getProperties().get("minigamebots.worldStop") instanceof Runnable r) {
+			r.run();
+		}
 		if (owner != null && server != null && level != null && !replaced.isEmpty()) {
 			ServerPlayer back = server.getPlayerList().getPlayer(owner);
 			if (back != null && back.blockPosition().distSqr(gridCentre) < 64 * 64) {
@@ -392,7 +395,47 @@ public final class MultiTrainer {
 		JsonObject d = new JsonObject();
 		d.add("copies", out);
 		d.addProperty("rounds", rounds);
+		var step = server.isDedicatedServer() || server.getPlayerCount() != 1 ? null : directLink();
+		if (step != null) {
+			// Headless: straight to the brain in this same game (no client relay); answers come back
+			// one tick later and steer the learners here.
+			applyPuppets(step.apply(out.toString()));
+			return;
+		}
 		truth.send(p, "mw", d);
+	}
+
+	/** The client's direct brain link, only in singleplayer (the game and this server share a JVM). */
+	@SuppressWarnings("unchecked")
+	private static java.util.function.@Nullable Function<String, String> directLink() {
+		Object f = System.getProperties().get("minigamebots.worldStep");
+		return f instanceof java.util.function.Function<?, ?> fn ? (java.util.function.Function<String, String>) fn : null;
+	}
+
+	private void applyPuppets(String json) {
+		if (level == null) {
+			return;
+		}
+		try {
+			for (var el : com.google.gson.JsonParser.parseString(json).getAsJsonArray()) {
+				var o = el.getAsJsonObject();
+				int keys = 0;
+				if (o.has("keys")) {
+					for (var k : o.getAsJsonArray("keys")) {
+						int i = io.github.mudklip.minigamebots.common.net.TgPuppetPayload.KEYS.indexOf(k.getAsString());
+						if (i >= 0) {
+							keys |= 1 << i;
+						}
+					}
+				}
+				float yaw = o.has("yaw") ? o.get("yaw").getAsFloat() : 0;
+				float pitch = o.has("pitch") ? o.get("pitch").getAsFloat() : 0;
+				dummies.controlDirect(level, new io.github.mudklip.minigamebots.common.net.TgPuppetPayload(o.get("id").getAsInt(), keys,
+						Float.isFinite(yaw) ? yaw : 0, Float.isFinite(pitch) ? pitch : 0));
+			}
+		} catch (RuntimeException ignored) {
+			// A bad answer: the learners just keep their last input.
+		}
 	}
 
 	private static void clear(JsonArray a) {

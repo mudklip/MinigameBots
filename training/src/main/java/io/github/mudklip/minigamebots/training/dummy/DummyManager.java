@@ -185,6 +185,17 @@ public final class DummyManager {
 		}
 	}
 
+	/** Input for a learner from the brain directly (headless training worlds, same game). */
+	public void controlDirect(ServerLevel level, io.github.mudklip.minigamebots.common.net.TgPuppetPayload c) {
+		Entity e = level.getEntity(c.entityId());
+		Dummy d = e == null ? null : dummies.get(e.getUUID());
+		if (d == null || d.puppetOwner == null) {
+			return;
+		}
+		d.control = c;
+		d.controlTick = tick;
+	}
+
 	/** Self-play input from a client; ignored unless that player owns the dummy. */
 	public void control(ServerPlayer p, io.github.mudklip.minigamebots.common.net.TgPuppetPayload c) {
 		Entity e = p.level().getEntity(c.entityId());

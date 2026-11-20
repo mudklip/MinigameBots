@@ -102,3 +102,11 @@ Spectating a training world; per-skill restore from backups; locks shown clearly
 for a whole coached session; Practice spelling; block/creature/item picker; recording that
 restarted itself (Watch & learn); freezes from backups on the game thread; aim command spam;
 Memory zoom buttons.
+
+## 1.18.0: headless training worlds
+In singleplayer the Training Grounds server hands each tick's world views straight to the
+brain through a shared-JVM hook (System properties `minigamebots.worldStep` / `worldStop`), so
+the player's own client is no longer the relay and stays in the human's hands. LAN and dedicated
+servers keep the old relay. "Fast & light" (Worlds tab, on by default) also runs the built-in
+server at 40 TPS and drops the client to 10 FPS / 2-chunk view; everything is restored on stop
+or when leaving the world.

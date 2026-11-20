@@ -48,6 +48,47 @@ public final class BrainManager {
 	private volatile String message = "";
 	private volatile @Nullable JsonObject system;
 	private volatile @Nullable JsonObject lastStatus;
+	private volatile String lastWorldStep = "[]";
+	private volatile boolean headless;
+	private long worldTick;
+
+	/**
+	 * Headless training worlds (singleplayer): the training server hands every world's view over
+	 * directly (same game), the brain answers for every learner, no player control needed. Called on
+	 * the server thread each tick: sends this tick's views, returns the latest answers (pipelined).
+	 */
+	public String stepWorlds(String copiesJson) {
+		if (!headless) {
+			headless = true;
+			MinigameBotsClient.LOGGER.info("Headless training worlds: steering them directly");
+			var profile = MinigameBotsClient.instance().profiles().active();
+			JsonObject args = new JsonObject();
+			if (profile != null) {
+				args.addProperty("profile", MinigameBotsClient.instance().profiles().store().dir(profile.id).toString());
+			}
+			control.execute(() -> {
+				if (status != Status.RUNNING && !startBlocking()) {
+					return;
+				}
+				policy = "multiworld";
+				sendSetPolicy("multiworld", args);
+			});
+		}
+		if (status == Status.RUNNING && "multiworld".equals(policy) && pendingSends.get() < MAX_PENDING_SENDS) {
+			JsonObject m = new JsonObject();
+			m.addProperty("type", "world_step");
+			m.addProperty("tick", worldTick++);
+			m.add("copies", com.google.gson.JsonParser.parseString(copiesJson));
+			sendAsync(m);
+		}
+		return lastWorldStep;
+	}
+
+	/** Headless training stopped. */
+	public void endWorlds() {
+		headless = false;
+		lastWorldStep = "[]";
+	}
 	private volatile String policy = "idle";
 	private volatile @Nullable BrainSource source;
 	private @Nullable BrainProcess process;
@@ -398,6 +439,7 @@ public final class BrainManager {
 				}
 			}
 			case "status" -> lastStatus = m;
+			case "world_step_result" -> lastWorldStep = m.has("puppets") ? m.get("puppets").toString() : "[]";
 			case "command_result" -> onCommandResult(m);
 			case "speech" -> Voice.play(m.get("path").getAsString());
 			case "chat_reply", "character" -> {

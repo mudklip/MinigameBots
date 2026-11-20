@@ -19,7 +19,29 @@ public final class MultiWorldLink {
 	public static volatile int watching = -1;
 
 	public static boolean running() {
-		return running;
+		return running || direct;
+	}
+
+	private static volatile boolean direct;
+
+	/** A headless step (server thread): only the live view needs it; the brain gets it directly. */
+	public static void direct(String copiesJson) {
+		if (!direct) {
+			direct = true;
+			MultiWorldStats.reset();
+		}
+		try {
+			MultiWorldStats.update(com.google.gson.JsonParser.parseString(copiesJson).getAsJsonArray());
+		} catch (RuntimeException ignored) {
+			// A bad step only skips the live view.
+		}
+	}
+
+	public static void directStopped() {
+		direct = false;
+		watching = -1;
+		var mc = net.minecraft.client.Minecraft.getInstance();
+		mc.execute(() -> FastTraining.stop(mc));
 	}
 
 	private MultiWorldLink() {

@@ -37,6 +37,8 @@ class Brain:
         kind = message.get("type")
         if kind == "obs":
             self.on_obs(message)
+        elif kind == "world_step":
+            self.on_world_step(message)
         elif kind == "set_policy":
             self.set_policy(message.get("name", "idle"), message.get("args") or {})
         elif kind in ("chat", "make_character"):
@@ -67,6 +69,20 @@ class Brain:
             log(f"Couldn't start policy {name}: {e}")
             self.channel.send({"type": "policy", "name": name, "ok": False, "error": str(e)})
         self.send_status(force=True)
+
+    def on_world_step(self, message: dict) -> None:
+        """Headless training worlds: the training server's views of every world in, every learner's
+        input out, without the game client in between (fast background training)."""
+        obs = {"multiworld": message.get("copies") or [], "_events": [], "tick": message.get("tick", 0)}
+        try:
+            action = self.policy.act(obs, None)
+            puppets = action.puppets or []
+        except Exception:
+            self.errors += 1
+            if self.errors <= 5:
+                log("World step error:\n" + traceback.format_exc())
+            puppets = []
+        self.channel.send({"type": "world_step_result", "puppets": puppets})
 
     def on_obs(self, message: dict) -> None:
         tick = message["tick"]

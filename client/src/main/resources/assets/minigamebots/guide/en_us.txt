@@ -352,6 +352,9 @@ The route to a strong fighter, with no PvP skill needed from you. Each step buil
 ! Baritone is not part of this: it's a walking/mining bot. The fighting teacher is built in.
 
 === multiworld | Multi-world training
+# Fast & light (singleplayer)
+With [Fast & light] on (the default), the brain steers the training worlds directly instead of through your player (you keep your own controls), the worlds run twice as fast, and the game draws as little as possible (10 FPS, short view) so you can minimise it and keep using your PC. Your settings and normal speed come back when you stop.
+
 # Spectate a training world
 1. Training Hub > [⚡ Worlds] tab (or [F10] while worlds are running).
 2. Click any world's card: your camera follows that world's AI up close, from its own eyes, even across new rounds.
