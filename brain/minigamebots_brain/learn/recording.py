@@ -81,6 +81,10 @@ def decode_jpeg(data) -> np.ndarray:
     return np.asarray(image, dtype=np.uint8)
 
 
+
+# How much each kind of recording counts ("Learns from" on the skill card; set by train.py).
+SOURCE_SCALE = {"own": 1.0, "others": 1.0, "defeats": 1.0}
+
 class Recording:
     def __init__(self, directory: str):
         self.directory = directory
@@ -109,6 +113,9 @@ class Recording:
         # Imported videos count less than your own recordings (their inputs are guesses).
         # A Flashback replay's camera isn't a player: only its other players teach (players.py).
         base = 0.0 if self.meta.get("source") == "replay" else float(self.meta.get("weight", 1.0))
+        # "Learns from" (per skill): your play, watching others, whoever beat it.
+        cat = "defeats" if self.meta.get("defeat") else "others" if self.meta.get("source") == "player" else "own"
+        base *= SOURCE_SCALE.get(cat, 1.0)
         w = np.full(max(ticks, 1), base, dtype=np.float32)
         for mark in self.meta.get("marks") or []:
             t = int(mark.get("tick", 0))

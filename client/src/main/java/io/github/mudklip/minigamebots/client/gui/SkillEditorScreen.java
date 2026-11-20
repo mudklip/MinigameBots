@@ -109,6 +109,31 @@ public final class SkillEditorScreen extends Screen {
 		// Rewards card buttons.
 		addRenderableWidget(Button.builder(Component.literal("Edit..."), b -> minecraft.gui.setScreen(
 				new RulesScreen(this, "What " + def.name + " is rewarded for", def.rules, false))).pos(lx + colW - 62, 98).size(58, 16).build());
+		// Learns from: your play, watching others, whoever beat it.
+		if (def.learnFrom == null) {
+			def.learnFrom = new SkillDef.LearnFrom();
+		}
+		String[] names = {"Your play", "Others", "Who beats it"};
+		String[] help = {"Your own recordings (and teachers').", "Players it watched (spectating, or while you played).",
+				"Players who beat it: after a lost fight it saves how they played and learns from it (" + defeatClips() + " clips so far)."};
+		int lw = (colW - 76) / 3;
+		for (int i = 0; i < 3; i++) {
+			final int k = i;
+			double v = k == 0 ? def.learnFrom.own : k == 1 ? def.learnFrom.others : def.learnFrom.defeats;
+			addRenderableWidget(Button.builder(Component.literal((v <= 0 ? "§8" : "§a") + names[k] + " " + (v <= 0 ? "off" : Math.round(v * 100) + "%")), b -> {
+				double nv = v <= 0 ? 0.25 : v < 0.5 ? 0.5 : v < 1 ? 1.0 : 0.0;
+				if (k == 0) {
+					def.learnFrom.own = nv;
+				} else if (k == 1) {
+					def.learnFrom.others = nv;
+				} else {
+					def.learnFrom.defeats = nv;
+				}
+				changed();
+				rebuildWidgets();
+			}).pos(lx + 72 + k * (lw + 2), height - 66).size(lw, 16).tooltip(Tooltip.create(Component.literal(help[k]
+					+ " Click: how much it counts when this skill trains (off, 25%, 50%, 100%)."))).build());
+		}
 		// Stages.
 		int sy = stagesTop();
 		for (int i = 0; i < def.stages.size(); i++) {
@@ -289,7 +314,9 @@ public final class SkillEditorScreen extends Screen {
 		SkillLibrary lib = SkillLibrary.get();
 		// Cards under the widgets.
 		int rewardsTop = 96;
-		Ui.panel(g, lx, rewardsTop, colW, height - 32 - rewardsTop - 12);
+		Ui.panel(g, lx, rewardsTop, colW, height - 32 - rewardsTop - 12 - 30);
+		Ui.panel(g, lx, height - 72, colW, 28);
+		g.text(font, Component.literal("§lLearns from"), lx + 6, height - 62, Ui.ACCENT, false);
 		Ui.panel(g, rx, lockTop() - 2, colW, lockRowsHeight() + 22);
 		int sy = stagesTop();
 		Ui.panel(g, rx, sy - 6, colW, Math.max(30, def.stages.size() * 18 + 24));
@@ -371,5 +398,15 @@ public final class SkillEditorScreen extends Screen {
 			return;
 		}
 		minecraft.gui.setScreen(parent);
+	}
+
+	/** How many "who beat it" demos exist (all skills share them). */
+	private static long defeatClips() {
+		var dir = net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir().resolve("minigamebots/recordings");
+		try (var files = java.nio.file.Files.list(dir)) {
+			return files.filter(f -> f.getFileName().toString().startsWith("defeat-")).count();
+		} catch (Exception e) {
+			return 0;
+		}
 	}
 }

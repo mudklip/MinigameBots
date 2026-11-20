@@ -185,7 +185,8 @@
   "combo": "Combo: 3+ hits in a row without being hit",
   "landed_in_water": "Lands in water from a fall",
   "fell_into_void": "Falls into the void",
-  "item_wasted": "Item wasted (missed shots, overeating, unused healing, pointless pearls/wind charges)"
+  "item_wasted": "Item wasted (missed shots, overeating, unused healing, pointless pearls/wind charges)",
+  "uses_what_beat_it": "Uses what beat it (the items players who beat it used)"
  },
  "events": {
   "kill": "Kills something",

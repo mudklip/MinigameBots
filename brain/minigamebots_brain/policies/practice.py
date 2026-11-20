@@ -57,6 +57,7 @@ class PracticePolicy(Policy):
         self.skill = skill_def
         self.tracker = None
         self.behaviours = skills.Behaviours(skill_def)
+        self.behaviours.load_beaten(profile)
         self.prev_action = None
         self.key_mask, self.camera_lock = [], False
         if skill_def:

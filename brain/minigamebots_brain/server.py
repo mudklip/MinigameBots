@@ -70,6 +70,17 @@ class Brain:
         self.close_policy()
         if name == "manager" and args.get("mode") == "personality" and args.get("profile"):
             self._personality_mode(args)
+        self.defeats = None
+        if name in ("learned", "manager", "practice", "multiworld") and args.get("profile"):
+            # Learning from whoever beats it (defeats.py), for whatever plays fights.
+            from .defeats import DefeatWatcher
+
+            root = os.path.abspath(args["profile"])
+            for _ in range(4):
+                if os.path.isfile(os.path.join(root, "manifest.json")):
+                    self.defeats = DefeatWatcher(root)
+                    break
+                root = os.path.dirname(root)
         start = time.perf_counter()
         try:
             self.policy = policies.create(name, args)
@@ -85,6 +96,9 @@ class Brain:
         self.send_status(force=True)
 
     def close_policy(self) -> None:
+        if getattr(self, "defeats", None) is not None:
+            self.defeats.close()
+            self.defeats = None
         """Lets the current policy save and let go (on swap and on shutdown)."""
         old, self.policy = self.policy, policies.create("idle")
         if old.name == "idle":
@@ -120,6 +134,11 @@ class Brain:
         # Game events since the last tick ride along with the observation; policies that learn
         # from rewards read them from here, others ignore them.
         obs["_events"] = message.get("events") or []
+        if getattr(self, "defeats", None) is not None:
+            try:
+                self.defeats.step(obs, obs["_events"])
+            except Exception:
+                log("Defeat watcher error:\n" + traceback.format_exc())
         try:
             action = self.policy.act(obs, frame)
         except Exception:

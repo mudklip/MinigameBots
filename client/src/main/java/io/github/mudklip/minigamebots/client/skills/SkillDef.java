@@ -30,6 +30,14 @@ public final class SkillDef {
 		public boolean separate;
 	}
 
+	/** How much each kind of recording counts when it trains ("Learns from"; 0 = not used). */
+	public static final class LearnFrom {
+		public double own = 1.0;
+		public double others = 0.5;
+		public double defeats = 0.5;
+	}
+
+	public LearnFrom learnFrom = new LearnFrom();
 	public String name = "New skill";
 	public String icon = "minecraft:book";
 	public String category = "Custom";

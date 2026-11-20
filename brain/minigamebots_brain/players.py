@@ -40,7 +40,7 @@ from .selfplay import opponent_view
 
 EYE = 1.62
 MIN_TICKS = 100
-SKIP_SOURCES = ("video", "player")
+SKIP_SOURCES = ("video", "player", "fight")
 
 
 def _wrap(a: float) -> float:
@@ -222,6 +222,55 @@ def write(directory: str, rows: list[dict], meta: dict) -> None:
         json.dump(m, f, indent=1)
 
 
+def convert_one(recordings, d, rid, meta, by_name, ratings, own_name="", only=None, boost=1.0, prefix="players",
+                extra=None):
+    """One recording's players (or only those in `only`) into demos. Returns (demos, ticks, names, exact ticks)."""
+    made, ticks, exact_ticks, players = 0, 0, 0, set()
+    for name, segs in by_name.items():
+        if name == own_name:
+            continue
+        skill = rating(ratings.get(name, {}))
+        scale = (0.4 + 1.2 * skill) * boost  # Weak players' moments still count a little, strong players' more.
+        for si, track in enumerate(segs):
+            if len(track) < MIN_TICKS:
+                continue
+            last = track[-1]["e"]
+            died = float(last.get("health", 20.0)) <= 0.0
+            weights = outcome_weights(track, _hits_by(track), died)
+            near = action_ticks(track)
+            rows = []
+            for i in range(1, len(track)):
+                if not near[i]:
+                    continue  # Only the moments with action.
+                prev, cur = track[i - 1], track[i]
+                view = opponent_view(cur["obs"], cur["e"].get("id"))
+                if view is None:
+                    continue
+                inp = guess_input(prev["e"], cur["e"], _abs_pos(prev["obs"].get("self") or {}, prev["e"]),
+                                  _abs_pos(cur["obs"].get("self") or {}, cur["e"]))
+                if cur["exact"] is not None:
+                    inp["keys"] = list(cur["exact"])
+                    inp["attacks"] = 1 if "attack" in inp["keys"] else 0
+                    exact_ticks += 1
+                view.pop("_events", None)
+                view.pop("privileged", None)
+                rows.append({"input": inp, "obs": view, "events": [], "frameAge": -1, "w": weights[i] * scale})
+            if len(rows) < MIN_TICKS // 2:
+                continue
+            game = game_of(track)
+            where = " · ".join(x for x in (meta.get("world", ""), game) if x)
+            safe = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in name)[:24]
+            out = os.path.join(recordings, f"{prefix}-{rid}-{safe}-{si}")
+            write(out, rows, {"id": os.path.basename(out),
+                              "name": f"{name} ({where or meta.get('name', rid)}, rating {int(skill * 100)})",
+                              "player": name, "from": rid, "game": game, "server": meta.get("world", ""),
+                              "rating": round(skill, 3), **(extra or {})})
+            made += 1
+            ticks += len(rows)
+            players.add(name)
+    return made, ticks, players, exact_ticks
+
+
 def convert(recordings: str, own_name: str = "") -> dict:
     made, players, exact_ticks, ticks = 0, set(), 0, 0
     ratings = load_ratings(recordings)
@@ -251,48 +300,11 @@ def convert(recordings: str, own_name: str = "") -> dict:
                 st["deaths"] += 1 if float(track[-1]["e"].get("health", 20.0)) <= 0.0 else 0
                 st["seen_ticks"] += len(track)
     for d, rid, meta, by_name in todo:
-        for name, segs in by_name.items():
-            if name == own_name:
-                continue
-            skill = rating(ratings.get(name, {}))
-            scale = 0.4 + 1.2 * skill  # Weak players' moments still count a little, strong players' more.
-            for si, track in enumerate(segs):
-                if len(track) < MIN_TICKS:
-                    continue
-                last = track[-1]["e"]
-                died = float(last.get("health", 20.0)) <= 0.0
-                weights = outcome_weights(track, _hits_by(track), died)
-                near = action_ticks(track)
-                rows = []
-                for i in range(1, len(track)):
-                    if not near[i]:
-                        continue  # Only the moments with action.
-                    prev, cur = track[i - 1], track[i]
-                    view = opponent_view(cur["obs"], cur["e"].get("id"))
-                    if view is None:
-                        continue
-                    inp = guess_input(prev["e"], cur["e"], _abs_pos(prev["obs"].get("self") or {}, prev["e"]),
-                                      _abs_pos(cur["obs"].get("self") or {}, cur["e"]))
-                    if cur["exact"] is not None:
-                        inp["keys"] = list(cur["exact"])
-                        inp["attacks"] = 1 if "attack" in inp["keys"] else 0
-                        exact_ticks += 1
-                    view.pop("_events", None)
-                    view.pop("privileged", None)
-                    rows.append({"input": inp, "obs": view, "events": [], "frameAge": -1, "w": weights[i] * scale})
-                if len(rows) < MIN_TICKS // 2:
-                    continue
-                game = game_of(track)
-                where = " · ".join(x for x in (meta.get("world", ""), game) if x)
-                safe = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in name)[:24]
-                out = os.path.join(recordings, f"players-{rid}-{safe}-{si}")
-                write(out, rows, {"id": os.path.basename(out),
-                                  "name": f"{name} ({where or meta.get('name', rid)}, rating {int(skill * 100)})",
-                                  "player": name, "from": rid, "game": game, "server": meta.get("world", ""),
-                                  "rating": round(skill, 3)})
-                made += 1
-                ticks += len(rows)
-                players.add(name)
+        m, t, names, ex = convert_one(recordings, d, rid, meta, by_name, ratings, own_name)
+        made += m
+        ticks += t
+        exact_ticks += ex
+        players |= names
         try:
             with open(os.path.join(d, "players_done"), "w", encoding="utf-8") as f:
                 f.write("converted\n")

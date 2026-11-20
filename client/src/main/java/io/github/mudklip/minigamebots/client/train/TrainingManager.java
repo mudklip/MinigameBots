@@ -211,10 +211,22 @@ public final class TrainingManager {
 		List<String> command = new ArrayList<>(List.of(runtime.venvPython().toString(), "-m", "minigamebots_brain", "train",
 				"--profile", skillDir.toString(), "--steps", Integer.toString(plan.steps),
 				"--resources", resources.name().toLowerCase(Locale.ROOT)));
+		// Learns from (the skill card): leave out kinds switched off, weigh the rest.
+		var sdef = io.github.mudklip.minigamebots.client.skills.SkillStore.read(profiles.dir(profile.id), skill);
+		if (sdef == null) {
+			sdef = io.github.mudklip.minigamebots.client.skills.SkillLibrary.get().preset(skill);
+		}
+		var lf = sdef != null && sdef.learnFrom != null ? sdef.learnFrom : new io.github.mudklip.minigamebots.client.skills.SkillDef.LearnFrom();
 		for (RecordingMeta r : chosen) {
+			boolean defeat = r.id.startsWith("defeat-");
+			boolean other = !defeat && r.id.startsWith("players-");
+			if ((defeat && lf.defeats <= 0) || (other && lf.others <= 0) || (!defeat && !other && lf.own <= 0)) {
+				continue;
+			}
 			command.add("--recording");
 			command.add(recordings.dir(r.id).toString());
 		}
+		command.addAll(List.of("--learn-weights", lf.own + "," + lf.others + "," + lf.defeats));
 		if (fresh) {
 			command.add("--fresh");
 		}

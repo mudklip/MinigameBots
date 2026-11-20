@@ -242,7 +242,16 @@ def main(argv=None) -> int:
     p.add_argument("--device")
     p.add_argument("--base", choices=["lite", "vpt"], default="lite")
     p.add_argument("--foundation", help="installed foundation folder (with --base vpt)")
+    p.add_argument("--learn-weights", help="own,others,defeats: how much each kind of recording counts")
     args = p.parse_args(argv)
+    if args.learn_weights:
+        from . import recording as _rec
+
+        try:
+            own, others, defeats = (float(x) for x in args.learn_weights.split(","))
+            _rec.SOURCE_SCALE.update(own=own, others=others, defeats=defeats)
+        except ValueError:
+            pass
     try:
         if args.base == "vpt":
             from . import vpt_tune

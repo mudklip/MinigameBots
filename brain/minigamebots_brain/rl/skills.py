@@ -184,6 +184,28 @@ class Behaviours:
         from .waste import WasteTracker
 
         self.waste = WasteTracker()
+        self.beaten_with = set()
+
+    def load_beaten(self, profile: str) -> None:
+        """What the players who beat it used (defeats.py tally): items that did 20%+ of the damage."""
+        import json
+        import os
+
+        root = os.path.abspath(profile)
+        for _ in range(4):
+            path = os.path.join(root, "hurt_by.json")
+            if os.path.isfile(path):
+                try:
+                    with open(path, encoding="utf-8") as f:
+                        tally = json.load(f)
+                except (OSError, ValueError):
+                    return
+                for g in tally.values():
+                    held = g.get("held") or {}
+                    total = sum(held.values()) or 1.0
+                    self.beaten_with |= {k for k, v in held.items() if v / total >= 0.2}
+                return
+            root = os.path.dirname(root)
 
     def _target(self, obs: dict):
         best = None
@@ -361,6 +383,8 @@ class Behaviours:
             res.append({"type": "b:in_zone", "data": {"units": 1.0, "zone": me.get("zone")}})
         if held:
             res.append({"type": "b:holding", "data": {"units": 1.0, "item": held}})
+        if held and held in self.beaten_with and ("attack" in keys or "use" in keys or attacking):
+            res.append({"type": "b:uses_what_beat_it", "data": {"units": 1.0, "item": held}})
         res += self.waste.step(obs, action, game_events)
         return res
 
