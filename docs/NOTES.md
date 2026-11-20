@@ -297,3 +297,18 @@ S = small, M = medium, (check) = needs an in-game check (batch these).
 - E5 program card UI (timeline, editable, Accept creates skills/rules, follow-up on stalls) M (check)
 - F1 guard orders: "Takes orders from" list (empty default), only signed player chat/whispers by sender UUID; guard <player> <dist> <ring|line|front|wedge|square> with <names>; standby/follow/stop; cooldown, max distance, allowed protectees M
 - F2 slots = sorted names index + simple math, rotate with protectee facing, optional close gaps from visible guards; nearest guard engages, others hold; safety first; scripted (no training, no Baritone) M (check)
+
+## Code map (for the next update; read this instead of exploring)
+Client: client/src/main/java/io/github/mudklip/minigamebots/client/
+- brain/BrainManager (talks to Python: play(), playLearned(), ask(); status handler "status"), brain/BrainRuntime (code unpack, venv)
+- events/EventDetector + EventTypes (damage_taken emits only "amount" today -> add cause/self in B1)
+- observe/Observer + Observation (Self has saturation; EntityInfo has dx..vz, health, blocking, onGround, hitMe/hitByMe, protectedTarget), observe/FrameCapture (AI snapshot; MinecraftMixin injects after GameRenderer.render -> A3 draws after this)
+- practice/ExamManager (exams.json, Result) + Objective (rules), coach/Watchdog (progress verdict), coach/Coach, coach/Progress
+- gui/Ui (BG, CARD, ACCENT, GOOD, WARN, panel/card/bar/header/chip/tile pieces), gui/ProgressScreen (chart/line/dashed/hover card), gui/PickRuleScreen (rule picker: skills.json behaviours + events), gui/SkillEditorScreen ("Rewarded for" card), gui/ExamsScreen, MainScreen (LinearLayout menu)
+- config/MgbConfig (all settings; YACL screen), invent/BuildRunner, train/BaritoneTeacher, sleep/SleepMode
+Brain: brain/minigamebots_brain/
+- policies/learned.py (net + FastWeights + OpponentModel biases), policies/opponent.py (style, bluffs), policies/fastweights.py (who_key), policies/build.py, policies/manager.py, policies/strategy.py
+- rl/objective.py (rules, tiers, forgive, budget; AVOIDANCE_EVENTS), rl/ppo.py, rl/skills.json (behaviours/events catalog)
+- players.py (writes player-source clips), dream.py, invent.py (evolution loop to reuse for E3), learn/recording.py (read_chunk)
+Dev: build /tmp/claude-0/g.sh <tasks>; brain tests: cd brain && ../run/minigamebots/brain/runtime/venv/bin/python -m unittest discover -s tests;
+relaunch script lives in the session scratchpad (recreate: Xvfb :99, ./gradlew :client:runClient --offline --args="--quickPlaySingleplayer test" with MINIGAMEBOTS_BRAIN_DIR=brain).
