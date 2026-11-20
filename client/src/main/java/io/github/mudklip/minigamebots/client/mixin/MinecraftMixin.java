@@ -20,9 +20,14 @@ public abstract class MinecraftMixin {
 		}
 	}
 
-	/** Grab the AI's view of the frame right after it has been drawn (including the HUD). */
+	/**
+	 * Grab the AI's view of the frame right after it has been drawn (with the HUD, other mods' HUD
+	 * included), then draw this mod's own overlays on top, so they never end up in that view (A3).
+	 */
 	@Inject(method = "renderFrame", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/GameRenderer;render()V", shift = At.Shift.AFTER))
 	private void minigamebots$afterRender(boolean advanceGameTime, CallbackInfo ci) {
-		FrameCapture.get().afterRender((Minecraft) (Object) this);
+		Minecraft mc = (Minecraft) (Object) this;
+		FrameCapture.get().afterRender(mc);
+		io.github.mudklip.minigamebots.client.overlay.Overlay.afterCapture(mc);
 	}
 }

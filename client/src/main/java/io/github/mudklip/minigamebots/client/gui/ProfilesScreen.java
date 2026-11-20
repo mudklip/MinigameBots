@@ -238,7 +238,7 @@ public final class ProfilesScreen extends Screen {
 	}
 
 	private void toast(Component body) {
-		SystemToast.addOrUpdate(minecraft.gui.toastManager(), TOAST, Component.translatable("minigamebots.profiles.title"), body);
+		io.github.mudklip.minigamebots.client.overlay.Overlay.toast(TOAST, Component.translatable("minigamebots.profiles.title"), body);
 	}
 
 	// ---- Cards ----

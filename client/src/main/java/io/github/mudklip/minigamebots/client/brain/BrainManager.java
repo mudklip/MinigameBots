@@ -135,8 +135,7 @@ public final class BrainManager {
 		if (!err.equals(toastedError)) {
 			toastedError = err;
 			var mc = net.minecraft.client.Minecraft.getInstance();
-			mc.execute(() -> net.minecraft.client.gui.components.toasts.SystemToast.addOrUpdate(mc.gui.toastManager(),
-					new net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId(),
+			mc.execute(() -> io.github.mudklip.minigamebots.client.overlay.Overlay.toast(new net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId(),
 					net.minecraft.network.chat.Component.literal("Practice: learning error"),
 					net.minecraft.network.chat.Component.literal(err.length() > 80 ? err.substring(0, 80) + "..." : err)));
 		}
@@ -407,7 +406,7 @@ public final class BrainManager {
 			if (AgentControl.aiActive() && AgentControl.get().source() instanceof BrainSource) {
 				AgentControl.get().stop(client, Component.translatable("minigamebots.brain.stopped_ai"));
 			}
-			SystemToast.addOrUpdate(client.gui.toastManager(), TOAST, Component.translatable("minigamebots.brain.title"),
+			io.github.mudklip.minigamebots.client.overlay.Overlay.toast(TOAST, Component.translatable("minigamebots.brain.title"),
 					Component.literal(why.length() > 120 ? why.substring(0, 120) + "..." : why));
 		});
 	}
@@ -420,7 +419,7 @@ public final class BrainManager {
 			if (AgentControl.aiActive() && AgentControl.get().source() instanceof BrainSource) {
 				AgentControl.get().stop(client, Component.translatable("minigamebots.brain.stopped_ai"));
 			}
-			SystemToast.addOrUpdate(client.gui.toastManager(), TOAST, Component.translatable("minigamebots.brain.title"),
+			io.github.mudklip.minigamebots.client.overlay.Overlay.toast(TOAST, Component.translatable("minigamebots.brain.title"),
 					Component.literal(why));
 		});
 	}

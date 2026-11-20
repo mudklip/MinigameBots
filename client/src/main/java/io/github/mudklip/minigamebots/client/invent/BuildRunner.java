@@ -84,7 +84,7 @@ public final class BuildRunner {
 					+ (ps.has("doing") && !ps.get("doing").isJsonNull() ? ", " + ps.get("doing").getAsString() : "")
 					+ (ps.has("missing") && !ps.getAsJsonArray("missing").isEmpty() ? " (missing: " + ps.getAsJsonArray("missing") + ")" : "");
 			if (mc.player != null && mc.level != null && mc.level.getGameTime() % 10 == 0) {
-				mc.player.sendOverlayMessage(Component.literal(status));
+				io.github.mudklip.minigamebots.client.overlay.Overlay.message(Component.literal(status));
 			}
 		}
 		if (finished || !AgentControl.aiActive()) {

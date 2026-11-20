@@ -119,7 +119,7 @@ public final class ExamManager {
 		save(MinigameBotsClient.instance().profiles().store().dir(p.id), r);
 		Minecraft c = Minecraft.getInstance();
 		String text = String.format("%s: won %d of %d rounds", p.name, r.wins, r.rounds);
-		c.execute(() -> SystemToast.addOrUpdate(c.gui.toastManager(), TOAST, Component.literal("Exam finished"),
+		c.execute(() -> io.github.mudklip.minigamebots.client.overlay.Overlay.toast(TOAST, Component.literal("Exam finished"),
 				Component.literal(text)));
 	}
 

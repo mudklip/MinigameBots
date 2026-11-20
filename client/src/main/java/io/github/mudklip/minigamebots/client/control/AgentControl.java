@@ -92,7 +92,7 @@ public final class AgentControl {
 		camera.reset();
 		KeyMapping.releaseAll();
 		active = true;
-		client.player.sendOverlayMessage(Component.translatable("minigamebots.control.ai_on",
+		io.github.mudklip.minigamebots.client.overlay.Overlay.message(Component.translatable("minigamebots.control.ai_on",
 				profiles.displayName() + " - " + newSource.name()));
 	}
 
@@ -119,7 +119,7 @@ public final class AgentControl {
 			client.mouseHandler.grabMouse();
 		}
 		if (client.player != null) {
-			client.player.sendOverlayMessage(reason);
+			io.github.mudklip.minigamebots.client.overlay.Overlay.message(reason);
 		}
 	}
 

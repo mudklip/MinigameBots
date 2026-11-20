@@ -380,6 +380,6 @@ public final class MinigameBotsClient implements ClientModInitializer {
 			case LOCAL_TOO_OLD -> Component.translatable("minigamebots.toast.link.update_client");
 			case REMOTE_TOO_OLD -> Component.translatable("minigamebots.toast.link.update_server");
 		};
-		SystemToast.addOrUpdate(client.gui.toastManager(), LINK_TOAST, title, body);
+		io.github.mudklip.minigamebots.client.overlay.Overlay.toast(LINK_TOAST, title, body);
 	}
 }

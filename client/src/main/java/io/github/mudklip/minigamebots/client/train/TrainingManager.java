@@ -322,7 +322,7 @@ public final class TrainingManager {
 		message = "Finished at step " + m.get("global_step").getAsInt();
 		Minecraft client = Minecraft.getInstance();
 		String name = p == null ? "AI" : p.name;
-		client.execute(() -> SystemToast.addOrUpdate(client.gui.toastManager(), TOAST,
+		client.execute(() -> io.github.mudklip.minigamebots.client.overlay.Overlay.toast(TOAST,
 				Component.translatable("minigamebots.training.title"), Component.translatable("minigamebots.training.finished", name)));
 	}
 
@@ -344,7 +344,7 @@ public final class TrainingManager {
 			}
 			Minecraft client = Minecraft.getInstance();
 			String why = message;
-			client.execute(() -> SystemToast.addOrUpdate(client.gui.toastManager(), TOAST,
+			client.execute(() -> io.github.mudklip.minigamebots.client.overlay.Overlay.toast(TOAST,
 					Component.translatable("minigamebots.training.title"), Component.literal(why)));
 		}
 		if (status == Status.DONE) {

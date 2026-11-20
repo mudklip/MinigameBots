@@ -202,7 +202,7 @@ public final class BrainScreen extends Screen {
 				var r = io.github.mudklip.minigamebots.client.video.VideoLab.run("voice".equals(size) ? java.util.List.of("mind", "install-voice", "--root",
 						brain.runtime().root().resolve("mind").toString()) : java.util.List.of("mind", "install", "--size", size, "--root",
 						brain.runtime().root().resolve("mind").toString()), m -> mc.execute(() ->
-						net.minecraft.client.gui.components.toasts.SystemToast.addOrUpdate(mc.gui.toastManager(), toast,
+						io.github.mudklip.minigamebots.client.overlay.Overlay.toast(toast,
 								Component.literal("Mind"), Component.literal(m))));
 				end = "error".equals(r.has("type") ? r.get("type").getAsString() : "") ? "Failed: " + r.get("message").getAsString()
 						: "Installed. Try /ai with anything.";
@@ -215,7 +215,7 @@ public final class BrainScreen extends Screen {
 			String msg = end;
 			mindBusy = false;
 			mc.execute(() -> {
-				net.minecraft.client.gui.components.toasts.SystemToast.addOrUpdate(mc.gui.toastManager(), toast,
+				io.github.mudklip.minigamebots.client.overlay.Overlay.toast(toast,
 						Component.literal("Mind"), Component.literal(msg));
 				if (mc.gui.screen() == this) {
 					rebuildWidgets();

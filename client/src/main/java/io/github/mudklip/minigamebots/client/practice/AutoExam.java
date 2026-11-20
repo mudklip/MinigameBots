@@ -298,6 +298,6 @@ public final class AutoExam {
 	}
 
 	private static void toast(Minecraft mc, String title, String text) {
-		SystemToast.addOrUpdate(mc.gui.toastManager(), TOAST, Component.literal(title), Component.literal(text));
+		io.github.mudklip.minigamebots.client.overlay.Overlay.toast(TOAST, Component.literal(title), Component.literal(text));
 	}
 }

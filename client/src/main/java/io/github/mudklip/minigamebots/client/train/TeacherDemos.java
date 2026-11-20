@@ -60,7 +60,7 @@ public final class TeacherDemos {
 		if (t.policy().startsWith("baritone:")) {
 			String err = BaritoneTeacher.start(client, BaritoneTeacher.Task.valueOf(t.policy().substring(9)));
 			if (err != null) {
-				net.minecraft.client.gui.components.toasts.SystemToast.addOrUpdate(client.gui.toastManager(), TOAST,
+				io.github.mudklip.minigamebots.client.overlay.Overlay.toast(TOAST,
 						net.minecraft.network.chat.Component.literal("Teacher"), net.minecraft.network.chat.Component.literal(err));
 				return;
 			}

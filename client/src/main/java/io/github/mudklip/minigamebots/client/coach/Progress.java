@@ -150,7 +150,7 @@ public final class Progress {
 
 	private static void toast(String title, String body) {
 		Minecraft c = Minecraft.getInstance();
-		c.execute(() -> SystemToast.addOrUpdate(c.gui.toastManager(), new SystemToast.SystemToastId(),
+		c.execute(() -> io.github.mudklip.minigamebots.client.overlay.Overlay.toast(new SystemToast.SystemToastId(),
 				Component.literal("§6★ " + title), Component.literal(body)));
 	}
 

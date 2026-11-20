@@ -7,8 +7,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /**
- * Small "REC 1:23" badge in the top-left corner while recording. It's part of the HUD, so it
- * also appears in the recorded frames; that's intended, the AI learns to ignore it.
+ * Small "REC 1:23" badge in the top-left corner while recording. Drawn after the frame is
+ * captured (see {@link io.github.mudklip.minigamebots.client.overlay.Overlay}), so recordings and
+ * the AI's view don't contain it; as a normal HUD element only if that isn't possible.
  */
 public final class RecordingIndicator implements HudElement {
 	private static final int RED = 0xFFE53935;
@@ -19,12 +20,19 @@ public final class RecordingIndicator implements HudElement {
 
 	public RecordingIndicator(Recorder recorder) {
 		this.recorder = recorder;
+		io.github.mudklip.minigamebots.client.overlay.Overlay.add((g, mc, w, h) -> mc.gui.screen() == null && draw(g));
 	}
 
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor graphics, DeltaTracker delta) {
+		if (!io.github.mudklip.minigamebots.client.overlay.Overlay.deferred()) {
+			draw(graphics);
+		}
+	}
+
+	private boolean draw(GuiGraphicsExtractor graphics) {
 		if (!recorder.recording() || !MgbConfig.get().showRecordingIndicator) {
-			return;
+			return false;
 		}
 		var font = Minecraft.getInstance().font;
 		String text = "REC " + Recorder.time(recorder.ticks());
@@ -35,5 +43,6 @@ public final class RecordingIndicator implements HudElement {
 			graphics.fill(6, 6, 12, 12, RED);
 		}
 		graphics.text(font, text, 15, 5, WHITE, false);
+		return true;
 	}
 }

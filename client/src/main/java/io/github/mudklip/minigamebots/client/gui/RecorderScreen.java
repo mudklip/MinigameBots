@@ -172,7 +172,7 @@ public final class RecorderScreen extends Screen {
 	}
 
 	private void toast(Component body) {
-		SystemToast.addOrUpdate(minecraft.gui.toastManager(), TOAST, Component.translatable("minigamebots.recorder.title"), body);
+		io.github.mudklip.minigamebots.client.overlay.Overlay.toast(TOAST, Component.translatable("minigamebots.recorder.title"), body);
 	}
 
 	@Override

@@ -174,7 +174,7 @@ public final class Recorder {
 		}
 		pendingMarks.add(type);
 		if (client.player != null) {
-			client.player.sendOverlayMessage(Component.translatable("minigamebots.recorder.marked." + type));
+			io.github.mudklip.minigamebots.client.overlay.Overlay.message(Component.translatable("minigamebots.recorder.marked." + type));
 		}
 	}
 
@@ -247,6 +247,6 @@ public final class Recorder {
 	}
 
 	private static void toast(Minecraft client, Component body) {
-		SystemToast.addOrUpdate(client.gui.toastManager(), TOAST, Component.translatable("minigamebots.recorder.title"), body);
+		io.github.mudklip.minigamebots.client.overlay.Overlay.toast(TOAST, Component.translatable("minigamebots.recorder.title"), body);
 	}
 }

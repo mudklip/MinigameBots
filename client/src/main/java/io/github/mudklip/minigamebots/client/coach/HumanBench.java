@@ -82,8 +82,7 @@ public final class HumanBench {
 
 	private static void toast(String text) {
 		Minecraft mc = Minecraft.getInstance();
-		mc.execute(() -> net.minecraft.client.gui.components.toasts.SystemToast.addOrUpdate(mc.gui.toastManager(),
-				new net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId(), Component.literal("Human floor"),
+		mc.execute(() -> io.github.mudklip.minigamebots.client.overlay.Overlay.toast(new net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId(), Component.literal("Human floor"),
 				Component.literal(text)));
 	}
 }

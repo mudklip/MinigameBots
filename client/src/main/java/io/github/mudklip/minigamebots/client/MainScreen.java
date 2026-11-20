@@ -81,8 +81,7 @@ public final class MainScreen extends Screen {
 			// Once: point new players at the guide, then never again.
 			MgbConfig.get().guideHintShown = true;
 			MgbConfig.HANDLER.save();
-			net.minecraft.client.gui.components.toasts.SystemToast.addOrUpdate(minecraft.gui.toastManager(),
-					new net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId(),
+			io.github.mudklip.minigamebots.client.overlay.Overlay.toast(new net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId(),
 					Component.translatable("minigamebots.guide.hint_title"), Component.translatable("minigamebots.guide.hint"));
 		}
 		layout.addToFooter(Button.builder(Component.translatable("gui.done"), b -> onClose()).width(204).build());

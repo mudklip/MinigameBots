@@ -153,7 +153,7 @@ public final class WatchLearn {
 			on = false;
 			status = "Off (you stopped the recording)";
 			if (c.player != null) {
-				c.player.sendOverlayMessage(net.minecraft.network.chat.Component.literal("Watch & learn switched off (you stopped recording)"));
+				io.github.mudklip.minigamebots.client.overlay.Overlay.message(net.minecraft.network.chat.Component.literal("Watch & learn switched off (you stopped recording)"));
 			}
 			finishPart(c);
 			return;
@@ -220,7 +220,7 @@ public final class WatchLearn {
 		t.setDaemon(true);
 		t.start();
 		if (c.player != null) {
-			c.player.sendOverlayMessage(Component.literal("Watch & learn: turning what you watched into demos..."));
+			io.github.mudklip.minigamebots.client.overlay.Overlay.message(Component.literal("Watch & learn: turning what you watched into demos..."));
 		}
 	}
 }
