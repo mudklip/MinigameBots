@@ -76,6 +76,8 @@ class HitJudge:
     @staticmethod
     def judge(e: dict, hits: list, obs: dict) -> tuple:
         """Scores how serious the attacker is; 3 or more = real."""
+        if (obs.get("risk") or {}).get("sport"):
+            return ("real", "a match: fight back")  # Duels and games: every hit is part of the fight.
         why = []
         score = 0.0
         if any(h[2] for h in hits):
@@ -190,12 +192,15 @@ class Drives:
             if self.mode == "peaceful" and threat.get("player"):
                 anger = 0.0
                 fear += 0.8 if real_threat else 0.0
-        mem = self.recall(obs, threat)
+        risk = obs.get("risk") or {}
+        sport = bool(risk.get("sport"))
+        fear += 0.25 * float(risk.get("level", 0))  # PvP-heavy server: crowds are risky.
+        mem = {} if sport else self.recall(obs, threat)  # A duel opponent is just an opponent.
         if mem:
             fear += 0.5 * float(mem.get("danger", 0)) * (1.0 if health < 14 else 0.5)
             if float(mem.get("like", 0)) < -0.3 and real_threat:
                 anger += 0.3
-        here = next((p for p in obs.get("places") or [] if p.get("here")), None)
+        here = None if sport else next((p for p in obs.get("places") or [] if p.get("here")), None)
         if here is not None and float(here.get("feeling", 0)) < -0.4:
             fear += 0.3  # It remembers bad things happening here.
         hunger = max(0.0, (16 - food) / 8)

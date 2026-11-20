@@ -441,8 +441,10 @@ Baritone is NOT a fighter: it's a pathfinding bot (it walks, digs and mines by i
 - Or a teacher demo with the [Fighter] teacher, against a dummy
 
 === memory | Memory, allies and zones
-# Remembering places
-Places where bad things happened (knocked out, betrayed) feel bad: it's more careful there. Places where good things happened feel good.
+# Remembering places (and telling a duel from an ambush)
+- Agreed fights don't count against anyone: duels, matches, minigame rounds (it sees "duel", "Round 1", "Fight!", a countdown, a game scoreboard...). Losing a 1v1 doesn't make the spot scary or the opponent an enemy; it just learns the fight.
+- Being attacked when it didn't agree to fight does count. One bad moment is just a memory; repeated attacks in an area make it a risk zone: it's more careful there and avoids it without a reason to go. Risk zones cool down after a few days.
+- On a PvP-heavy server, where attacks happen all over, single places stop meaning much: it switches to judging risk by how many players are around (busy spawns and hubs high, empty wilderness low) and stays alert in crowds. On calmer servers it goes back to remembering places. The Memory screen shows which it decided.
 
 # Thinking fast and slow
 When nothing is going on (nobody close, not hurt, just walking or mining) it thinks 5 times a second instead of 20 and keeps going in between, like walking on autopilot; anything close or surprising wakes it up at once. On the CPU it plays with 8-bit weights. Both make it much lighter on your PC.

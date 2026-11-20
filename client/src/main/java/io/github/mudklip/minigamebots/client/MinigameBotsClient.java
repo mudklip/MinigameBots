@@ -289,6 +289,11 @@ public final class MinigameBotsClient implements ClientModInitializer {
 		events.addListener(recorder::onEvent);
 		events.addListener(e -> {
 			// Memory: who knocked it out, whom it knocked out.
+			if (("title".equals(e.type()) || "subtitle".equals(e.type()) || "chat".equals(e.type())) && e.data().get("text") instanceof String t) {
+				memory.onText(t);
+			} else if ("tg_episode_start".equals(e.type()) || "tg_match_start".equals(e.type())) {
+				memory.onMatchStart();
+			}
 			if ("death".equals(e.type())) {
 				memory.onMyDeath();
 			} else if ("kill".equals(e.type()) && e.data().get("name") instanceof String n) {

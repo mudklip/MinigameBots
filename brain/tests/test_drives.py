@@ -154,6 +154,34 @@ class BehaviourTest(unittest.TestCase):
             self.assertIn("use", m.act(o, None).keys)
 
 
+class SportAndRiskTest(unittest.TestCase):
+    def test_in_a_match_a_punch_is_real_but_no_grudge_or_place_fear(self):
+        j = drives.HitJudge()
+        o1, o2 = obs(1, [player(hit=10)]), obs(2, [player(hit=0)])
+        for o in (o1, o2):
+            o["risk"] = {"sport": True}
+        j.update(1, o1, [])
+        j.update(2, o2, [{"type": "damage_taken", "data": {"amount": 1}}])
+        self.assertTrue(j.real(7))
+        d = drives.Drives("neutral")
+        t = player(hit=0)
+        o = obs(0, [t])
+        o["risk"] = {"sport": True}
+        o["people"] = [{"id": 7, "danger": 1.0}]
+        o["places"] = [{"here": True, "feeling": -1.0}]
+        calm = d.needs(obs(0, [t]), t, True)["fear"]
+        self.assertAlmostEqual(d.needs(o, t, True)["fear"], calm)
+
+    def test_busy_area_on_pvp_server_keeps_it_alert(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            m = ManagerPolicy(tmp, goals=[{"type": "explore", "minutes": 5}], mode="neutral")
+            for t in range(1, 12):
+                o = obs(t, [])
+                o["risk"] = {"mode": "population", "level": 0.7}
+                m.act(o, None)
+            self.assertEqual(m.thinking, 20)
+
+
 class AwarenessTest(unittest.TestCase):
     def test_thinks_slowly_when_calm_and_fast_when_not(self):
         with tempfile.TemporaryDirectory() as tmp:

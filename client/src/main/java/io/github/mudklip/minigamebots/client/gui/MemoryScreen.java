@@ -286,8 +286,17 @@ public final class MemoryScreen extends Screen {
 
 	private void renderFactions(GuiGraphicsExtractor g, WorldMemory m) {
 		String mine = minecraft.player == null ? "" : Insignia.of(minecraft.player).description();
-		g.text(font, font.plainSubstrByWidth("Your insignia: " + (mine.isEmpty() ? "none (wear a patterned shield, banner or dyed armour)" : mine),
-				width - 20), 10, 84, 0xFFB0B0B0, false);
+		String server;
+		if (mm().sport()) {
+			server = "§bin an agreed fight (duel/match): no grudges, no scary places";
+		} else if (m.mind != null && m.mind.dangerEverywhere()) {
+			server = String.format("§6PvP-heavy server: risk follows crowds (%.1f attacks per player-hour)", m.mind.attackRate());
+		} else {
+			server = "§7risky places remembered";
+		}
+		int agreed = m.mind == null ? 0 : m.mind.agreedFights;
+		g.text(font, Component.literal(font.plainSubstrByWidth("§7Insignia: " + (mine.isEmpty() ? "none" : mine) + "  §8|  " + server
+				+ (agreed > 0 ? "  §8|  §7" + agreed + " agreed fights" : ""), width - 20)), 10, 84, 0xFFB0B0B0, false);
 		List<Entry> list = entries(m);
 		if (list.isEmpty()) {
 			g.textWithWordWrap(font, Component.translatable("minigamebots.memory.factions_empty"), 10, 100, width - 20, 0xFF909090);

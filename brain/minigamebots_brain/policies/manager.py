@@ -327,6 +327,8 @@ class ManagerPolicy(Policy):
             if e.get("visible", True) and (e.get("player") or e.get("hostile")) \
                     and e.get("dx", 0) ** 2 + e.get("dy", 0) ** 2 + e.get("dz", 0) ** 2 < 16 * 16:
                 return False
+        if float((obs.get("risk") or {}).get("level", 0)) > 0.4:
+            return False  # A busy area on a PvP-heavy server: stay alert.
         return float((obs.get("self") or {}).get("health", 20)) >= 14
 
     def _goal_input(self, gtype: str, goal: Goal | None) -> dict:

@@ -87,13 +87,38 @@ public final class Mind {
 		public int good;
 		public long last;
 
-		/** -1 (avoid) .. 1 (good place). */
+		/** -1 (avoid) .. 1 (good place); fades with time (a risk zone cools down after a few days). */
 		public double feeling() {
-			return Math.max(-1, Math.min(1, 0.4 * good - 0.5 * bad));
+			double days = last == 0 ? 0 : (System.currentTimeMillis() - last) / 86_400_000.0;
+			double fade = Math.pow(0.5, days / 3);
+			// One bad moment is just a memory; repeated ones make a risk zone.
+			double badness = bad >= 2 ? 0.5 * bad : 0.15 * bad;
+			return Math.max(-1, Math.min(1, (0.4 * good - badness) * fade));
 		}
 	}
 
 	public Map<String, Place> places = new LinkedHashMap<>();
+
+	// --- How dangerous this server is, overall ---
+	/** Attacks it didn't agree to (not duels, matches or games). */
+	public int unprovokedAttacks;
+	/** Seconds spent with other players nearby, times how many (player-seconds of exposure). */
+	public double playerSeconds;
+	public int agreedFights;
+
+	/** Unprovoked attacks per hour of having one player nearby. */
+	public double attackRate() {
+		return unprovokedAttacks / Math.max(0.5, playerSeconds / 3600.0);
+	}
+
+	/**
+	 * When attacks happen all over (a PvP-heavy server), single places stop meaning much: risk then
+	 * comes from how many players are around instead.
+	 */
+	public boolean dangerEverywhere() {
+		long risky = places.values().stream().filter(pl -> pl.bad >= 1).count();
+		return unprovokedAttacks >= 6 && risky >= 4 && risky >= unprovokedAttacks * 0.4;
+	}
 
 	public static String placeKey(String dimension, int x, int z) {
 		return dimension + ":" + Math.floorDiv(x, 16) + ":" + Math.floorDiv(z, 16);

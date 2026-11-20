@@ -266,6 +266,36 @@ public final class MemoryManager {
 		dirty = true;
 	}
 
+	/** Until when fighting counts as agreed (a duel, a match, a minigame round): sport, not a threat. */
+	private long sportUntil;
+	private static final java.util.regex.Pattern SPORT = java.util.regex.Pattern.compile(
+			"(?i)(duel|1v1|round \\d|fight!|match (start|found)|accepted your|game (start|begin)|kit|arena|\\bgo!|starting in|bedwars|skywars|"
+					+ "the game has started|teams? (red|blue)|eliminated|you win|you lost)");
+
+	/** Something on screen says a fight is part of a game (titles, chat, scoreboard). */
+	public void onText(String text) {
+		if (text != null && SPORT.matcher(text).find()) {
+			sportUntil = System.currentTimeMillis() + 5 * 60_000L;
+		}
+	}
+
+	/** A Training Grounds round or match started: fights are sport for a while. */
+	public void onMatchStart() {
+		sportUntil = System.currentTimeMillis() + 10 * 60_000L;
+	}
+
+	/** Whether fighting right now is agreed (duel, match, minigame), not an attack. */
+	public boolean sport() {
+		var mc = net.minecraft.client.Minecraft.getInstance();
+		if (mc.level != null) {
+			var obj = mc.level.getScoreboard().getDisplayObjective(net.minecraft.world.scores.DisplaySlot.SIDEBAR);
+			if (obj != null && SPORT.matcher(obj.getDisplayName().getString()).find()) {
+				return true; // A game's scoreboard is showing.
+			}
+		}
+		return System.currentTimeMillis() < sportUntil;
+	}
+
 	/** Recent hits on the AI per attacker (ms), to tell a joke punch from a real attack. */
 	private final Map<String, java.util.ArrayDeque<Long>> recentHits = new java.util.HashMap<>();
 	private @Nullable String lastRealAttacker;
@@ -296,6 +326,15 @@ public final class MemoryManager {
 				|| held.equals("bow") || held.equals("crossbow");
 		Relation known = name == null ? null : m.players.get(name);
 		Mind.Person who = name == null ? null : m.mind.people.computeIfAbsent(name, k -> new Mind.Person());
+		if (sport()) {
+			// An agreed fight (duel, match, game): it's sport. Nobody becomes an enemy, no place gets scary.
+			if (hits.size() == 1) {
+				m.mind.agreedFights++;
+			}
+			lastRealAttacker = null;
+			dirty = true;
+			return;
+		}
 		boolean grudge = who != null && (who.betrayals > 0 || who.like() < -0.3);
 		boolean real = armed || hits.size() >= 2 || known == Relation.ENEMY || grudge;
 		if (!real) {
@@ -321,6 +360,7 @@ public final class MemoryManager {
 			t.lastIncident = now;
 			m.insigniaLooks.putIfAbsent(ins.id(), ins.description());
 		}
+		m.mind.unprovokedAttacks++;
 		remember(betrayal ? "betrayed_me" : "attacked_me", name != null ? name : attacker.getType().toShortString(), ins.present() ? ins.id() : "",
 				held, betrayal ? -0.9 : -0.5, betrayal ? 0.9 : 0.5);
 		lastRealAttacker = name;
@@ -343,6 +383,9 @@ public final class MemoryManager {
 	/** The AI was knocked out: blame the last real attacker (within 10 s). */
 	public void onMyDeath() {
 		WorldMemory m = memory;
+		if (sport()) {
+			return; // Lost a duel or a round: no grudge, no scary place.
+		}
 		if (m == null || lastRealAttacker == null || System.currentTimeMillis() - lastRealAttackAt > 10_000) {
 			return;
 		}
@@ -354,7 +397,7 @@ public final class MemoryManager {
 	/** The AI knocked someone out. */
 	public void onIKnockedOut(String name) {
 		WorldMemory m = memory;
-		if (m == null || name == null) {
+		if (m == null || name == null || sport()) {
 			return;
 		}
 		m.mind.people.computeIfAbsent(name, k -> new Mind.Person()).iKnockedOut++;
@@ -403,6 +446,15 @@ public final class MemoryManager {
 			return;
 		}
 		long now = System.currentTimeMillis();
+		int near = 0;
+		for (Player p : client.level.players()) {
+			if (p != client.player && !p.isSpectator() && p.distanceTo(client.player) <= 32) {
+				near++;
+			}
+		}
+		if (!sport()) {
+			m.mind.playerSeconds += near; // Called once a second.
+		}
 		for (Player p : client.level.players()) {
 			if (p == client.player || p.isSpectator() || p.distanceTo(client.player) > 48 || !client.player.hasLineOfSight(p)) {
 				continue;
@@ -412,8 +464,8 @@ public final class MemoryManager {
 				who.seen++; // Counted once per meeting.
 			}
 			who.lastSeen = now;
-			var near = nearest(client.level.dimension().identifier().toString(), p.getX(), p.getY(), p.getZ(), 1);
-			who.lastPlace = near.isEmpty() ? "" : near.get(0).name.isEmpty() ? near.get(0).type : near.get(0).name;
+			var wp = nearest(client.level.dimension().identifier().toString(), p.getX(), p.getY(), p.getZ(), 1);
+			who.lastPlace = wp.isEmpty() ? "" : wp.get(0).name.isEmpty() ? wp.get(0).type : wp.get(0).name;
 			dirty = true;
 		}
 	}
@@ -422,8 +474,9 @@ public final class MemoryManager {
 	public com.google.gson.JsonArray recallPlaces(net.minecraft.client.Minecraft client) {
 		com.google.gson.JsonArray out = new com.google.gson.JsonArray();
 		WorldMemory m = memory;
-		if (m == null || client.player == null || client.level == null || m.mind.places.isEmpty()) {
-			return out;
+		if (m == null || client.player == null || client.level == null || m.mind.places.isEmpty() || m.mind.dangerEverywhere()
+				|| sport()) {
+			return out; // On a PvP-heavy server single places don't stand out; in a game, places don't matter.
 		}
 		String dim = client.level.dimension().identifier().toString();
 		int cx = Math.floorDiv(client.player.blockPosition().getX(), 16);
@@ -442,6 +495,35 @@ public final class MemoryManager {
 			}
 		}
 		return out;
+	}
+
+	/**
+	 * How risky it is right now: by place on calm servers; by how many players are around on a
+	 * PvP-heavy one (where attacks happen everywhere); nothing during an agreed fight.
+	 */
+	public com.google.gson.JsonObject risk(net.minecraft.client.Minecraft client) {
+		var o = new com.google.gson.JsonObject();
+		WorldMemory m = memory;
+		boolean sport = sport();
+		o.addProperty("sport", sport);
+		if (m == null || client.player == null || client.level == null) {
+			return o;
+		}
+		int near = 0;
+		for (Player p : client.level.players()) {
+			if (p != client.player && !p.isSpectator() && p.distanceTo(client.player) <= 32) {
+				near++;
+			}
+		}
+		boolean everywhere = m.mind.dangerEverywhere();
+		double rate = m.mind.attackRate();
+		o.addProperty("mode", sport ? "sport" : everywhere ? "population" : "places");
+		o.addProperty("nearby", near);
+		o.addProperty("rate", Math.round(rate * 100) / 100.0);
+		// Chance of being attacked in the next few minutes with this many players around (0..1).
+		double level = sport || !everywhere ? 0 : 1 - Math.exp(-rate * near * 0.1);
+		o.addProperty("level", Math.round(level * 100) / 100.0);
+		return o;
 	}
 
 	/** What it recalls about the players in view, for the brain (cheap lookups). */

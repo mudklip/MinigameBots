@@ -486,6 +486,7 @@ public final class BrainManager {
 		// Recall by cue: what it remembers about the players in view.
 		m.getAsJsonObject("obs").add("people", MinigameBotsClient.instance().memory().recall(Minecraft.getInstance()));
 		m.getAsJsonObject("obs").add("places", MinigameBotsClient.instance().memory().recallPlaces(Minecraft.getInstance()));
+		m.getAsJsonObject("obs").add("risk", MinigameBotsClient.instance().memory().risk(Minecraft.getInstance()));
 		JsonObject puppet = SelfPlayLink.describe();
 		if (puppet != null) {
 			m.getAsJsonObject("obs").add("puppet", puppet);
