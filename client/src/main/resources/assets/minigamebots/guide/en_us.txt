@@ -289,6 +289,11 @@ It starts with common sense and learns which plans actually work in which situat
 The PvP plan ends with a free-for-all: a large arena with cover is built around you, with bots of mixed styles that fight everyone, each other included. Nobody really dies: a knocked-out bot comes back somewhere else, and so does your AI (with full health). This is where the strategist learns when to hunt, when to pick fights, when to back off and heal and when to wait in ambush. The ground goes back as it was when it ends.
 
 
+# Sleep
+Main menu > [Sleep...]: let it get better while you're away. It replays the day (trains on everything recorded since it last slept: your play, players it watched, its own builds), tidies its memories (lets small, old moments go once it has learned what they taught it about someone), and if you like keeps inventing traps and shelters.
+It keeps your PC free: the game draws at 10 FPS with a short view and no sound, training runs on Quiet, it can minimise the game (on by default: click it in the taskbar to come back), and in singleplayer the world is paused so nothing can happen to you. Inventing needs the world running, so only turn that on somewhere safe.
+It saves a backup first, and training keeps the best version on examples it hasn't trained on, so a night's replay can't make it worse on what it has seen. Press any key or [Wake up] to stop it early. When it wakes, everything goes back as it was and you get a morning report of what it did.
+
 # Inventions (traps and shelters)
 Main menu > [Inventions...]: your AI invents its own traps and shelters. It knows some parts (pits, lava, pressure plates with TNT or arrow dispensers, cobwebs, magma; walls, roofs, doors, torches in different sizes and materials), and it combines and changes them into new ideas, half brand new, half built on its best ideas so far.
 Every idea is tested for real: Training Grounds builds it in a sandbox high in the sky above you and lets the game run it. For a trap, a dummy walks across it: does it get hurt, knocked out or stuck? For a shelter: is it closed in, how much room is inside, how bright is it? The sky there is cleared again after every test, and you can keep playing meanwhile.

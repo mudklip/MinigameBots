@@ -48,9 +48,13 @@ public final class MainScreen extends Screen {
 		memory.active = inWorld && MinigameBotsClient.instance().profiles().active() != null;
 		LinearLayout row3 = body.addChild(LinearLayout.horizontal().spacing(4));
 		row3.addChild(Button.builder(Component.translatable("minigamebots.menu.recordings"),
-				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.RecorderScreen(this))).width(100).build());
+				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.RecorderScreen(this))).width(65).build());
+		row3.addChild(Button.builder(Component.literal("☾ Sleep..."),
+				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.sleep.SleepScreen(this))).width(66)
+				.tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Let it get better while you're away: "
+						+ "replays the day, tidies its memories, keeps your PC free (can minimise the game)."))).build());
 		row3.addChild(Button.builder(Component.translatable("minigamebots.menu.settings"),
-				b -> minecraft.gui.setScreen(MgbConfig.screen(this))).width(100).build());
+				b -> minecraft.gui.setScreen(MgbConfig.screen(this))).width(65).build());
 		LinearLayout row4 = body.addChild(LinearLayout.horizontal().spacing(4));
 		row4.addChild(Button.builder(Component.translatable("minigamebots.menu.video"),
 				b -> minecraft.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.VideoLabScreen(this))).width(65).build());

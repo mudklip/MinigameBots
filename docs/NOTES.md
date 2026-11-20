@@ -194,3 +194,14 @@ default shelters; traps only with "all"). Not ready = score -9 (never picked, no
 The plan's goal `invent_build` runs an embedded BuildPolicy 5 blocks ahead; finishing a shelter
 marks it "base"; finishing a trap switches to ambush by it; fights/fleeing interrupt (restart
 later; placed blocks count as done). strategist.json from older versions is reset (new features).
+
+## 1.26.0: sleep
+`client/sleep/SleepMode` + `SleepScreen` (main menu > Sleep...). Steps: backup; memory
+consolidation (`Mind.consolidate`: forgetting curve, then drop weak >1-day episodes about people
+with a profile); replay recordings since `MgbConfig.lastSleep` (first time: last 24 h) of sources
+human/player into the main network and "Build: ..." teacher demos into the building skill, plan
+QUICK, resources QUIET; optional inventing (traps 5 min, shelters 5 min) which keeps the world
+running. Low load: 10 FPS, render distance 2, master volume 0, SDL_MinimizeWindow (26.x uses SDL3,
+not GLFW); the SleepScreen is a pause screen in singleplayer unless inventing. Wake (any key, Wake
+up, or when done) restores everything and shows a morning report. Not yet: dreaming with the world
+model, daily lessons from the language model, automatic sleep when idle.

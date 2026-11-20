@@ -83,6 +83,9 @@ public final class MgbConfig {
 	/** Core minigames: the bots also fight each other (off: they all play against the AI). */
 	@SerialEntry
 	public boolean coreFreeForAll = false;
+	/** When it last slept (ISO time): the next sleep replays what was recorded since. */
+	@SerialEntry
+	public String lastSleep = "";
 
 	@AutoGen(category = "background")
 	@IntSlider(min = 10, max = 120, step = 5, format = "%d FPS")

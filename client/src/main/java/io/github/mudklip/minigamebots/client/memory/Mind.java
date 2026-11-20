@@ -130,6 +130,19 @@ public final class Mind {
 
 	public static final int MAX_EPISODES = 1000;
 
+	/**
+	 * Sleep: tidies memory like a night's rest. The normal forgetting curve first; then small
+	 * moments older than a day about someone it already has a profile of are let go (the profile
+	 * keeps what they taught it), and so are places that have faded to nothing. Returns how many
+	 * moments were let go.
+	 */
+	public int consolidate(long nowMs) {
+		int before = episodes.size();
+		forget(nowMs);
+		episodes.removeIf(e -> e.strength < 0.3 && nowMs - e.time > 86_400_000L && !e.who.isEmpty() && people.containsKey(e.who));
+		return before - episodes.size();
+	}
+
 	/** Fades old, weak memories (forgetting curve): strong ones last weeks, trivial ones days. */
 	public void forget(long nowMs) {
 		episodes.removeIf(e -> {
