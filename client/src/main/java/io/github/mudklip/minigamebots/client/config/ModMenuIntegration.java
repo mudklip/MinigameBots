@@ -7,6 +7,6 @@ import com.terraformersmc.modmenu.api.ModMenuApi;
 public final class ModMenuIntegration implements ModMenuApi {
 	@Override
 	public ConfigScreenFactory<?> getModConfigScreenFactory() {
-		return MgbConfig::screen;
+		return io.github.mudklip.minigamebots.client.gui.SettingsScreen::new;
 	}
 }
