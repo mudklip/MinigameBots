@@ -59,6 +59,7 @@ class BuildPolicy(Policy):
         x0, x1, z0, z1 = self.box[0] - 2, self.box[1] + 2, self.box[2] - 2, self.box[3] + 2
         self.ring = [(x, z) for x in range(x0, x1 + 1) for z in range(z0, z1 + 1) if x in (x0, x1) or z in (z0, z1)]
         self.idle = 0
+        self.steady = 0
         self.plan = None  # (block, standing spot, face point) for the block being placed.
         self.clicked = {}  # Placements already clicked: pos -> tick (a second click would stack blocks).
         self.done = set()
@@ -358,8 +359,14 @@ class BuildPolicy(Policy):
         if obs.get("selectedSlot") != slot:
             a.keys.add(f"hotbar_{slot + 1}")
             return a
-        if on and self._would_place(me, grid, feet) == pos:
+        # Click only once the view has settled (the humanizer smooths turns over a few ticks):
+        # nothing still turning, and on target two ticks running.
+        pend = getattr(self, "_pend", [0.0, 0.0])
+        settled = on and abs(pend[0]) < 1.0 and abs(pend[1]) < 1.0
+        self.steady = self.steady + 1 if settled else 0
+        if self.steady >= 2 and self._would_place(me, grid, feet) == pos:
             a.keys.add("use")
+            self.steady = 0
             self.tries[(pos, step["dig"])] = self.tries.get((pos, step["dig"]), 0) + 1
             if self.tries[(pos, False)] > 3:
                 self.failed.add((pos, False))
