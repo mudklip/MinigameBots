@@ -386,6 +386,14 @@ public final class MemoryManager {
 		}
 		m.mind.episodes.add(e);
 		m.mind.forget(e.time);
+		// How it feels about this place from now on.
+		Mind.Place place = m.mind.places.computeIfAbsent(Mind.placeKey(e.dimension, e.x, e.z), k -> new Mind.Place());
+		if (feeling < 0) {
+			place.bad += strength >= 0.9 ? 2 : 1;
+		} else {
+			place.good++;
+		}
+		place.last = e.time;
 	}
 
 	/** Every second: who is around (profiles: seen, where, what they carry). */
@@ -408,6 +416,32 @@ public final class MemoryManager {
 			who.lastPlace = near.isEmpty() ? "" : near.get(0).name.isEmpty() ? near.get(0).type : near.get(0).name;
 			dirty = true;
 		}
+	}
+
+	/** Feelings about the places around it (the 3 x 3 areas around the player), for the brain. */
+	public com.google.gson.JsonArray recallPlaces(net.minecraft.client.Minecraft client) {
+		com.google.gson.JsonArray out = new com.google.gson.JsonArray();
+		WorldMemory m = memory;
+		if (m == null || client.player == null || client.level == null || m.mind.places.isEmpty()) {
+			return out;
+		}
+		String dim = client.level.dimension().identifier().toString();
+		int cx = Math.floorDiv(client.player.blockPosition().getX(), 16);
+		int cz = Math.floorDiv(client.player.blockPosition().getZ(), 16);
+		for (int dx = -1; dx <= 1; dx++) {
+			for (int dz = -1; dz <= 1; dz++) {
+				Mind.Place pl = m.mind.places.get(dim + ":" + (cx + dx) + ":" + (cz + dz));
+				if (pl != null) {
+					var o = new com.google.gson.JsonObject();
+					o.addProperty("dx", (cx + dx) * 16 + 8 - client.player.getX());
+					o.addProperty("dz", (cz + dz) * 16 + 8 - client.player.getZ());
+					o.addProperty("feeling", Math.round(pl.feeling() * 100) / 100.0);
+					o.addProperty("here", dx == 0 && dz == 0);
+					out.add(o);
+				}
+			}
+		}
+		return out;
 	}
 
 	/** What it recalls about the players in view, for the brain (cheap lookups). */

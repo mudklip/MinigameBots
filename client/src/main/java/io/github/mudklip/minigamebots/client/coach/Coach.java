@@ -162,7 +162,9 @@ public final class Coach {
 			arena();
 		}
 		long[] lastAim = {0};
+		String[] cycleStart = {""};
 		steps.add(new Step("Practice " + def.name + " (" + chunk + " min)", true, () -> {
+			cycleStart[0] = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
 			if (aimMode != null) {
 				cmd("tg aim " + aimMode + " 300");
 				lastAim[0] = System.currentTimeMillis();
@@ -175,8 +177,59 @@ public final class Coach {
 			}
 			return elapsed() > chunk * 60_000L;
 		}));
+		examStep(p, id, def, network, cycleStart, aimMode);
 		note("Plan for " + def.name + ", " + budgetMinutes + " min: " + steps.size() + " steps");
 		return null;
+	}
+
+	/**
+	 * Never worse: after each practice cycle, a short exam with learning off. If the score fell
+	 * clearly below the skill's best, the cycle's learning is undone (back to the version saved
+	 * before it); otherwise a better score becomes the new best.
+	 */
+	private static void examStep(ProfileManifest p, String id, io.github.mudklip.minigamebots.client.skills.SkillDef def, String network,
+			String[] cycleStart, @Nullable String aimMode) {
+		var mgb = MinigameBotsClient.instance();
+		steps.add(new Step("Check " + def.name + " didn't get worse (2 min test)", true, () -> {
+			stopAi();
+			if (aimMode != null) {
+				cmd("tg aim " + aimMode + " 120");
+			}
+			mgb.brain().practiceSkill(Minecraft.getInstance(), p, id, def, false);
+		}, () -> {
+			if (elapsed() < 120_000) {
+				return false;
+			}
+			var st = mgb.brain().lastStatus();
+			stopAi();
+			if (st == null || !st.has("avg_return") || st.get("avg_return").isJsonNull()) {
+				note("Check skipped: no finished tries to score");
+				return true;
+			}
+			double score = st.get("avg_return").getAsDouble();
+			Progress pr = Progress.active();
+			String key = "exam:" + id;
+			Double best = pr == null ? null : pr.rating.get(key);
+			boolean worse = best != null && score < best - Math.max(0.2, Math.abs(best) * 0.2);
+			if (worse) {
+				var core = io.github.mudklip.minigamebots.client.profile.Skills.dir(mgb.profiles().store().dir(p.id), network).resolve("core");
+				var before = io.github.mudklip.minigamebots.client.profile.VersionHistory.list(core).stream()
+						.filter(v -> v.id.compareTo(cycleStart[0]) >= 0).min(java.util.Comparator.comparing(v -> v.id)).orElse(null);
+				if (before != null) {
+					try {
+						io.github.mudklip.minigamebots.client.profile.VersionHistory.revert(core, before.id);
+						note(String.format("%s got worse (%.2f, best %.2f): went back to before this cycle", def.name, score, best));
+					} catch (java.io.IOException e) {
+						note("Couldn't go back: " + e.getMessage());
+					}
+				}
+			} else if (pr != null && (best == null || score > best)) {
+				pr.rating.put(key, score);
+				Progress.save();
+				note(String.format("%s: new best %.2f", def.name, score));
+			}
+			return true;
+		}));
 	}
 
 	public static @Nullable Goal goal() {

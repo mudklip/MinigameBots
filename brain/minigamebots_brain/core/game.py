@@ -31,7 +31,20 @@ class CoreGamePolicy(PracticePolicy):
         if self.key is not None:
             self.finder.save(self.store, self.key)
         self.key = key
+        import os
+
+        fresh = not os.path.isfile(RuleFinder.path(self.store, key))
         self.finder = RuleFinder.load(self.store, key, self.me)
+        if fresh:
+            # A new game: start with a weaker copy of what other games taught it.
+            gdir = os.path.dirname(RuleFinder.path(self.store, key))
+            others = []
+            if os.path.isdir(gdir):
+                for f in os.listdir(gdir):
+                    if f.endswith(".json") and f != key + ".json":
+                        others.append(RuleFinder.load(self.store, f[:-5], self.me))
+            self.finder.seed_from(others)
+        self._read_told()
         self._refresh()
         self._game_network(key)
 
@@ -68,6 +81,24 @@ class CoreGamePolicy(PracticePolicy):
         else:
             self.started_from = "general"
 
+    def _read_told(self) -> None:
+        """Rules you told it in words for this game (<key>.told.txt, one sentence a line)."""
+        import os
+
+        p = RuleFinder.path(self.store, self.key or "")[:-5] + ".told.txt"
+        try:
+            mtime = os.path.getmtime(p)
+        except OSError:
+            return
+        if mtime == getattr(self, "_told_mtime", None):
+            return
+        self._told_mtime = mtime
+        with open(p, encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    self.finder.tell(line)
+        self._refresh()
+
     def _refresh(self) -> None:
         from ..rl import objective as obj
 
@@ -88,6 +119,8 @@ class CoreGamePolicy(PracticePolicy):
         for ev in events:
             if ev.get("type") == "tg_episode_end":
                 self.finder.round_over((ev.get("data") or {}).get("result") == "win")
+        if self.decisions % 100 == 0:
+            self._read_told()
         episodes = self.episodes
         o = dict(obs)
         o["_events"] = events
@@ -101,5 +134,5 @@ class CoreGamePolicy(PracticePolicy):
     def status(self):
         out = super().status()
         out.update({"game": self.key, "rules": self.finder.describe(), "borrow": self.finder.borrow(),
-                    "started_from": self.started_from, **self.finder.summary()})
+                    "started_from": self.started_from, "why": self.finder.last_reason, **self.finder.summary()})
         return out

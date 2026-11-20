@@ -120,6 +120,9 @@ class ManagerPolicy(Policy):
         self.completed = []
         self.sub = None  # Goal picked by free play
         self.rng = random.Random()
+        self.calm_ticks = 0
+        self.held = Action()
+        self.thinking = 20
         self.available = [n for n in ("general", "combat", "mining", "hunting", "travel", "explore", "survival", "flee")
                           if trained(profile, n)]
         if os.path.isdir(os.path.join(profile, "skills")):
@@ -291,6 +294,16 @@ class ManagerPolicy(Policy):
         if gtype is None:
             self.skill = "idle"
             return self._idle()
+        # Awareness: when nothing is going on, think 5 times a second instead of 20 and keep
+        # walking in between (like walking on autopilot); anything close or surprising wakes it.
+        if self._calm(obs, gtype):
+            self.calm_ticks += 1
+            if self.calm_ticks % 4 != 1:
+                self.thinking = 5
+                return Action(keys=set(k for k in self.held.keys if k not in ("attack", "use")))
+        else:
+            self.calm_ticks = 0
+            self.thinking = 20
         obs = dict(obs)
         obs["goal"] = self._goal_input(gtype, goal)
         name, policy = self._skill(SKILLS_FOR.get(gtype, ("general",)))
@@ -299,9 +312,22 @@ class ManagerPolicy(Policy):
             return self._reflex(gtype, goal, obs)
         self._aim = FollowPolicy()  # A skill is steering; the reflex aim starts fresh next time.
         action = policy.act(obs, frame)
+        self.held = action
         if goal is not None and goal.type == "protect" and self.tick % 20 == 0:
             action.protect = goal.spec.get("player", "")
         return action
+
+    def _calm(self, obs: dict, gtype: str) -> bool:
+        """Nothing needs attention: no fight, nobody close, not hurt, nothing surprising happened."""
+        if gtype in ("fight", "flee", "hunt", "hunt_players", "farm") or self.mode != "goal":
+            return False
+        if any(e.get("type") in ("damage_taken", "hit_by", "hurt_by", "death") for e in obs.get("_events") or []):
+            return False
+        for e in obs.get("entities") or []:
+            if e.get("visible", True) and (e.get("player") or e.get("hostile")) \
+                    and e.get("dx", 0) ** 2 + e.get("dy", 0) ** 2 + e.get("dz", 0) ** 2 < 16 * 16:
+                return False
+        return float((obs.get("self") or {}).get("health", 20)) >= 14
 
     def _goal_input(self, gtype: str, goal: Goal | None) -> dict:
         from ..learn import knowledge
@@ -435,5 +461,5 @@ class ManagerPolicy(Policy):
         return {"goal": goal.label() if goal else None, "why": (goal.spec.get("why") if goal else None) or self.why,
                 "mode": self.mode, "skill": self.skill or "reflexes", "queue": len(self.queue),
                 "completed": self.completed[-5:], "skills": self.available, "free_play": self.free_play,
-                "attitude": self.drives.mode, "feelings": self.drives.feelings,
+                "attitude": self.drives.mode, "thinking": self.thinking, "feelings": self.drives.feelings,
                 "judged": {str(k): f"{v[0]} ({v[1]})" for k, v in list(self.drives.judge.verdict.items())[-3:]}}

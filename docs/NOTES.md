@@ -86,6 +86,11 @@
   guard, menu-minigame skill type, more arena types (bridge, void, parkour, mining, farm,
   build) with kits, AI vs AI tournaments, privileged training critic, restyle older screens.
 
+## Human-like brain (1.15.0 done: place memory, fast/slow thinking, 8-bit CPU play, never-worse
+check per skill, why-it-lost explanations, rule carry-over, rules told in words). Left for the
+very end: **sleep** (needs special handling: minimise/background the game while sleeping, etc.).
+Not done: fast weights per opponent, human-floor scores.
+
 ## Reaching further (agreed, all fit this PC; docs/MIND_DESIGN.md section 12)
 
 Sleep with daily reflection -> cause-and-effect rules -> rules told in words -> more generated

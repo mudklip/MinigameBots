@@ -81,6 +81,24 @@ public final class Mind {
 		}
 	}
 
+	/** Feelings about places (16 x 16 areas): "knocked out here twice" -> avoid. */
+	public static final class Place {
+		public int bad;
+		public int good;
+		public long last;
+
+		/** -1 (avoid) .. 1 (good place). */
+		public double feeling() {
+			return Math.max(-1, Math.min(1, 0.4 * good - 0.5 * bad));
+		}
+	}
+
+	public Map<String, Place> places = new LinkedHashMap<>();
+
+	public static String placeKey(String dimension, int x, int z) {
+		return dimension + ":" + Math.floorDiv(x, 16) + ":" + Math.floorDiv(z, 16);
+	}
+
 	public List<Episode> episodes = new ArrayList<>();
 	public Map<String, Person> people = new LinkedHashMap<>();
 	public Map<String, Trust> trust = new LinkedHashMap<>();

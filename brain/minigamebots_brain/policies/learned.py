@@ -34,6 +34,15 @@ class LearnedPolicy(Policy):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.model, self.info = checkpoint.load(profile, "model", self.device)
         self.model.eval()
+        if self.device == "cpu":
+            # Playing on the CPU: 8-bit weights for the dense layers (about 4x smaller, faster);
+            # training keeps full precision.
+            try:
+                import torch
+
+                self.model = torch.ao.quantization.quantize_dynamic(self.model, {torch.nn.Linear}, dtype=torch.qint8)
+            except Exception:
+                pass
         self.temperature = max(0.0, float(temperature))
         self.state = None
         self.decisions = 0

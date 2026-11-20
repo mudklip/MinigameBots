@@ -152,3 +152,22 @@ class BehaviourTest(unittest.TestCase):
             o["inventory"] = [{"slot": 2, "id": "minecraft:wheat_seeds"}]
             o["selectedSlot"] = 2
             self.assertIn("use", m.act(o, None).keys)
+
+
+class AwarenessTest(unittest.TestCase):
+    def test_thinks_slowly_when_calm_and_fast_when_not(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            m = ManagerPolicy(tmp, goals=[{"type": "explore", "minutes": 5}], mode="neutral")
+            for t in range(1, 12):
+                m.act(obs(t, []), None)
+            self.assertEqual(m.thinking, 5)
+            m.act(obs(12, [player(dz=4)]), None)
+            self.assertEqual(m.thinking, 20)
+
+    def test_bad_place_raises_fear(self):
+        d = drives.Drives("neutral")
+        t = player(hit=0, held="minecraft:iron_sword")
+        o = obs(0, [t])
+        calm = d.needs(o, t, True)["fear"]
+        o["places"] = [{"here": True, "feeling": -1.0}]
+        self.assertGreater(d.needs(o, t, True)["fear"], calm)

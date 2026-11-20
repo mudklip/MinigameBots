@@ -195,6 +195,9 @@ class Drives:
             fear += 0.5 * float(mem.get("danger", 0)) * (1.0 if health < 14 else 0.5)
             if float(mem.get("like", 0)) < -0.3 and real_threat:
                 anger += 0.3
+        here = next((p for p in obs.get("places") or [] if p.get("here")), None)
+        if here is not None and float(here.get("feeling", 0)) < -0.4:
+            fear += 0.3  # It remembers bad things happening here.
         hunger = max(0.0, (16 - food) / 8)
         duty = c["duty"]
         if self.mode == "hunter" and self.geared(obs) and self.prey(obs) is not None:

@@ -210,6 +210,9 @@ Training Hub > Plans > [Core] > [Start coaching]: it builds a random little mini
 - The Core screen shows, for every game it knows, how many rounds it needed to play well (3 of 5 won) and how often it wins now. That number dropping over new games means it's getting better at learning games.
 - Common sense: its main training also learns to predict the next seconds (getting hurt, hitting, dying, kills, scores, breaking blocks, items, winning), straight from your recordings. Being surprised in a safe moment makes it curious while it learns a new game or a skill's self-discovery stage.
 ! It ignores coincidences: a rule needs to happen a few times, clearly more often than by chance.
+- Tell it rules: type a sentence like "snowballs knock you out" or "kills give points" in [Tell it a rule] while you're in that game. It starts out believing it; play can still prove it wrong.
+- Why it lost: after a loss the Core screen says why, e.g. "I was out because of getting hit by snowball".
+- A brand-new game starts with a weaker copy of rules from games it already knows, so similar games start half-understood.
 
 === skills | Skills (one by one)
 Every skill your AI can learn has its own card: [F10] > [Skills], or [Skills...] in the Training Hub. The tabs along the top sort them by kind: Combat, Movement, Mining, Building, Farming, Survival, Inventory and your own.
@@ -438,6 +441,15 @@ Baritone is NOT a fighter: it's a pathfinding bot (it walks, digs and mines by i
 - Or a teacher demo with the [Fighter] teacher, against a dummy
 
 === memory | Memory, allies and zones
+# Remembering places
+Places where bad things happened (knocked out, betrayed) feel bad: it's more careful there. Places where good things happened feel good.
+
+# Thinking fast and slow
+When nothing is going on (nobody close, not hurt, just walking or mining) it thinks 5 times a second instead of 20 and keeps going in between, like walking on autopilot; anything close or surprising wakes it up at once. On the CPU it plays with 8-bit weights. Both make it much lighter on your PC.
+
+# Never worse
+When a skill is coached, every practice cycle ends with a 2-minute test with learning off. If the skill got clearly worse than its best, the cycle's learning is undone (back to the version saved before it). A better score becomes the new best.
+
 # Remembering people (like a person would)
 - It remembers what happened with each player: real attacks, betrayals, who knocked it out and whom it beat, where, with what. Trivial things fade after days; strong ones last weeks.
 - Seeing someone brings their memory up at once: someone who betrayed it gets no benefit of the doubt, someone dangerous makes it more careful, a hunter prefers players it has beaten before.

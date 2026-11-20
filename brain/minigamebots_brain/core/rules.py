@@ -46,6 +46,8 @@ class RuleFinder:
         self.score = {}
         self.titles_seen = set()
         self.results = []  # 1 = won the round, 0 = lost.
+        self.told = {}  # (cause, effect) -> sentence it came from (rules told in words).
+        self.last_reason = ""  # Why it lost last time (cause and effect).
         self.learned_after = None  # Rounds it took to play well (3 of the last 5 won).
 
     # --- watching ---
@@ -99,6 +101,9 @@ class RuleFinder:
         self.tick = int(obs.get("tick", self.tick + 1))
         causes, effects = self.causes_and_effects(obs, events, action)
         self.recent = [(t, c) for t, c in self.recent if self.tick - t <= WINDOW]
+        bad = [e for e in effects if self.value(e) < 0]
+        if bad:
+            self.last_reason = self.explain(bad[0], {c for _, c in self.recent} | set(causes))
         for e in effects:
             self.n_e[e] = self.n_e.get(e, 0) + 1
             for c in {c for _, c in self.recent} | set(causes):
@@ -122,8 +127,57 @@ class RuleFinder:
                 continue
             sure = min(1.0, (n + 0.5) / (self.n_c.get(c, 0) + 1)) * min(1.0, n / 4)
             out.append({"cause": c, "effect": e, "sure": round(sure, 2), "times": n, "value": self.value(e)})
+        known = {(r["cause"], r["effect"]) for r in out}
+        for (c, e), why in self.told.items():
+            n_c = self.n_c.get(c, 0)
+            if n_c >= 5 and self.n_ce.get((c, e), 0) / n_c < 0.2:
+                continue  # Told, but play showed it isn't so.
+            if (c, e) not in known:
+                out.append({"cause": c, "effect": e, "sure": 0.8, "times": 0, "value": self.value(e), "told": why})
         out.sort(key=lambda r: -r["sure"] * abs(r["value"]))
         return out
+
+    def explain(self, effect: str, recent: set) -> str:
+        """Why a bad thing happened: the best-known rule whose cause happened just before."""
+        best = None
+        for r in self.rules(min_count=1):
+            if r["effect"] == effect and r["cause"] in recent and (best is None or r["sure"] > best["sure"]):
+                best = r
+        if best is None:
+            return ""
+        return f"{self._effect_name(effect)} because of {self._cause_name(best['cause'])}"
+
+    @staticmethod
+    def _cause_name(c: str) -> str:
+        c = c.replace("i_hit:", "my hit with ").replace("hurt_by:", "getting hit by ").replace("threw:", "throwing ")
+        return c.replace("broke:", "breaking ").replace("placed:", "placing ").replace("_", " ")
+
+    @staticmethod
+    def _effect_name(e: str) -> str:
+        return {"i_died": "I was out", "lost": "I lost", "round_lost": "I lost the round", "i_killed": "I got a kill",
+                "won": "I won", "round_won": "I won the round"}.get(e, e.replace("score:", "score ").replace(":", " "))
+
+    # --- rules told in words ---
+
+    WORDS = {"snowball": "snowball", "egg": "egg", "arrow": "arrow", "trident": "trident", "sword": "sword", "axe": "axe",
+             "punch": "air", "fist": "air", "hand": "air", "fireball": "fireball", "pearl": "ender_pearl"}
+
+    def tell(self, sentence: str) -> list:
+        """Adds rules from a sentence like "snowballs knock you out" or "kills give points".
+        Returns the (cause, effect) pairs understood. Play can still overturn them."""
+        text = sentence.lower()
+        found = []
+        thing = next((v for k, v in self.WORDS.items() if k in text), None)
+        out_words = re.search(r"knock\w* (you |them |players? )?out|kills?\b|eliminat|one.?hit|instantly", text)
+        if thing and out_words:
+            found += [("hurt_by:" + thing, "i_died"), ("i_hit:" + thing, "i_killed")]
+        if re.search(r"(kills?|knock\w* out)\b.*(points?|score)", text):
+            found.append(("kill:any", "score:me:+"))
+        if thing and re.search(r"(points?|score)", text) and not found:
+            found.append(("i_hit:" + thing, "score:me:+"))
+        for pair in found:
+            self.told[pair] = sentence.strip()
+        return found
 
     def value(self, effect: str) -> float:
         if effect in EFFECT_VALUE:
@@ -145,7 +199,7 @@ class RuleFinder:
             c = r["cause"].replace("i_hit:", "my hit with ").replace("hurt_by:", "getting hit by ").replace("threw:", "throwing ")
             c = c.replace("broke:", "breaking ").replace("placed:", "placing ").replace("_", " ")
             e = names.get(r["effect"], r["effect"].replace("score:", "score ").replace(":", " "))
-            out.append(f"{c} -> {e} ({int(r['sure'] * 100)}% sure)")
+            out.append(f"{c} -> {e} ({'told' if r.get('told') else str(int(r['sure'] * 100)) + '% sure'})")
         return out
 
     def objective(self, name: str = "This game") -> dict:
@@ -159,6 +213,8 @@ class RuleFinder:
             if abs(v) < 0.05:
                 continue
             kind, _, what = r["cause"].partition(":")
+            if kind == "kill":
+                continue  # Kills are rewarded anyway.
             event = {"i_hit": "i_hit", "hurt_by": "hurt_by", "threw": "threw", "broke": "block_broken",
                      "placed": "block_placed"}.get(kind)
             if event is None:
@@ -181,6 +237,19 @@ class RuleFinder:
                 out.append(skill)
         return out
 
+    def seed_from(self, others: list, weight: float = 0.3) -> None:
+        """A new game starts with a weaker copy of the rules seen in other games (carry-over)."""
+        for o in others:
+            for r in o.rules():
+                if r.get("told"):
+                    continue
+                pair = (r["cause"], r["effect"])
+                add = max(1, int(round(r["times"] * weight)))
+                self.n_ce[pair] = self.n_ce.get(pair, 0) + add
+                self.n_c[r["cause"]] = self.n_c.get(r["cause"], 0) + add
+                self.n_e[r["effect"]] = self.n_e.get(r["effect"], 0) + add
+        self.tick = max(self.tick, 2000)  # Treat the copy as old evidence (weak base rate).
+
     # --- memory per game ---
 
     @staticmethod
@@ -202,7 +271,8 @@ class RuleFinder:
     def to_json(self) -> dict:
         return {"n_c": self.n_c, "n_e": self.n_e, "n_ce": [[c, e, n] for (c, e), n in self.n_ce.items()], "tick": self.tick,
                 "results": self.results[-200:], "learned_after": self.learned_after, "summary": self.summary(),
-                "rules": self.describe()}
+                "rules": self.describe(), "told": [[c, e, w] for (c, e), w in self.told.items()],
+                "last_reason": self.last_reason}
 
     @classmethod
     def from_json(cls, data: dict, me: str = "") -> "RuleFinder":
@@ -212,6 +282,8 @@ class RuleFinder:
         f.n_ce = {(c, e): n for c, e, n in data.get("n_ce") or []}
         f.tick = int(data.get("tick", 0))
         f.results = list(data.get("results") or [])
+        f.told = {(c, e): w for c, e, w in data.get("told") or []}
+        f.last_reason = data.get("last_reason", "")
         f.learned_after = data.get("learned_after")
         return f
 

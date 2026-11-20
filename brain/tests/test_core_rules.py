@@ -139,3 +139,33 @@ class PredictTest(unittest.TestCase):
         self.assertIn("predict_loss", stats)
         total.backward()
         self.assertLess(float(logits["predict"].grad.sum()), 0)  # Pushes towards "it will happen".
+
+
+class CauseAndWordsTest(unittest.TestCase):
+    def test_explains_why_it_lost(self):
+        f = RuleFinder("Me")
+        t = 0
+        for win in (False, False, False):
+            t = play_round(f, t, win)
+        self.assertIn("getting hit by snowball", f.last_reason)
+
+    def test_rules_told_in_words(self):
+        f = RuleFinder("Me")
+        pairs = f.tell("Snowballs knock you out!")
+        self.assertIn(("hurt_by:snowball", "i_died"), pairs)
+        self.assertTrue(any(r.get("told") for r in f.rules()))
+        o = f.objective()
+        self.assertTrue(any("snowball" in r["note"] and r["value"] > 0 for r in o["rules"]))
+        # Play can overturn a told rule.
+        for t in range(0, 3000, 100):
+            f.observe(obs(t), [{"type": "i_hit", "data": {"with": "minecraft:snowball"}}])
+        self.assertFalse(any(r["cause"] == "i_hit:snowball" and r.get("told") for r in f.rules()))
+
+    def test_new_game_starts_with_rules_from_others(self):
+        a = RuleFinder("Me")
+        t = 0
+        for win in (True, False, True, False):
+            t = play_round(a, t, win)
+        b = RuleFinder("Me")
+        b.seed_from([a])
+        self.assertIn(("i_hit:snowball", "i_killed"), {(r["cause"], r["effect"]) for r in b.rules(min_count=1)})
