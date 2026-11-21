@@ -15,6 +15,19 @@ import re
 DEFAULT_MODEL = "Qwen/Qwen2.5-1.5B-Instruct"
 # "lite": about 1 GB, faster, noticeably less clever (for tight memory, e.g. while training).
 MODELS = {"standard": DEFAULT_MODEL, "lite": "Qwen/Qwen2.5-0.5B-Instruct"}
+LITE_MODEL = MODELS["lite"]
+
+
+def describe(e: Exception) -> str:
+    """A mind error in words, with what to do (some errors, like running out of memory, have no text)."""
+    text = f"{type(e).__name__}: {e}".rstrip(": ")
+    low = text.lower()
+    if isinstance(e, MemoryError) or "out of memory" in low or "not enough memory" in low or "alloc" in low:
+        return ("Not enough memory to load the mind. Close other programs, or install the Lite mind (about 1 GB) "
+                "in F10 > Brain, which needs far less. (" + text + ")")
+    if "safetensors" in low or "no file named" in low or "incomplete" in low or "corrupt" in low:
+        return "The mind's download looks incomplete or damaged: install it again in F10 > Brain. (" + text + ")"
+    return text + " (details: minigamebots/logs/brain.log)"
 
 SYSTEM = """You turn a Minecraft player's instruction to their AI helper into a JSON list of goals.
 Allowed goals (use only these):
@@ -92,11 +105,32 @@ class LLM:
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
-        d = model_dir(root)
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-        dtype = torch.float16 if self.device == "cuda" else torch.bfloat16
-        self.tok = AutoTokenizer.from_pretrained(d)
-        self.model = AutoModelForCausalLM.from_pretrained(d, torch_dtype=dtype).to(self.device).eval()
+        # The selected model first, then any other installed one (the Lite mind is far smaller), and
+        # on the graphics card first, then the CPU: whatever fits. low_cpu_mem_usage loads the weights
+        # in place instead of holding two copies (the usual reason a 16 GB PC runs out).
+        names = [selected(root)] + [n for n in (DEFAULT_MODEL, LITE_MODEL) if n != selected(root)]
+        devices = [device] if device else (["cuda", "cpu"] if torch.cuda.is_available() else ["cpu"])
+        last = None
+        for name in names:
+            d = model_dir(root, name)
+            if not (os.path.isfile(os.path.join(d, "config.json")) and any(f.endswith(".safetensors") for f in os.listdir(d))):
+                continue
+            for dev in devices:
+                try:
+                    dtype = torch.float16 if dev == "cuda" else torch.bfloat16
+                    self.tok = AutoTokenizer.from_pretrained(d)
+                    self.model = AutoModelForCausalLM.from_pretrained(d, torch_dtype=dtype, low_cpu_mem_usage=True).to(dev).eval()
+                    self.device, self.name = dev, name
+                    return
+                except Exception as e:  # MemoryError, CUDA out of memory...
+                    last = e
+                    self.model = None
+                    if dev == "cuda":
+                        torch.cuda.empty_cache()
+                    import gc
+
+                    gc.collect()
+        raise last if last is not None else OSError("no mind model found")
 
     def generate(self, messages: list[dict], max_new_tokens: int = 160, sample: bool = False) -> str:
         import torch

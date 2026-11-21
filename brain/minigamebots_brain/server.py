@@ -178,7 +178,7 @@ class Brain:
             result = commands.understand(str(message.get("text", "")), str(message.get("me", "")), model)
         except Exception as e:
             log("Mind error:\n" + traceback.format_exc())
-            result = {"goals": [], "stop": False, "via": "none", "reply": f"My mind had a problem: {e}"}
+            result = {"goals": [], "stop": False, "via": "none", "reply": "My mind had a problem: " + llm_mod.describe(e)}
         if message.get("heard"):
             result["reply"] = f'Heard "{message["heard"]}". ' + result["reply"]
         self.channel.send({"type": "command_result", "id": message.get("id"), **result})
@@ -276,8 +276,10 @@ class Brain:
             else:
                 out["character"] = chat.make_character(model, str(message.get("ai_name", "")), list(message.get("skills") or []))
         except Exception as e:
+            from .mind import llm as llm_mod
+
             log("Mind error:\n" + traceback.format_exc())
-            out["error"] = str(e)
+            out["error"] = llm_mod.describe(e)
         self.channel.send(out)
 
     def on_design(self, message: dict) -> None:
