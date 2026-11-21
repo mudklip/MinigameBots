@@ -43,6 +43,12 @@ def _build(**kwargs) -> Policy:
     return BuildPolicy(**kwargs)
 
 
+def _guard(**kwargs) -> Policy:
+    from .guard import GuardPolicy
+
+    return GuardPolicy(**kwargs)
+
+
 def _practice(**kwargs) -> Policy:
     from .practice import PracticePolicy  # Imported on use: it needs torch.
 
@@ -63,6 +69,7 @@ POLICIES = {
     "core": _core,
     "manager": _manager,
     "build": _build,
+    "guard": _guard,
 }
 
 

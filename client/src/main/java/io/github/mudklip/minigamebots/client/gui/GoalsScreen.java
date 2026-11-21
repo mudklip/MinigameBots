@@ -151,6 +151,9 @@ public final class GoalsScreen extends Screen {
 					attitudeHelp(ap.attitude)))).build());
 		}
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(width - 70, height - 28).width(60).build());
+		addRenderableWidget(Button.builder(Component.literal("Guard orders..."), b -> minecraft.gui.setScreen(
+				new io.github.mudklip.minigamebots.client.guard.GuardScreen(this))).pos(width - 98, 6).width(90)
+				.tooltip(Tooltip.create(Component.literal("Who may tell it to guard someone in formation, and how."))).build());
 	}
 
 	private static final List<String> AFTER = List.of("auto", "mercy", "fair", "ruthless");

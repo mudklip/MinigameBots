@@ -52,6 +52,11 @@ public final class DebugCommands {
 							return 1;
 						})))
 				.then(literal("observe").executes(DebugCommands::observe))
+				.then(literal("guardtest").then(argument("order", StringArgumentType.greedyString()).executes(ctx -> {
+					ctx.getSource().sendFeedback(Component.literal(io.github.mudklip.minigamebots.client.guard.GuardOrders.test(
+							StringArgumentType.getString(ctx, "order"))));
+					return 1;
+				})))
 				.then(literal("popuptest").executes(ctx -> {
 					// Sample popups (also switches them on), to see them and check they stay out of the AI's view.
 					var cfg = io.github.mudklip.minigamebots.client.config.MgbConfig.get();

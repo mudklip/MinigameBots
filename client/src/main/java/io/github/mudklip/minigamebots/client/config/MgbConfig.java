@@ -205,6 +205,10 @@ public final class MgbConfig {
 	public int protectRadius = 16;
 
 	// Brain (set from the Brain screen, not shown in this settings screen)
+	/** Guard orders: players allowed to give them (comma separated); empty = nobody (GuardScreen). */
+	@SerialEntry
+	public String guardCommanders = "";
+
 	/** Your own Python to build the brain's environment from; empty = download a standalone Python. */
 	@SerialEntry
 	public String customPythonPath = "";

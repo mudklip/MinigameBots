@@ -247,6 +247,10 @@ public final class MinigameBotsClient implements ClientModInitializer {
 
 		ClientReceiveMessageEvents.CHAT.register((message, signed, sender, params, time) -> {
 			text.onChat(message.getString());
+			// Guard orders: player chat and whispers only (this event), never system text.
+			String content = signed != null ? signed.signedContent() : message.getString().replaceFirst("^<[^>]*>\\s*", "");
+			io.github.mudklip.minigamebots.client.guard.GuardOrders.onChat(message, content, sender == null ? null : sender.name(),
+					sender == null ? null : sender.id());
 			events.onChat(message.getString(), false);
 		});
 		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {

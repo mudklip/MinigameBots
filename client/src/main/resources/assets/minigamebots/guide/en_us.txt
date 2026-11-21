@@ -4,6 +4,17 @@ An AI that plays Minecraft as you, with a real (virtual) keyboard and mouse. You
 
 > New: [F10] > [★ Training Hub] trains your AI for you. Start there.
 
+# What's new in 2.0
+- A dashboard main menu and friendlier Settings (switches and sliders with plain descriptions).
+- Training designer (main menu > Design training): say what it should get better at; it builds a checked plan you can tick and Accept.
+- Rewards: "Hurts itself", damage by cause, going down, standing on a block, zones, edges, combos, landing in water, the void; "only if safe for N s" (⏳) and "only beyond its best" (★) on any rule; "Item wasted" (missed shots, overeating, unused healing, pointless pearls and wind charges) as a small budget cost.
+- Rules > Fit to my clips: learns reward weights from the moments you marked good or mistake.
+- It learns from whoever beats it (skill card > Learns from), and its network now sees how each opponent fights.
+- Optional popups of points and what it learns (Settings > Recording & popups): only you see them, never the AI.
+- Progress: a chart of exams and a warning when training stops paying off; an exam runs by itself after training.
+- Sleep can also evolve its learning settings (exam-judged), and dreaming can use its own network.
+- Guard orders (Goals > Guard orders): listed players can tell it to guard someone in formation from chat.
+
 # The 3 keys to remember
 - [F10] opens this menu
 - [F8] gives the AI control, or takes it back

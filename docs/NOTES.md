@@ -311,8 +311,8 @@ S = small, M = medium, (check) = needs an in-game check (batch these).
 - ~~E3 overnight population-based evolution of settings + hand-picked constants, judged by auto exams M~~ done
 - ~~E4 mind as middleman (goal, scope, explanation) + playbook notes per minigame; form fallback without the mind M~~ done
 - ~~E5 program card UI (timeline, editable, Accept creates skills/rules, follow-up on stalls) M (check)~~ done
-- F1 guard orders: "Takes orders from" list (empty default), only signed player chat/whispers by sender UUID; guard <player> <dist> <ring|line|front|wedge|square> with <names>; standby/follow/stop; cooldown, max distance, allowed protectees M
-- F2 slots = sorted names index + simple math, rotate with protectee facing, optional close gaps from visible guards; nearest guard engages, others hold; safety first; scripted (no training, no Baritone) M (check)
+- ~~F1 guard orders: "Takes orders from" list (empty default), only signed player chat/whispers by sender UUID; guard <player> <dist> <ring|line|front|wedge|square> with <names>; standby/follow/stop; cooldown, max distance, allowed protectees M~~ done
+- ~~F2 slots = sorted names index + simple math, rotate with protectee facing, optional close gaps from visible guards; nearest guard engages, others hold; safety first; scripted (no training, no Baritone) M (check)~~ done
 
 ## Code map (for the next update; read this instead of exploring)
 Client: client/src/main/java/io/github/mudklip/minigamebots/client/
@@ -364,3 +364,11 @@ relaunch script lives in the session scratchpad (recreate: Xvfb :99, ./gradlew :
   ProgressScreen "Ask the designer" when flat. sleep/EvolveSession: base snapshot, 4 variants of
   advanced lr/entropy/stay_human (x0.5/x2), each: revert base, apply, practice 6 min, release ->
   AutoExam, snapshot; keep best by Watchdog.score (ties keep current). Sleep "Also evolve" switch.
+- Section F notes: guard/GuardOrders (parse/allowed pure + tested; onChat from Fabric CHAT event
+  only: player chat/whispers, never GAME/system; MgbConfig.guardCommanders, empty = nobody; name tied
+  to first UUID per session; 2 s cooldown; protectee = issuer or listed; execute sets
+  relations.setProtected and brain play("guard")), GuardScreen (from Goals), /mgb guardtest (debug,
+  skips chat permissions). policies/guard.py: slot_offset per shape turned with the protectee's yaw,
+  my_index = sorted names (visible-only with close_gaps), modes guard/standby/follow/stop, unsafe spot
+  (drop 2+ or lava) -> ring/square turn by 20 deg, else wait; nearest listed guard engages
+  hitProtected attackers (learned network if available), drops at 200 ticks / 16 blocks.
