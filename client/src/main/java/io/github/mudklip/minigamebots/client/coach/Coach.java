@@ -317,7 +317,8 @@ public final class Coach {
 				int game = Math.max(5, Math.min(15, budget / 6));
 				steps.add(new Step("Start a new random minigame", true, () -> {
 					stopAi();
-					cmd("tg coregame random" + (io.github.mudklip.minigamebots.client.config.MgbConfig.get().coreFreeForAll ? " ffa" : ""));
+					var cfgc = io.github.mudklip.minigamebots.client.config.MgbConfig.get();
+					cmd("tg coregame random" + (cfgc.coreFreeForAll ? " ffa" : cfgc.coreLight ? " light" : ""));
 				}, () -> elapsed() > 3000));
 				steps.add(new Step("Learn the game (" + game + " min)", true,
 						() -> mgb.brain().playCore(Minecraft.getInstance(), p), () -> elapsed() > game * 60_000L));

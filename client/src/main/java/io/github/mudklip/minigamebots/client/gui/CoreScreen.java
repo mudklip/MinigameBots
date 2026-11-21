@@ -78,12 +78,23 @@ public final class CoreScreen extends Screen {
 						+ "believing it; play can still prove it wrong."))).build());
 		games.removeIf(g -> g.endsWith(".told"));
 		var cfg = io.github.mudklip.minigamebots.client.config.MgbConfig.get();
-		addRenderableWidget(Button.builder(Component.literal("Practice minigames: " + (cfg.coreFreeForAll ? "§efree-for-all" : "all vs AI")), b -> {
-			cfg.coreFreeForAll = !cfg.coreFreeForAll;
+		addRenderableWidget(Button.builder(Component.literal("Practice minigames: " + (cfg.coreFreeForAll ? "§efree-for-all"
+				: cfg.coreLight ? "§bmostly AI" : "all vs AI")), b -> {
+			// all vs AI -> mostly AI (light) -> free-for-all -> all vs AI
+			if (cfg.coreFreeForAll) {
+				cfg.coreFreeForAll = false;
+				cfg.coreLight = false;
+			} else if (cfg.coreLight) {
+				cfg.coreLight = false;
+				cfg.coreFreeForAll = true;
+			} else {
+				cfg.coreLight = true;
+			}
 			io.github.mudklip.minigamebots.client.config.MgbConfig.HANDLER.save();
 			rebuildWidgets();
 		}).pos(8, height - 26).width(180).tooltip(Tooltip.create(Component.literal("The little games the Core plan builds (Spleef, "
-				+ "TNT Run, Sumo...). All vs AI: every bot plays against your AI (the default). Free-for-all: the bots also go "
+				+ "TNT Run, Sumo...). All vs AI: every bot plays against your AI (the default). Mostly AI: now and then a bot "
+				+ "turns on another bot for a few seconds. Free-for-all: the bots also go "
 				+ "after each other, like a real free-for-all lobby. Takes effect from the next game."))).build());
 		addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).pos(width - 60, height - 26).width(52).build());
 	}

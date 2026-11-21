@@ -6,7 +6,8 @@
 		"MannequinAccessor",
 		"PlayerAttackMixin",
 		"ServerGamePacketListenerMixin",
-		"ServerPlayerMixin"
+		"ServerPlayerMixin",
+		"SnowballMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

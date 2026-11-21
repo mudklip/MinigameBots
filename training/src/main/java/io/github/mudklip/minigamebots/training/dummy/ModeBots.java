@@ -40,7 +40,11 @@ public final class ModeBots {
 	 * on whoever is nearest among {@code players}; otherwise they all play against you.
 	 */
 	public record Field(BlockPos centre, int half, String game, Predicate<BlockPos> crumbling, boolean ffa,
-			java.util.function.Supplier<java.util.List<LivingEntity>> players) {
+			java.util.function.Supplier<java.util.List<LivingEntity>> players, boolean light) {
+		public Field(BlockPos centre, int half, String game, Predicate<BlockPos> crumbling, boolean ffa,
+				java.util.function.Supplier<java.util.List<LivingEntity>> players) {
+			this(centre, half, game, crumbling, ffa, players, false);
+		}
 		public Field(BlockPos centre, int half, String game, Predicate<BlockPos> crumbling) {
 			this(centre, half, game, crumbling, false, java.util.List::of);
 		}
@@ -78,6 +82,10 @@ public final class ModeBots {
 		@Nullable BlockPos goal;
 		@Nullable BlockPos next;
 		final java.util.Map<BlockPos, Integer> visited = new java.util.HashMap<>();
+		/** Light mode: a short spell against another bot now and then (mostly it plays the AI). */
+		@Nullable LivingEntity side;
+		int sideUntil;
+		int nextSide = 60;
 		int age;
 
 		Bot(Field f, int game) {
@@ -98,6 +106,25 @@ public final class ModeBots {
 					}
 				}
 				target = best;
+			} else if (f.light()) {
+				if (side != null && (age >= sideUntil || !side.isAlive())) {
+					side = null;
+				}
+				if (side == null && age >= nextSide) {
+					nextSide = age + 60 + m.getRandom().nextInt(60); // Every 3-6 s, a 1-in-4 chance.
+					if (m.getRandom().nextInt(4) == 0) {
+						for (LivingEntity e : f.players().get()) {
+							if (e != m && e != target && e.isAlive() && !(e instanceof net.minecraft.world.entity.player.Player)
+									&& e.distanceToSqr(m) < 100 && (side == null || e.distanceToSqr(m) < side.distanceToSqr(m))) {
+								side = e;
+							}
+						}
+						sideUntil = age + 40 + m.getRandom().nextInt(40);
+					}
+				}
+				if (side != null) {
+					target = side;
+				}
 			}
 			if (!equipped) {
 				equipped = true;

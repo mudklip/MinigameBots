@@ -105,6 +105,12 @@ final class TgCommands {
 									ok(ctx, tg.coreGames().start(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "kind")));
 									return 1;
 								})
+								.then(Commands.literal("light").executes(ctx -> {
+									// Mostly against you, with short spells against each other.
+									ok(ctx, tg.coreGames().start(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "kind"),
+											false, true));
+									return 1;
+								}))
 								.then(Commands.literal("ffa").executes(ctx -> {
 									// Free-for-all: the bots also go after each other.
 									ok(ctx, tg.coreGames().start(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "kind"), true));

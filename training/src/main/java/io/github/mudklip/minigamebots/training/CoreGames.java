@@ -61,6 +61,7 @@ public final class CoreGames {
 	private int myPoints;
 	/** Free-for-all: the bots also fight each other (only when asked for; off by default). */
 	private boolean ffa;
+	private boolean light;
 
 	public CoreGames(DummyManager dummies, GroundTruth truth) {
 		this.dummies = dummies;
@@ -76,8 +77,14 @@ public final class CoreGames {
 	}
 
 	public String start(ServerPlayer p, String wanted, boolean freeForAll) {
+		return start(p, wanted, freeForAll, false);
+	}
+
+	/** light: the bots mostly play the AI, with short spells against each other now and then. */
+	public String start(ServerPlayer p, String wanted, boolean freeForAll, boolean lightly) {
 		stop(p.level().getServer());
 		ffa = freeForAll;
+		light = lightly && !freeForAll;
 		String k = wanted.equals("random") ? KINDS.get(p.getRandom().nextInt(KINDS.size())) : wanted;
 		if (!KINDS.contains(k)) {
 			return "Games: random, " + String.join(", ", KINDS);
@@ -190,7 +197,7 @@ public final class CoreGames {
 				dummies.setBrain(m.getUUID(), io.github.mudklip.minigamebots.training.dummy.ModeBots.of(
 						new io.github.mudklip.minigamebots.training.dummy.ModeBots.Field(centre,
 								"sumo".equals(game) ? 5 : fallGame() ? 7 : HALF - 1, game,
-								b -> crumbling.containsKey(b), ffa, this::contestants)));
+								b -> crumbling.containsKey(b), ffa, this::contestants, light)));
 			}
 		}
 		p.setGameMode(GameType.SURVIVAL);
@@ -379,6 +386,22 @@ public final class CoreGames {
 	private boolean onGold(LivingEntity e) {
 		return Math.abs(e.getX() - (centre.getX() + 0.5)) <= 1.5 && Math.abs(e.getZ() - (centre.getZ() + 0.5)) <= 1.5
 				&& Math.abs(e.getY() - centre.getY()) < 0.6;
+	}
+
+	/**
+	 * A snowball hit something (SnowballMixin). Snowballs do no damage, and the game ignores 0-damage
+	 * hits on players (no damage event), so in Snowball Fight a dummy's snowball reaching you is
+	 * caught here instead.
+	 */
+	public void onSnowball(net.minecraft.world.entity.Entity victim, net.minecraft.world.entity.@Nullable Entity thrower) {
+		ServerLevel lv = level;
+		if (owner == null || lv == null || restartIn >= 0 || !"snowball".equals(kind)) {
+			return;
+		}
+		ServerPlayer p = player(lv.getServer());
+		if (p != null && victim == p && thrower instanceof LivingEntity le && foe(le)) {
+			out(p, null);
+		}
 	}
 
 	/** Damage inside the game: the rules decide who is out. */

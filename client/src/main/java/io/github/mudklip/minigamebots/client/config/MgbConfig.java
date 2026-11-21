@@ -86,6 +86,9 @@ public final class MgbConfig {
 	/** Core minigames: the bots also fight each other (off: they all play against the AI). */
 	@SerialEntry
 	public boolean coreFreeForAll = false;
+	/** Core minigames: mostly against the AI, with short spells against each other (between "all vs AI" and free-for-all). */
+	@SerialEntry
+	public boolean coreLight = false;
 	/** When it last slept (ISO time): the next sleep replays what was recorded since. */
 	@SerialEntry
 	public String lastSleep = "";
