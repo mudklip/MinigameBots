@@ -44,3 +44,40 @@ class MindErrorTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class GenerateTest(unittest.TestCase):
+    def run_with(self, encoded):
+        import torch
+
+        m = llm.LLM.__new__(llm.LLM)
+        m.device = "cpu"
+        seen = {}
+
+        class Tok:
+            eos_token_id = 0
+
+            def apply_chat_template(self, messages, **kw):
+                return encoded
+
+            def decode(self, ids, skip_special_tokens=True):
+                return "hi" if list(ids) == [9] else "?"
+
+        class Model:
+            def generate(self, input_ids=None, **kw):
+                seen["mask"] = "attention_mask" in kw
+                return torch.cat([input_ids, torch.tensor([[9]])], dim=1)
+
+        m.tok, m.model = Tok(), Model()
+        return m.generate([{"role": "user", "content": "x"}]), seen
+
+    def test_old_and_new_transformers(self):
+        import torch
+
+        ids = torch.tensor([[1, 2, 3]])
+        self.assertEqual(self.run_with(ids)[0], "hi")  # Older: just the ids.
+        from transformers import BatchEncoding
+
+        text, seen = self.run_with(BatchEncoding({"input_ids": ids, "attention_mask": torch.ones_like(ids)}))  # Newer: a bundle.
+        self.assertEqual(text, "hi")
+        self.assertTrue(seen["mask"])

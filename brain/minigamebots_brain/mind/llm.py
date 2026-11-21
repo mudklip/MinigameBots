@@ -135,10 +135,18 @@ class LLM:
     def generate(self, messages: list[dict], max_new_tokens: int = 160, sample: bool = False) -> str:
         import torch
 
-        ids = self.tok.apply_chat_template(messages, add_generation_prompt=True, return_tensors="pt").to(self.device)
+        enc = self.tok.apply_chat_template(messages, add_generation_prompt=True, return_tensors="pt")
+        # Older transformers return the token ids; newer ones a dict-like bundle (ids + attention mask).
+        if hasattr(enc, "keys") and "input_ids" in enc:
+            ids = enc["input_ids"].to(self.device)
+            mask = enc["attention_mask"].to(self.device) if "attention_mask" in enc else None
+        else:
+            ids, mask = enc.to(self.device), None
         extra = {"do_sample": True, "temperature": 0.8, "top_p": 0.9} if sample else {"do_sample": False}
+        if mask is not None:
+            extra["attention_mask"] = mask
         with torch.no_grad():
-            out = self.model.generate(ids, max_new_tokens=max_new_tokens, pad_token_id=self.tok.eos_token_id, **extra)
+            out = self.model.generate(input_ids=ids, max_new_tokens=max_new_tokens, pad_token_id=self.tok.eos_token_id, **extra)
         return self.tok.decode(out[0, ids.shape[1]:], skip_special_tokens=True)
 
     def to_goals(self, text: str, me: str):
