@@ -18,8 +18,7 @@ public final class WorldsCustomizeScreen extends Screen {
 	}
 
 	private static final Row[] ROWS = {
-		new Row("Kit", "The same gear on both sides", new String[] {"Default", "Sword + shield", "Axe + shield", "Diamond", "Bare hands"},
-				new String[] {"default", "shield", "axe", "diamond", "bare"}),
+		null, // Kit: built in init() (your own kits join the built-in ones).
 		new Row("Arena", "Size of each world", new String[] {"Small", "Normal", "Large"}, new String[] {"small", "normal", "large"}),
 		new Row("Type", "Edge: a platform, off it and you're out", new String[] {"Flat", "Pillars", "Edge"},
 				new String[] {"flat", "pillars", "edge"}),
@@ -77,6 +76,7 @@ public final class WorldsCustomizeScreen extends Screen {
 
 	/** What's not the default, in words, for the Worlds tab. */
 	public static String summary() {
+		ROWS[0] = kitRow();
 		List<String> parts = new ArrayList<>();
 		for (int r = 0; r < ROWS.length - 1; r++) {
 			String v = get(r);
@@ -91,8 +91,21 @@ public final class WorldsCustomizeScreen extends Screen {
 		return String.join(", ", parts);
 	}
 
+	private static Row kitRow() {
+		List<String> names = new ArrayList<>(List.of("Opponent's gear", "Sword", "Sword + shield", "Axe", "Diamond", "Bow + sword", "Bare hands"));
+		List<String> values = new ArrayList<>(List.of("default", "sword", "shield", "axe", "diamond", "bow", "bare"));
+		for (String k : MgbConfig.get().customKits) {
+			names.add("§b" + k);
+			values.add(k);
+		}
+		return new Row("Kit", "The same gear on both sides (Kits... to make your own)", names.toArray(String[]::new), values.toArray(String[]::new));
+	}
+
 	@Override
 	protected void init() {
+		ROWS[0] = kitRow();
+		addRenderableWidget(Button.builder(Component.literal("Kits..."), b -> minecraft.gui.setScreen(new KitsScreen(this)))
+				.pos(width - 78, 6).width(70).build());
 		addRenderableWidget(Button.builder(Component.literal("Defaults"), b -> {
 			for (int r = 0; r < ROWS.length; r++) {
 				set(r, ROWS[r].values()[r == 1 || r == ROWS.length - 1 ? 1 : 0]);
@@ -116,6 +129,10 @@ public final class WorldsCustomizeScreen extends Screen {
 			String cur = get(r);
 			for (int i = 0; i < row.names().length; i++) {
 				int w = font.width(row.names()[i]) + 14;
+				if (x + w > width - 8 && x > 72) {
+					x = 72; // Wrap long rows (the kit row with your own kits).
+					y += 16;
+				}
 				boolean h = Ui.inside(mouseX, mouseY, x, y, w, 13);
 				Ui.chip(g, font, row.names()[i], x, y, w, row.values()[i].equals(cur), h, Ui.ACCENT);
 				chips.add(new int[] {x, y, w, r, i});

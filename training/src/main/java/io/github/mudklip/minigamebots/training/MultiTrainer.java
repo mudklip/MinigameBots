@@ -6,7 +6,7 @@ import io.github.mudklip.minigamebots.training.arena.Arena;
 import io.github.mudklip.minigamebots.training.arena.ArenaManager;
 import io.github.mudklip.minigamebots.training.dummy.DummyManager;
 import io.github.mudklip.minigamebots.training.dummy.DummySettings;
-import io.github.mudklip.minigamebots.training.dummy.Kits;
+import io.github.mudklip.minigamebots.training.dummy.Loadout;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -142,7 +142,7 @@ public final class MultiTrainer {
 				String k = tok.substring(0, eq).toLowerCase(java.util.Locale.ROOT);
 				String v = tok.substring(eq + 1).toLowerCase(java.util.Locale.ROOT);
 				switch (k) {
-					case "kit" -> kit = List.of("default", "shield", "axe", "diamond", "bare").contains(v) ? v : kit;
+					case "kit" -> kit = "default".equals(v) || Loadout.BUILT_IN.containsKey(v) && !v.startsWith("core_") || Loadout.validName(v) ? v : kit;
 					case "size" -> size = List.of("small", "normal", "large").contains(v) ? v : size;
 					case "type" -> type = List.of("flat", "pillars", "edge").contains(v) ? v : type;
 					case "mix" -> mix = List.of("single", "mixed", "ladder").contains(v) ? v : mix;
@@ -348,8 +348,14 @@ public final class MultiTrainer {
 			case "ladder" -> LADDER[Math.max(0, Math.min(LADDER.length - 1, c.ladder))];
 			default -> style;
 		};
-		// The shield drill needs something to break: an axe for the learner, a shield for the opponent.
-		String kit = "shield_drill".equals(c.objective) ? "axe" : opts.kit();
+		// Both sides get the same kit. The one deliberate exception: the shield drill needs something
+		// to break, an axe for the learner and a shield for the opponent. "default" = the gear the
+		// opponent's style comes with, given to both.
+		boolean drill = "shield_drill".equals(c.objective);
+		com.google.gson.JsonArray kit = drill ? Loadout.builtIn("axe") : "default".equals(opts.kit())
+				? Loadout.ofStyle(DummySettings.style(st)) : java.util.Objects.requireNonNullElseGet(Loadout.find(lv.getServer(), opts.kit()),
+						() -> Loadout.builtIn("sword"));
+		com.google.gson.JsonArray oppKit = drill ? Loadout.builtIn("shield") : kit;
 		for (int k = 0; k < c.size; k++) {
 			// Teams line up side by side, 2 blocks apart, facing each other.
 			Vec3 side = new Vec3(0, 0, (k - (c.size - 1) / 2.0) * 2);
@@ -359,13 +365,18 @@ public final class MultiTrainer {
 				dummies.setPuppetOwner(l.getUUID(), owner);
 				scoreboard.addPlayerToTeam(l.getScoreboardName(), learnTeam);
 				c.learners.add(l.getUUID());
-				Kits.apply(l, dummies.byId(l.getUUID()), kit, false);
+				Loadout.apply(l, dummies.byId(l.getUUID()), kit);
+				Loadout.check("training world", l, kit);
 			}
 			if (o != null) {
 				dummies.byId(o.getUUID()).settings.infiniteHealth = false;
 				scoreboard.addPlayerToTeam(o.getScoreboardName(), oppTeam);
 				c.opponents.add(o.getUUID());
-				Kits.apply(o, dummies.byId(o.getUUID()), "shield_drill".equals(c.objective) ? "shield" : kit, true);
+				Loadout.apply(o, dummies.byId(o.getUUID()), oppKit);
+				if (drill) {
+					dummies.byId(o.getUUID()).settings.smartShield = true; // The drill's opponent blocks.
+				}
+				Loadout.check("training world", o, oppKit);
 			}
 		}
 	}

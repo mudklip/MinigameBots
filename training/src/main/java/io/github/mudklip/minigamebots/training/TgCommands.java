@@ -1,5 +1,7 @@
 package io.github.mudklip.minigamebots.training;
 
+import io.github.mudklip.minigamebots.training.dummy.Loadout;
+
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -89,6 +91,57 @@ final class TgCommands {
 							tg.arenas().clearSpawns(a);
 							ok(ctx, "Removed all spawns of " + a.name);
 						})))
+				.then(Commands.literal("kit").requires(tg::canManage)
+						// Kit editor: lay a kit out in your own inventory and save it by name. Your own
+						// things are put aside while you edit, and given back when you save or cancel.
+						.then(Commands.literal("list").executes(ctx -> {
+							ok(ctx, "Kits: " + String.join(", ", Loadout.pickable()) + " | yours: "
+									+ String.join(", ", Loadout.custom(ctx.getSource().getServer())));
+							return 1;
+						}))
+						.then(Commands.literal("cancel").executes(ctx -> {
+							CoreGames.giveBack(ctx.getSource().getPlayerOrException());
+							ok(ctx, "Your own items are back");
+							return 1;
+						}))
+						.then(Commands.literal("edit").then(Commands.argument("name", StringArgumentType.word()).executes(ctx -> {
+							var p = ctx.getSource().getPlayerOrException();
+							String n = StringArgumentType.getString(ctx, "name").toLowerCase(java.util.Locale.ROOT);
+							var kit = Loadout.find(ctx.getSource().getServer(), n);
+							CoreGames.keep(p);
+							io.github.mudklip.minigamebots.training.arena.ArenaManager.applyKit(p, kit == null ? new com.google.gson.JsonArray() : kit);
+							ok(ctx, (kit == null ? "New kit " : "Editing ") + n + ": arrange it, then /tg kit save " + n + " (your items are kept aside)");
+							return 1;
+						})))
+						.then(Commands.literal("save").then(Commands.argument("name", StringArgumentType.word()).executes(ctx -> {
+							var p = ctx.getSource().getPlayerOrException();
+							String n = StringArgumentType.getString(ctx, "name").toLowerCase(java.util.Locale.ROOT);
+							if (!Loadout.validName(n) || Loadout.BUILT_IN.containsKey(n)) {
+								ctx.getSource().sendFailure(net.minecraft.network.chat.Component.literal(
+										"Pick another name (a-z, 0-9, _ or -; not a built-in kit)"));
+								return 0;
+							}
+							try {
+								Loadout.save(ctx.getSource().getServer(), n, io.github.mudklip.minigamebots.training.arena.ArenaManager.captureKit(p));
+							} catch (java.io.IOException e) {
+								ctx.getSource().sendFailure(net.minecraft.network.chat.Component.literal("Couldn't save: " + e.getMessage()));
+								return 0;
+							}
+							CoreGames.giveBack(p);
+							ok(ctx, "Saved kit " + n + " (pick it as the kit for training worlds)");
+							return 1;
+						})))
+						.then(Commands.literal("delete").then(Commands.argument("name", StringArgumentType.word()).executes(ctx -> {
+							String n = StringArgumentType.getString(ctx, "name").toLowerCase(java.util.Locale.ROOT);
+							ok(ctx, Loadout.delete(ctx.getSource().getServer(), n) ? "Deleted kit " + n : "No kit of yours called " + n);
+							return 1;
+						}))))
+				.then(Commands.literal("fairness").requires(tg::canManage).executes(ctx -> {
+					var r = Loadout.report();
+					ok(ctx, r.isEmpty() ? "Every round so far was fair: everyone had exactly their kit"
+							: "Unfair gear (newest first):\n" + String.join("\n", r.subList(0, Math.min(8, r.size()))));
+					return 1;
+				}))
 				.then(Commands.literal("coregame").requires(tg::canManage)
 						.then(Commands.literal("stop").executes(ctx -> {
 							tg.coreGames().stop(ctx.getSource().getServer());

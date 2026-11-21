@@ -147,6 +147,13 @@ public final class TrainingGrounds implements ModInitializer {
 		HelloPayload hello = HelloPayload.local(version, FEATURES);
 
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+			if (coreGames == null || !coreGames.running()) {
+				CoreGames.giveBack(handler.getPlayer()); // Things put aside by a minigame the server stopped in.
+				var stale = server.getScoreboard().getObjective("mgb_core"); // And its scoreboard.
+				if (stale != null) {
+					server.getScoreboard().removeObjective(stale);
+				}
+			}
 			// Only players running the MinigameBots client mod can receive this; others are left alone.
 			if (ServerPlayNetworking.canSend(handler.getPlayer(), HelloPayload.TYPE)) {
 				sender.sendPacket(hello);

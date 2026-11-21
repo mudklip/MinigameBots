@@ -57,6 +57,12 @@ public final class DebugCommands {
 							StringArgumentType.getString(ctx, "order"))));
 					return 1;
 				})))
+				.then(literal("kits").executes(ctx -> {
+					Minecraft c = Minecraft.getInstance();
+					c.schedule(() -> c.gui.setScreen(new io.github.mudklip.minigamebots.client.gui.WorldsCustomizeScreen(
+							new io.github.mudklip.minigamebots.client.MainScreen(null))));
+					return 1;
+				}))
 				.then(literal("popuptest").executes(ctx -> {
 					// Sample popups (also switches them on), to see them and check they stay out of the AI's view.
 					var cfg = io.github.mudklip.minigamebots.client.config.MgbConfig.get();

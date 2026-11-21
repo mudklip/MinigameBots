@@ -74,7 +74,7 @@ public final class ModeBots {
 
 		final Field f;
 		final int game;
-		boolean equipped;
+		int ammo = 16;
 		int act;
 		int think;
 		int strafe = 1;
@@ -126,15 +126,10 @@ public final class ModeBots {
 					target = side;
 				}
 			}
-			if (!equipped) {
-				equipped = true;
-				m.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(switch (game) {
-					case SPLEEF -> Items.DIAMOND_SHOVEL;
-					case SNOWBALL -> Items.SNOWBALL;
-					case TNT_RUN -> Items.AIR;
-					default -> Items.STICK; // Knockback games: the hit is all that matters.
-				}));
-				m.setItemSlot(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
+			// Gear comes from the game's kit (Loadout), the same as the player's. Snowballs refill
+			// the same way too: 8 more every 5 s when below 8.
+			if (age % 100 == 0 && ammo < 8) {
+				ammo += 8;
 			}
 			if (act > 0) {
 				act--;
@@ -532,7 +527,8 @@ public final class ModeBots {
 			double flight = dist / 1.5;
 			Vec3 at = t.getEyePosition().add(t.getDeltaMovement().x * flight, -0.3, t.getDeltaMovement().z * flight);
 			look(m, at);
-			if (act == 0 && dist < 16) {
+			if (act == 0 && dist < 16 && ammo > 0) {
+				ammo--;
 				Snowball s = new Snowball(level, m, new ItemStack(Items.SNOWBALL));
 				Vec3 d = at.subtract(m.getEyePosition());
 				s.shoot(d.x, d.y + 0.5 * 0.03 * flight * flight, d.z, 1.5f, (6 - lv) * 1.4f);

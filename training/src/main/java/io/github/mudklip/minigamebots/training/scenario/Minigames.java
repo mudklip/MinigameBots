@@ -37,7 +37,12 @@ public final class Minigames {
 		return o;
 	}
 
-	static JsonArray kit(String[] k) {
+	public static JsonArray kit(String[] k) {
+		return kit(k, true);
+	}
+
+	/** A kit from its parts; food adds the usual stack of steak in the last hotbar slot. */
+	public static JsonArray kit(String[] k, boolean food) {
 		JsonArray out = new JsonArray();
 		int s = 0;
 		for (String id : k[0].split(",")) {
@@ -59,7 +64,9 @@ public final class Minigames {
 		if (!k[3].isBlank()) {
 			out.add(slot(40, k[3], 1));
 		}
-		out.add(slot(8, "cooked_beef", 16));
+		if (food) {
+			out.add(slot(8, "cooked_beef", 16));
+		}
 		return out;
 	}
 
@@ -130,13 +137,15 @@ public final class Minigames {
 			}
 			default -> {
 				int teams = 2 + rnd.nextInt(3);
-				JsonArray mine = kit(KITS.get(rnd.nextInt(KITS.size())));
+				// Only kits the dummies can use as well as you can (no mace or wind charges yet).
+				List<String[]> pool = KITS.stream().filter(io.github.mudklip.minigamebots.training.dummy.Loadout::dummyCanUse).toList();
+				JsonArray mine = kit(pool.get(rnd.nextInt(pool.size())));
 				boolean sameKits = rnd.nextBoolean();
 				List<String> styles = new java.util.ArrayList<>(DummySettings.STYLES);
 				styles.remove("self");
 				styles.add(League.LEAGUE);
 				for (int i = 0; i < teams; i++) {
-					JsonArray k = sameKits ? mine : kit(KITS.get(rnd.nextInt(KITS.size())));
+					JsonArray k = sameKits ? mine : kit(pool.get(rnd.nextInt(pool.size())));
 					int dummies = i == 0 ? rnd.nextInt(2) : 1 + rnd.nextInt(teams == 2 ? 3 : 2);
 					s.teams.add(team(i, dummies, styles.get(rnd.nextInt(styles.size())), i == 0 ? mine : k));
 				}

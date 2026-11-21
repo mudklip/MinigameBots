@@ -341,6 +341,7 @@ public final class ScenarioManager {
 			ArenaManager.refresh(p);
 			if (!team.kit.isEmpty()) {
 				ArenaManager.applyKit(p, team.kit);
+				io.github.mudklip.minigamebots.training.dummy.Loadout.check(s.name, p, team.kit);
 			}
 			double[] sp = spawn(arena, team, t, next[t]++);
 			if (sp != null) {
@@ -372,6 +373,11 @@ public final class ScenarioManager {
 					}
 					if (picked) {
 						e.leagueStyles.put(m.getUUID(), ds.style);
+					}
+					if (!team.kit.isEmpty()) {
+						// The team's kit, exactly as its players get it (not the style's own gear).
+						io.github.mudklip.minigamebots.training.dummy.Loadout.apply(m, dummyManager.byId(m.getUUID()), team.kit);
+						io.github.mudklip.minigamebots.training.dummy.Loadout.check(s.name, m, team.kit);
 					}
 					dummyManager.setPaused(m.getUUID(), true);
 					srv.getScoreboard().addPlayerToTeam(m.getScoreboardName(), teams.get(t));

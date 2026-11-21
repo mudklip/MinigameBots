@@ -79,6 +79,13 @@ public final class DummyManager {
 		/** An axe hit knocked the shield down until this tick (like a player's shield cooldown). */
 		transient long shieldDisabledUntil;
 		transient long shieldRaisedAt;
+		/** In a game: its kit's hotbar (gear and damage come from the kit, not the style); null otherwise. */
+		transient java.util.@Nullable List<ItemStack> kit;
+		transient com.google.gson.@Nullable JsonArray kitJson;
+		transient int arrows;
+		transient int draw;
+		/** The kit has food: heals over time like a fed player. */
+		transient boolean food;
 		/** The last swing as a puppet: {charge, sprint (1/0), crit (1/0)}. */
 		transient float @Nullable [] lastSwing;
 
@@ -125,7 +132,9 @@ public final class DummyManager {
 				List<Dummy> list = TgStorage.GSON.fromJson(Files.readString(f), new TypeToken<List<Dummy>>() { }.getType());
 				if (list != null) {
 					for (Dummy d : list) {
-						if (d != null && d.id != null && d.settings != null && d.anchor != null) {
+						if (d != null && d.id != null && !d.respawns) {
+							continue; // From a game that was running when the world closed (removed in tick).
+						} else if (d != null && d.id != null && d.settings != null && d.anchor != null) {
 							d.ensureTransient();
 							dummies.put(d.id, d);
 						}
@@ -295,7 +304,11 @@ public final class DummyManager {
 
 	/** Applies changed settings (armour and items) to a live dummy. */
 	public void apply(Mannequin m, Dummy d) {
-		equip(m, d.settings);
+		if (d.kitJson != null) {
+			Loadout.apply(m, d, d.kitJson);
+		} else {
+			equip(m, d.settings);
+		}
 		m.setHealth(m.getMaxHealth());
 		d.stats.reset();
 		updateName(m, d);
@@ -361,6 +374,17 @@ public final class DummyManager {
 
 	public void tick() {
 		tick++;
+		if (tick % 100 == 0 && server != null) {
+			// Dummies left over from a game that was running when the world closed: nobody owns
+			// them any more, so they'd stand there as statues. Gone once their chunk loads.
+			for (ServerLevel lv : server.getAllLevels()) {
+				for (Entity e : lv.getAllEntities()) {
+					if (e instanceof Mannequin && e.entityTags().contains(TAG) && !dummies.containsKey(e.getUUID())) {
+						e.discard();
+					}
+				}
+			}
+		}
 		numbers.tick();
 		for (Dummy d : new ArrayList<>(dummies.values())) {
 			Entity e = entity(d);
@@ -375,6 +399,9 @@ public final class DummyManager {
 			}
 			ServerLevel level = (ServerLevel) m.level();
 			d.sinceAttack++;
+			if (d.food && tick % 80 == 0 && m.getHealth() < m.getMaxHealth()) {
+				m.heal(1); // A fed player's natural healing (about 1 health every 4 s).
+			}
 			if (d.settings.puppet && d.control != null && tick - d.controlTick <= 10 && !d.paused) {
 				puppet(m, d, level);
 				if (tick % 5 == 0) {
@@ -531,7 +558,7 @@ public final class DummyManager {
 	/** A player-style swing: hits what the dummy looks at within reach, scaled by how charged it was. */
 	private void swingAs(Mannequin m, Dummy d, ServerLevel level, boolean sprint) {
 		m.swing(InteractionHand.MAIN_HAND, m.getMainHandItem().getAttackAnimation(), false);
-		float charge = Mth.clamp(d.sinceAttack / 12.5f, 0, 1);
+		float charge = Mth.clamp(d.sinceAttack / chargeTicks(m, d), 0, 1);
 		d.sinceAttack = 0;
 		if (m.isUsingItem()) {
 			m.stopUsingItem();
@@ -553,7 +580,7 @@ public final class DummyManager {
 		}
 		boolean crit = charge > 0.9f && !m.onGround() && m.getDeltaMovement().y < 0 && !sprint;
 		d.lastSwing = new float[] {charge, sprint ? 1 : 0, crit ? 1 : 0};
-		float dmg = d.settings.damage * (0.2f + charge * charge * 0.8f) * (crit ? 1.5f : 1f);
+		float dmg = baseDamage(m, d) * (0.2f + charge * charge * 0.8f) * (crit ? 1.5f : 1f);
 		hit.hurtServer(level, attack(m, level), dmg);
 		if (crit) {
 			level.getChunkSource().sendToTrackingPlayersAndSelf(m, new net.minecraft.network.protocol.game.ClientboundAnimatePacket(hit, 4));
@@ -618,6 +645,9 @@ public final class DummyManager {
 		if (d.cooldown > 0) {
 			d.cooldown--;
 		}
+		if (d.kit != null && ranged(m, d, target, level)) {
+			return;
+		}
 		if (reach > s.reach) {
 			d.inReach = 0;
 			return;
@@ -662,8 +692,11 @@ public final class DummyManager {
 		}
 		m.swing(InteractionHand.MAIN_HAND, m.getMainHandItem().getAttackAnimation(), false);
 		d.cooldown = (int) Math.max(2, Math.round(20 / Math.max(0.5, s.cps)));
+		// With a kit, a hit is worth what the weapon gives, scaled by how charged it was (as a player's).
+		float charge = d.kit == null ? 1f : Mth.clamp(d.sinceAttack / chargeTicks(m, d), 0, 1);
+		d.sinceAttack = 0;
 		if (m.getRandom().nextDouble() < s.accuracy) {
-			float dmg = crit ? s.damage * 1.5f : s.damage;
+			float dmg = (d.kit == null ? s.damage : baseDamage(m, d) * (0.2f + charge * charge * 0.8f)) * (crit ? 1.5f : 1f);
 			target.hurtServer(level, attack(m, level), dmg);
 			if (crit) {
 				level.getChunkSource().sendToTrackingPlayersAndSelf(m,
@@ -682,6 +715,61 @@ public final class DummyManager {
 				}
 			}
 		}
+	}
+
+	/** Damage of a full hit: the held weapon's with a kit, the style's otherwise. */
+	private static float baseDamage(Mannequin m, Dummy d) {
+		return d.kit == null ? d.settings.damage : (float) Loadout.stats(m.getMainHandItem())[0];
+	}
+
+	/** Ticks to recharge a swing: the weapon's attack speed with a kit (a sword 12.5, an axe 20). */
+	private static float chargeTicks(Mannequin m, Dummy d) {
+		return d.kit == null ? 12.5f : (float) (20 / Math.max(0.5, Loadout.stats(m.getMainHandItem())[1]));
+	}
+
+	/**
+	 * Bow or crossbow from the kit: draws and shoots from range (a full draw, like a player's), then
+	 * switches back to its melee weapon up close. True while it's busy shooting.
+	 */
+	private boolean ranged(Mannequin m, Dummy d, LivingEntity target, ServerLevel level) {
+		ItemStack launcher = ItemStack.EMPTY;
+		for (ItemStack s : d.kit) {
+			if (s.is(Items.BOW) || s.is(Items.CROSSBOW)) {
+				launcher = s;
+				break;
+			}
+		}
+		double dist = m.distanceTo(target);
+		if (launcher.isEmpty() || d.arrows <= 0 || dist < 4.5 || dist > 30 || !m.hasLineOfSight(target)) {
+			if (m.getMainHandItem().is(Items.BOW) || m.getMainHandItem().is(Items.CROSSBOW)) {
+				m.setItemSlot(EquipmentSlot.MAINHAND, Loadout.melee(d).copy());
+				d.draw = 0;
+			}
+			return false;
+		}
+		if (!m.getMainHandItem().is(launcher.getItem())) {
+			m.setItemSlot(EquipmentSlot.MAINHAND, launcher.copy());
+			d.draw = 0;
+		}
+		boolean crossbow = launcher.is(Items.CROSSBOW);
+		if (++d.draw < (crossbow ? 25 : 20) + d.settings.reactionTicks) {
+			return true;
+		}
+		d.draw = 0;
+		d.arrows--;
+		ItemStack ammo = new ItemStack(Items.ARROW);
+		var arrow = net.minecraft.world.entity.projectile.ProjectileUtil.getMobArrow(m, ammo, 1.0f, launcher);
+		arrow.pickup = net.minecraft.world.entity.projectile.arrow.AbstractArrow.Pickup.DISALLOWED;
+		double xd = target.getX() - m.getX();
+		double yd = target.getY(0.5) - arrow.getY();
+		double zd = target.getZ() - m.getZ();
+		double flat = Math.sqrt(xd * xd + zd * zd);
+		float speed = crossbow ? 3.15f : 3.0f;
+		net.minecraft.world.entity.projectile.Projectile.spawnProjectileUsingShoot(arrow, level, ammo, xd, yd + flat * 0.06, zd, speed,
+				(float) ((1 - d.settings.accuracy) * 10));
+		level.playSound(null, m.blockPosition(), crossbow ? net.minecraft.sounds.SoundEvents.CROSSBOW_SHOOT
+				: net.minecraft.sounds.SoundEvents.ARROW_SHOOT, net.minecraft.sounds.SoundSource.HOSTILE, 1f, 1f);
+		return true;
 	}
 
 	/**

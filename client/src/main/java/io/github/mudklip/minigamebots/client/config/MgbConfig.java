@@ -68,6 +68,9 @@ public final class MgbConfig {
 	// Training worlds (set on the Worlds tab > Customize; defaults = the classic setup)
 	@SerialEntry
 	public String worldKit = "default";
+	/** Kits you made with the kit editor (KitsScreen); the server keeps the items. */
+	@SerialEntry
+	public java.util.List<String> customKits = new java.util.ArrayList<>();
 	@SerialEntry
 	public String worldSize = "normal";
 	@SerialEntry

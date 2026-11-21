@@ -94,6 +94,7 @@ public final class CoreGames {
 		owner = p.getUUID();
 		kind = k;
 		centre = PracticeAreas.ground(p);
+		keep(p);
 		build(lv);
 		newRound(p);
 		return "Started " + TITLES.get(k) + " around you (rounds restart by themselves; /tg coregame stop ends it)";
@@ -198,23 +199,55 @@ public final class CoreGames {
 						new io.github.mudklip.minigamebots.training.dummy.ModeBots.Field(centre,
 								"sumo".equals(game) ? 5 : fallGame() ? 7 : HALF - 1, game,
 								b -> crumbling.containsKey(b), ffa, this::contestants, light)));
+				io.github.mudklip.minigamebots.training.dummy.Loadout.apply(m, d, kit());
 			}
 		}
 		p.setGameMode(GameType.SURVIVAL);
 		p.setHealth(p.getMaxHealth());
 		p.teleportTo(lv, centre.getX() + 0.5, centre.getY(), centre.getZ() + 0.5, java.util.Set.of(), p.getYRot(), 0, true);
-		var inv = p.getInventory();
-		// The round's kit, only what's missing (no pile-up over rounds).
-		if ("snowball".equals(kind) && inv.countItem(Items.SNOWBALL) < 16) {
-			inv.add(new ItemStack(Items.SNOWBALL, 16 - inv.countItem(Items.SNOWBALL)));
-		} else if ("spleef".equals(kind) && inv.countItem(Items.DIAMOND_SHOVEL) == 0) {
-			inv.add(new ItemStack(Items.DIAMOND_SHOVEL));
-		} else if (!fallGame() && !"snowball".equals(kind) && inv.countItem(Items.WOODEN_SWORD) == 0) {
-			inv.add(new ItemStack(Items.WOODEN_SWORD));
+		// Everyone gets the same kit each round: you (your own things are kept aside until the game
+		// stops) and every bot. Then the fairness check.
+		io.github.mudklip.minigamebots.training.arena.ArenaManager.applyKit(p, kit());
+		io.github.mudklip.minigamebots.training.dummy.Loadout.check(TITLES.get(kind), p, kit());
+		for (UUID id : foes) {
+			if (lv.getEntity(id) instanceof LivingEntity e) {
+				io.github.mudklip.minigamebots.training.dummy.Loadout.check(TITLES.get(kind), e, kit());
+			}
 		}
 		scoreboard(p, 0);
 		p.connection.send(new ClientboundSetTitleTextPacket(Component.literal(TITLES.get(kind))));
 		truth.send(p, "episode_start", new JsonObject());
+	}
+
+	private com.google.gson.JsonArray kit() {
+		return io.github.mudklip.minigamebots.training.dummy.Loadout.builtIn("core_" + kind);
+	}
+
+	private static java.nio.file.Path keptFile(ServerPlayer p) {
+		return TgStorage.dir(p.level().getServer()).resolve("kits").resolve("_kept-" + p.getUUID() + ".json");
+	}
+
+	/** Puts the player's own inventory aside (on disk too, so a crash can't lose it). */
+	public static void keep(ServerPlayer p) {
+		giveBack(p); // Left over from a crash: give it back first.
+		try {
+			TgStorage.writeAtomic(keptFile(p), TgStorage.GSON.toJson(io.github.mudklip.minigamebots.training.arena.ArenaManager.captureKit(p)));
+		} catch (java.io.IOException e) {
+			TrainingGrounds.LOGGER.warn("Couldn't put the inventory aside", e);
+		}
+	}
+
+	/** Gives back what keep() put aside, if anything. */
+	public static void giveBack(ServerPlayer p) {
+		java.nio.file.Path f = keptFile(p);
+		try {
+			if (java.nio.file.Files.exists(f)) {
+				io.github.mudklip.minigamebots.training.arena.ArenaManager.applyKit(p, TgStorage.GSON.fromJson(java.nio.file.Files.readString(f), com.google.gson.JsonArray.class));
+				java.nio.file.Files.delete(f);
+			}
+		} catch (Exception e) {
+			TrainingGrounds.LOGGER.warn("Couldn't give the inventory back", e);
+		}
 	}
 
 	private void scoreboard(ServerPlayer p, int value) {
@@ -251,6 +284,9 @@ public final class CoreGames {
 			ServerPlayer p = owner == null ? null : lv.getServer().getPlayerList().getPlayer(owner);
 			if (p != null && p.gameMode() == GameType.SPECTATOR) {
 				p.setGameMode(GameType.SURVIVAL);
+			}
+			if (p != null) {
+				giveBack(p);
 			}
 		}
 		replaced.clear();
@@ -419,11 +455,12 @@ public final class CoreGames {
 			return;
 		}
 		var direct = source.getDirectEntity();
-		var cause = source.getEntity();
+		// On Peaceful a dummy's hit has it only as the direct source (DummyManager.attack).
+		var cause = source.getEntity() != null ? source.getEntity() : direct;
 		boolean byOwner = cause == p;
 		switch (kind == null ? "" : kind) {
 			case "snowball" -> {
-				if (direct instanceof net.minecraft.world.entity.projectile.throwableitemprojectile.Snowball || isOwner && cause != null && foe((LivingEntity) cause)) {
+				if (direct instanceof net.minecraft.world.entity.projectile.throwableitemprojectile.Snowball || isOwner && cause instanceof LivingEntity le && foe(le)) {
 					out(victim, byOwner ? p : null);
 				}
 			}
